@@ -95,7 +95,7 @@ IMPORTANT — ALGORITHM COMPLEXITY:
     ) { args ->
       val arr = requireArray("map", args[0])
       val fn = requireFn("map", args, 1)
-      TArray(arr.elements.map { fn.call(listOf(it)) })
+      TArray(arr.elements.map { fn.callAsync(listOf(it)) })
     }
 
     shell.register("filter", "input: array, fn: (T) => boolean", "keeps elements where fn is truthy",
@@ -103,7 +103,7 @@ IMPORTANT — ALGORITHM COMPLEXITY:
     ) { args ->
       val arr = requireArray("filter", args[0])
       val fn = requireFn("filter", args, 1)
-      TArray(arr.elements.filter { fn.call(listOf(it)).isTruthy() })
+      TArray(arr.elements.filter { fn.callAsync(listOf(it)).isTruthy() })
     }
 
     shell.register("reduce", "input: array, fn: (acc, T) => acc, init?: any = 0", "folds array to single value",
@@ -112,7 +112,7 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       val arr = requireArray("reduce", args[0])
       val fn = requireFn("reduce", args, 1)
       val init = args.getOrElse(2) { TNumber(0.0) }
-      arr.elements.fold(init) { acc, el -> fn.call(listOf(acc, el)) }
+      arr.elements.fold(init) { acc, el -> fn.callAsync(listOf(acc, el)) }
     }
 
     shell.register("sort", "input: array, key?: string", "sorts; optional key for objects",
@@ -145,12 +145,52 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       TString(arr.elements.joinToString(sep) { it.toDisplayString() })
     }
 
-    shell.register("split", "input: string, sep?: string", "splits by separator",
-      listOf(""""a,b,c" |> split(",")""", """split("hello world", " ")""")
+    shell.register("split", "input: string, sep?: string|regex", "splits by separator (string or regex)",
+      listOf(""""a,b,c" |> split(",")""", """split("hello world", " ")""", """"a, b,  c" |> split(/,\\s*/)""")
     ) { args ->
       val s = requireString("split", args[0])
-      val sep = (args.getOrNull(1) as? TString)?.value ?: ","
-      TArray(s.value.split(sep).map { TString(it) })
+      val sep = args.getOrNull(1)
+      when (sep) {
+        is TRegex -> {
+          val regex = buildKotlinRegex(sep)
+          TArray(s.value.split(regex).map { TString(it) })
+        }
+        else -> {
+          val sepStr = (sep as? TString)?.value ?: ","
+          TArray(s.value.split(sepStr).map { TString(it) })
+        }
+      }
+    }
+
+    shell.register("lines", "input: string", "splits string into lines (trims trailing empty line)",
+      listOf(""""line1\nline2\nline3" |> lines()""", """"hello" |> lines() |> len()""")
+    ) { args ->
+      val s = requireString("lines", args[0]).value
+      val result = s.split("\n")
+      // Trim single trailing empty element from final newline (like shell behavior)
+      val trimmed = if (result.lastOrNull() == "") result.dropLast(1) else result
+      TArray(trimmed.map { TString(it) })
+    }
+
+    shell.register("columns", "input: string, indices: array, sep?: string|regex", "extract fields by index from delimited string",
+      listOf(
+        """"a,b,c,d" |> columns([1, 3])""",
+        """"a  b  c" |> columns([0, 2], /\\s+/)""",
+      )
+    ) { args ->
+      val s = requireString("columns", args[0]).value
+      val indices = requireArray("columns", args.getOrElse(1) { TNull })
+      val sep = args.getOrNull(2)
+      val fields = when (sep) {
+        is TRegex -> s.split(buildKotlinRegex(sep))
+        is TString -> s.split(sep.value)
+        else -> s.split(",")
+      }
+      val idxList = indices.elements.map {
+        ((it as? TNumber)?.value?.toInt()
+          ?: throw TShellError.typeMismatch("columns", "number", it, "indices must be numbers"))
+      }
+      TArray(idxList.map { i -> if (i in fields.indices) TString(fields[i]) else TNull })
     }
 
     shell.register("flat", "input: array", "flattens one level",
@@ -200,6 +240,19 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       }
     }
 
+    shell.register("last", "input: array|string, n?: number", "last n elements (default 1 element, not wrapped)",
+      listOf("""[1, 2, 3, 4, 5] |> last(2)""", """[1, 2, 3] |> last()""")
+    ) { args ->
+      val n = (args.getOrNull(1) as? TNumber)?.value?.toInt()
+      when (val input = args[0]) {
+        is TArray -> if (n != null) TArray(input.elements.takeLast(n)) else input.elements.lastOrNull() ?: TNull
+        is TString -> if (n != null) TString(input.value.takeLast(n)) else {
+          if (input.value.isEmpty()) TNull else TString(input.value.last().toString())
+        }
+        else -> throw TShellError.typeMismatch("last", "array or string", input)
+      }
+    }
+
     shell.register("keys", "input: object", "object keys",
       listOf("""{a: 1, b: 2} |> keys()""", """keys({a: 1, b: 2})""")
     ) { args ->
@@ -236,7 +289,7 @@ IMPORTANT — ALGORITHM COMPLEXITY:
     ) { args ->
       val arr = requireArray("find", args[0])
       val fn = requireFn("find", args, 1)
-      arr.elements.firstOrNull { fn.call(listOf(it)).isTruthy() } ?: TNull
+      arr.elements.firstOrNull { fn.callAsync(listOf(it)).isTruthy() } ?: TNull
     }
 
     shell.register("contains", "input: array|string, value: any", "membership test",
@@ -265,7 +318,7 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       val fn = requireFn("groupBy", args, 1)
       val groups = linkedMapOf<String, MutableList<TShellValue>>()
       for (elem in arr.elements) {
-        val key = fn.call(listOf(elem))
+        val key = fn.callAsync(listOf(elem))
         val keyStr = (key as? TString)?.value ?: key.toDisplayString()
         groups.getOrPut(keyStr) { mutableListOf() }.add(elem)
       }
@@ -375,15 +428,21 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       TString(requireString("upper", args[0]).value.uppercase())
     }
 
-    shell.register("replace", "input: string, old: string, new: string", "replaces all occurrences",
-      listOf(""""hello world" |> replace("world", "tshell")""")
+    shell.register("replace", "input: string, old: string|regex, new: string", "replaces occurrences (string literal or regex with $1 backrefs)",
+      listOf(""""hello world" |> replace("world", "tshell")""", """"abc 123" |> replace(/([a-z]+) ([0-9]+)/, "$2 $1")""")
     ) { args ->
       val input = requireString("replace", args[0])
-      val old = (args.getOrElse(1) { TNull } as? TString)?.value
-        ?: throw TShellError.wrongArguments("replace", "input: string, old: string, new: string", args)
-      val new = (args.getOrElse(2) { TNull } as? TString)?.value
-        ?: throw TShellError.wrongArguments("replace", "input: string, old: string, new: string", args)
-      TString(input.value.replace(old, new))
+      val pattern = args.getOrElse(1) { TNull }
+      val replacement = (args.getOrElse(2) { TNull } as? TString)?.value
+        ?: throw TShellError.wrongArguments("replace", "input: string, old: string|regex, new: string", args)
+      when (pattern) {
+        is TRegex -> {
+          val regex = buildKotlinRegex(pattern)
+          TString(regex.replace(input.value, replacement))
+        }
+        is TString -> TString(input.value.replace(pattern.value, replacement))
+        else -> throw TShellError.wrongArguments("replace", "input: string, old: string|regex, new: string", args)
+      }
     }
 
     shell.register("startsWith", "input: string, prefix: string", "prefix test",
@@ -424,15 +483,104 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       TString(s.substring(safeStart, safeEnd))
     }
 
-    shell.register("match", "input: string, pattern: string", "regex match → array",
-      listOf(""""abc123def456" |> match("[0-9]+")""")
+    shell.register("padStart", "input: string, length: number, fill?: string", "pads start to target length",
+      listOf(""""42" |> padStart(5, "0")""", """"hi" |> padStart(5)""")
+    ) { args ->
+      val s = requireString("padStart", args[0]).value
+      val len = requireNumber("padStart", args, 1).toInt()
+      val fill = (args.getOrNull(2) as? TString)?.value ?: " "
+      if (fill.isEmpty()) throw TShellError.runtime("padStart: fill string must not be empty")
+      TString(s.padStart(len, fill[0]))
+    }
+
+    shell.register("padEnd", "input: string, length: number, fill?: string", "pads end to target length",
+      listOf(""""hi" |> padEnd(5, ".")""", """"hi" |> padEnd(5)""")
+    ) { args ->
+      val s = requireString("padEnd", args[0]).value
+      val len = requireNumber("padEnd", args, 1).toInt()
+      val fill = (args.getOrNull(2) as? TString)?.value ?: " "
+      if (fill.isEmpty()) throw TShellError.runtime("padEnd: fill string must not be empty")
+      TString(s.padEnd(len, fill[0]))
+    }
+
+    shell.register("match", "input: string, pattern: string|regex", "regex match → array (string: flat matches; regex: [{match, groups, index}])",
+      listOf(
+        """"abc123def456" |> match("[0-9]+")""",
+        """"abc123" |> match(/([a-z]+)([0-9]+)/)""",
+      )
     ) { args ->
       val s = requireString("match", args[0]).value
-      val pattern = (args.getOrElse(1) { TNull } as? TString)?.value
-        ?: throw TShellError.wrongArguments("match", "input: string, pattern: string", args)
-      val regex = Regex(pattern)
-      val matches = regex.findAll(s).map { TString(it.value) as TShellValue }.toList()
-      TArray(matches)
+      val pattern = args.getOrElse(1) { TNull }
+      when (pattern) {
+        is TRegex -> {
+          val regex = buildKotlinRegex(pattern)
+          val hasGlobal = pattern.flags.contains('g')
+          val results = if (hasGlobal) regex.findAll(s) else {
+            val m = regex.find(s)
+            if (m != null) sequenceOf(m) else emptySequence()
+          }
+          TArray(results.map { mr ->
+            TObject(mapOf(
+              "match" to TString(mr.value),
+              "groups" to TArray(mr.groupValues.drop(1).map { TString(it) }),
+              "index" to TNumber(mr.range.first.toDouble())
+            ))
+          }.toList())
+        }
+        is TString -> {
+          // Backward compat: flat array of match strings
+          val regex = Regex(pattern.value)
+          TArray(regex.findAll(s).map { TString(it.value) as TShellValue }.toList())
+        }
+        else -> throw TShellError.wrongArguments("match", "input: string, pattern: string|regex", args)
+      }
+    }
+
+    // --- Regex operations ---
+
+    shell.register("test", "input: string, pattern: string|regex", "boolean regex test",
+      listOf(""""hello123" |> test(/[0-9]+/)""", """test("abc", "[0-9]+")""")
+    ) { args ->
+      val s = requireString("test", args[0]).value
+      val pattern = args.getOrElse(1) { TNull }
+      val regex = when (pattern) {
+        is TRegex -> buildKotlinRegex(pattern)
+        is TString -> Regex(pattern.value)
+        else -> throw TShellError.wrongArguments("test", "input: string, pattern: string|regex", args)
+      }
+      TBoolean(regex.containsMatchIn(s))
+    }
+
+    // --- Set operations ---
+
+    shell.register("difference", "a: array, b: array", "elements in a not in b",
+      listOf("""difference([1, 2, 3, 4], [2, 4])""")
+    ) { args ->
+      val a = requireArray("difference", args[0])
+      val b = requireArray("difference", args.getOrElse(1) { TNull })
+      TArray(a.elements.filter { aElem -> b.elements.none { valuesEqual(it, aElem) } })
+    }
+
+    shell.register("intersection", "a: array, b: array", "elements in both a and b",
+      listOf("""intersection([1, 2, 3], [2, 3, 4])""")
+    ) { args ->
+      val a = requireArray("intersection", args[0])
+      val b = requireArray("intersection", args.getOrElse(1) { TNull })
+      TArray(a.elements.filter { aElem -> b.elements.any { valuesEqual(it, aElem) } })
+    }
+
+    shell.register("union", "a: array, b: array", "combined, deduplicated",
+      listOf("""union([1, 2, 3], [2, 3, 4])""")
+    ) { args ->
+      val a = requireArray("union", args[0])
+      val b = requireArray("union", args.getOrElse(1) { TNull })
+      val result = a.elements.toMutableList()
+      for (elem in b.elements) {
+        if (result.none { valuesEqual(it, elem) }) {
+          result.add(elem)
+        }
+      }
+      TArray(result)
     }
 
     // --- Math operations ---
@@ -610,6 +758,20 @@ IMPORTANT — ALGORITHM COMPLEXITY:
     return v as? TString ?: throw TShellError.typeMismatch("pipe into $cmd", "string", v)
   }
 
+  private fun buildKotlinRegex(r: TShellValue.TRegex): Regex {
+    val opts = mutableSetOf<RegexOption>()
+    for (c in r.flags) {
+      when (c) {
+        'i' -> opts.add(RegexOption.IGNORE_CASE)
+        'm' -> opts.add(RegexOption.MULTILINE)
+        's' -> opts.add(RegexOption.DOT_MATCHES_ALL)
+        // 'g' is handled by caller (findAll vs find)
+        // 'u', 'y' have no Kotlin equivalent, silently ignore
+      }
+    }
+    return Regex(r.pattern, opts)
+  }
+
   private fun requireObject(cmd: String, v: TShellValue): TObject {
     return v as? TObject ?: throw TShellError.typeMismatch("pipe into $cmd", "object", v)
   }
@@ -753,6 +915,7 @@ IMPORTANT — ALGORITHM COMPLEXITY:
     is TArray -> "[${v.elements.joinToString(",") { toJsonString(it) }}]"
     is TObject -> "{${v.fields.entries.joinToString(",") { "\"${escapeJsonString(it.key)}\":${toJsonString(it.value)}" }}}"
     is TFunction -> "null" // functions can't be serialized to JSON
+    is TRegex -> "\"${escapeJsonString("/${v.pattern}/${v.flags}")}\"" // serialize as string representation
   }
 
   private fun escapeJsonString(s: String): String {

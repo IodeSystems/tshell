@@ -91,7 +91,7 @@ safe
     val prompt = sh.toPrompt()
     assertTrue(prompt.contains("help"))
     assertTrue(prompt.contains("map"))
-    assertTrue(prompt.length < 4500, "Prompt is ${prompt.length} chars, should be < 4500")
+    assertTrue(prompt.length < 5500, "Prompt is ${prompt.length} chars, should be < 5500")
   }
 
   /**

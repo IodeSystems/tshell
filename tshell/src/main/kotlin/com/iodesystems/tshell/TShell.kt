@@ -56,6 +56,11 @@ class TShell(
     return Interpreter(commands, globals, limits).eval(source).value
   }
 
+  suspend fun evalAsync(source: String): TShellValue {
+    if (limits.resetOnEval) limits.reset()
+    return Interpreter(commands, globals, limits).evalAsync(source).value
+  }
+
   /**
    * Evaluates source in an isolated child environment.
    * Only names marked with `export` are promoted to globals (using defineOrSet,
@@ -206,8 +211,20 @@ for (let x of items) { body }
 [1,2,3] |* (x => x * 2)     // → [2, 4, 6] (parallel)
 [1,2,3] |* double |> reduce((acc, x) => acc + x)  // scatter then reduce
 
+## Method syntax
+[1,2,3].map(x => x * 2)     // resolves to map([1,2,3], x => x * 2)
+"hello".toUpperCase()        // resolves to upper("hello")
+[1,2,3].includes(2)         // resolves to contains([1,2,3], 2)
+
+## Composition
+all(() => getA(), () => getB())    // parallel execution, returns [resultA, resultB]
+race(() => tryA(), () => tryB())   // parallel, returns first success (cancels rest)
+any(() => tryA(), () => tryB())    // sequential, returns first truthy result
+chain(() => getData(), d => transform(d))  // sequential pipeline
+
 ## Literals and operators
 "str", 'str', `template ${'$'}{x}`              // strings
+/pattern/flags                               // regex: /[0-9]+/gi, used with match, replace, split, test
 [1, 2, 3], {key: val}                        // arrays, objects
 obj.field, arr[0], obj?.field                 // access, optional chaining
 ==, !=, <, >, <=, >=, &&, ||, !, a ?? b      // comparison, logic, null coalescing
@@ -229,7 +246,9 @@ fn(name: "Alice", age: 30)                   // named args (matched to param nam
       "Execute tshell code. NOT JavaScript or Kotlin. " +
       "Variables: let x = 5. Named functions: function name(x) { return x * 2 }. " +
       "Lambdas: let f = x => x + 1. Pipes: [1,2,3] |> map(n => n * 10). " +
-      "Math: Math.sqrt(25), Math.pow(2, 10), Math.PI. " +
+      "Regex: /pattern/flags with match, replace, split, test. " +
+      "Method syntax: arr.map(fn), str.toUpperCase() — auto-resolves to commands. " +
+      "Parallel: all(() => a(), () => b()), race(), |* scatter. " +
       "Use 'export' to persist values across calls: export let x = 5, export function f(n) { ... }. " +
       "Without export, all state is discarded after this call. " +
       "Output is limited — use limit(), filter(), or read(path, start, lines) to reduce large results."
@@ -254,6 +273,10 @@ for (let x of [1,2,3]) { x }
 let {name, age} = {name: "alice", age: 30}
 3 |> add <| 4
 [10, 20, 30] |> [a, b, c]
-add(b: 2, a: 1)"""
+add(b: 2, a: 1)
+[1,2,3].map(x => x * 2)
+"hello".toUpperCase()
+all(() => 1, () => 2)
+any(() => null, () => 42)"""
   }
 }

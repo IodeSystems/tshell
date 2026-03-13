@@ -1,13 +1,12 @@
 package com.iodesystems.tshell.runtime
 
-import kotlinx.coroutines.runBlocking
-
 sealed class TShellValue {
   data class TString(val value: String) : TShellValue()
   data class TNumber(val value: Double) : TShellValue()
   data class TBoolean(val value: Boolean) : TShellValue()
   data class TArray(val elements: List<TShellValue>) : TShellValue()
   data class TObject(val fields: Map<String, TShellValue>) : TShellValue()
+  data class TRegex(val pattern: String, val flags: String = "") : TShellValue()
   data object TNull : TShellValue()
 
   data class TFunction(
@@ -15,18 +14,18 @@ sealed class TShellValue {
     val params: List<String>,
     val body: FunctionBody,
   ) : TShellValue() {
-    /**
-     * Calls this function synchronously.
-     * For Native bodies: bridges suspend via runBlocking.
-     * For Expression/Block bodies: creates a temp Interpreter from the stored context
-     * (commands, capturedEnv, limits) and executes the AST.
-     */
-    fun call(args: List<TShellValue>): TShellValue = when (val b = body) {
-      is FunctionBody.Native -> runBlocking { b.fn(args) }
+    /** Suspend-capable call — use this from coroutine contexts (native commands, etc.) */
+    suspend fun callAsync(args: List<TShellValue>): TShellValue = when (val b = body) {
+      is FunctionBody.Native -> b.fn(args)
       is FunctionBody.Expression ->
         Interpreter(b.commands, b.capturedEnv, b.limits).executeInBranch(this, args)
       is FunctionBody.Block ->
         Interpreter(b.commands, b.capturedEnv, b.limits).executeInBranch(this, args)
+    }
+
+    /** Synchronous bridge for external callers not in a coroutine context. */
+    fun call(args: List<TShellValue>): TShellValue = kotlinx.coroutines.runBlocking {
+      callAsync(args)
     }
   }
 
@@ -59,6 +58,7 @@ sealed class TShellValue {
     is TArray -> elements.isNotEmpty()
     is TObject -> fields.isNotEmpty()
     is TFunction -> true
+    is TRegex -> true
   }
 
   fun typeName(): String = when (this) {
@@ -69,6 +69,7 @@ sealed class TShellValue {
     is TObject -> "object"
     is TNull -> "null"
     is TFunction -> "function"
+    is TRegex -> "regex"
   }
 
   fun toDisplayString(): String = when (this) {
@@ -85,6 +86,7 @@ sealed class TShellValue {
     is TArray -> "[${elements.joinToString(", ") { it.toInspectString() }}]"
     is TObject -> "{${fields.entries.joinToString(", ") { "${it.key}: ${it.value.toInspectString()}" }}}"
     is TFunction -> "function ${name ?: "<anonymous>"}(${params.joinToString(", ")})"
+    is TRegex -> "/${pattern}/${flags}"
   }
 
   fun toInspectString(): String = when (this) {

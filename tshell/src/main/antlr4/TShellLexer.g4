@@ -1,5 +1,7 @@
 lexer grammar TShellLexer;
 
+options { superClass=TShellLexerBase; }
+
 // Keywords
 LET     : 'let' | 'const';
 FUNCTION: 'function';
@@ -21,6 +23,7 @@ NULL    : 'null';
 CHAIN   : 'chain';
 ALL     : 'all';
 RACE    : 'race';
+ANY     : 'any';
 
 // Operators (multi-char before single-char for correct matching)
 PIPE_RIGHT  : '|>';
@@ -39,6 +42,11 @@ PERCENT_ASSIGN: '%=';
 PLUS        : '+';
 MINUS       : '-';
 STAR        : '*';
+
+// Regex literal — must come BEFORE SLASH.
+// Semantic predicate: only match if previous token could NOT end an expression.
+REGEX       : {!prevTokenCouldEndExpr()}? '/' ( ~[/\\\r\n] | '\\' . )+ '/' [gimsuy]* ;
+
 SLASH       : '/';
 PERCENT     : '%';
 SEQ         : '===';

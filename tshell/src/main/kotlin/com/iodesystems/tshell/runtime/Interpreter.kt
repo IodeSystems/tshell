@@ -3,9 +3,9 @@ package com.iodesystems.tshell.runtime
 import com.iodesystems.tshell.parser.TShellLexer
 import com.iodesystems.tshell.parser.TShellParser
 import com.iodesystems.tshell.parser.TShellParser.*
-import com.iodesystems.tshell.parser.TShellParserBaseVisitor
 import kotlinx.coroutines.*
 import org.antlr.v4.runtime.*
+import org.antlr.v4.runtime.tree.ParseTree
 
 private class FieldStep(val name: String)
 private class IndexStep(val value: TShellValue)
@@ -32,7 +32,18 @@ class Interpreter(
   private val limits: ExecutionLimits = ExecutionLimits()
 ) {
 
-  fun eval(source: String): EvalResult {
+  fun eval(source: String): EvalResult = runBlocking(Dispatchers.Default) {
+    evalAsync(source)
+  }
+
+  suspend fun evalAsync(source: String): EvalResult {
+    val tree = parse(source)
+    val visitor = Visitor(globals)
+    val value = visitor.eval(tree)
+    return EvalResult(value, visitor.exportedNames)
+  }
+
+  private fun parse(source: String): ProgramContext {
     val lexer = TShellLexer(CharStreams.fromString(source))
     lexer.removeErrorListeners()
     lexer.addErrorListener(DescriptiveErrorListener(source))
@@ -40,10 +51,7 @@ class Interpreter(
     val parser = TShellParser(tokens)
     parser.removeErrorListeners()
     parser.addErrorListener(DescriptiveErrorListener(source))
-    val tree = parser.program()
-    val visitor = Visitor(globals)
-    val value = visitor.visit(tree) ?: TShellValue.TNull
-    return EvalResult(value, visitor.exportedNames)
+    return parser.program()
   }
 
   /**
@@ -51,7 +59,7 @@ class Interpreter(
    * Used by all() to run branches in parallel, and by TFunction.call()
    * from native commands (map, filter, reduce) to execute user functions.
    */
-  fun executeInBranch(fn: TShellValue.TFunction, args: List<TShellValue>): TShellValue {
+  suspend fun executeInBranch(fn: TShellValue.TFunction, args: List<TShellValue>): TShellValue {
     val visitor = Visitor(globals)
     return visitor.callFunctionInternal(fn, args)
   }
@@ -144,7 +152,7 @@ class Interpreter(
   private class BreakSignal : RuntimeException()
   private class ContinueSignal : RuntimeException()
 
-  private inner class Visitor(private var env: Environment) : TShellParserBaseVisitor<TShellValue>() {
+  private inner class Visitor(private var env: Environment) {
 
     val exportedNames = mutableSetOf<String>()
 
@@ -160,7 +168,7 @@ class Interpreter(
       limits.popCall()
     }
 
-    private fun <T> withLocation(ctx: ParserRuleContext, block: () -> T): T {
+    private suspend fun <T> withLocation(ctx: ParserRuleContext, block: suspend () -> T): T {
       try {
         return block()
       } catch (e: TShellError) {
@@ -173,18 +181,88 @@ class Interpreter(
       }
     }
 
-    override fun visitProgram(ctx: ProgramContext): TShellValue {
+    /**
+     * Central dispatch: maps parse tree nodes to visit methods.
+     * Replaces ANTLR's generated visitor dispatch with a suspend-capable version.
+     */
+    suspend fun eval(ctx: ParseTree): TShellValue = when (ctx) {
+      is ProgramContext -> visitProgram(ctx)
+      // Statements
+      is ExportStatementContext -> visitExportStatement(ctx)
+      is LetDeclContext -> visitLetDecl(ctx)
+      is FnDeclContext -> visitFnDecl(ctx)
+      is ReturnStatementContext -> visitReturnStatement(ctx)
+      is BreakStatementContext -> visitBreakStatement(ctx)
+      is ContinueStatementContext -> visitContinueStatement(ctx)
+      is AssignStatementContext -> visitAssignStatement(ctx)
+      is IncrDecrStatementContext -> visitIncrDecrStatement(ctx)
+      is ExpressionStatementContext -> visitExpressionStatement(ctx)
+      is IfStatementContext -> visitIfStatement(ctx)
+      is WhileStatementContext -> visitWhileStatement(ctx)
+      is ForOfStatementContext -> visitForOfStatement(ctx)
+      is ForStatementContext -> visitForStatement(ctx)
+      is BlockContext -> visitBlock(ctx)
+      is BlockOrStatementContext -> visitBlockOrStatement(ctx)
+      // Expressions
+      is ExpressionContext -> visitExpression(ctx)
+      is TernaryExprContext -> visitTernaryExpr(ctx)
+      is NullCoalesceExprContext -> visitNullCoalesceExpr(ctx)
+      is OrExprContext -> visitOrExpr(ctx)
+      is AndExprContext -> visitAndExpr(ctx)
+      is EqualityExprContext -> visitEqualityExpr(ctx)
+      is ComparisonExprContext -> visitComparisonExpr(ctx)
+      is PipeExprContext -> visitPipeExpr(ctx)
+      is AdditiveExprContext -> visitAdditiveExpr(ctx)
+      is MultiplicativeExprContext -> visitMultiplicativeExpr(ctx)
+      is UnaryExprContext -> visitUnaryExpr(ctx)
+      is PostfixExprContext -> visitPostfixExpr(ctx)
+      // Primary expressions
+      is NumberLiteralContext -> visitNumberLiteral(ctx)
+      is StringLiteralContext -> visitStringLiteral(ctx)
+      is TemplateLiteralContext -> visitTemplateLiteral(ctx)
+      is TrueLiteralContext -> visitTrueLiteral(ctx)
+      is FalseLiteralContext -> visitFalseLiteral(ctx)
+      is NullLiteralContext -> visitNullLiteral(ctx)
+      is IdentifierExprContext -> visitIdentifierExpr(ctx)
+      is RegexExprContext -> visitRegexExpr(ctx)
+      is ArrayExprContext -> visitArrayExpr(ctx)
+      is ObjectExprContext -> visitObjectExpr(ctx)
+      is ParenExprContext -> visitParenExpr(ctx)
+      is ChainExprContext -> visitChainExpr(ctx)
+      is AllExprContext -> visitAllExpr(ctx)
+      is RaceExprContext -> visitRaceExpr(ctx)
+      is AnyExprContext -> visitAnyExpr(ctx)
+      // Arrow functions (ArrowExprContext wraps arrowFunction rule)
+      is ArrowExprContext -> eval(ctx.arrowFunction())
+      is SingleParamArrowContext -> visitSingleParamArrow(ctx)
+      is MultiParamArrowContext -> visitMultiParamArrow(ctx)
+      is SingleParamArrowBlockContext -> visitSingleParamArrowBlock(ctx)
+      is MultiParamArrowBlockContext -> visitMultiParamArrowBlock(ctx)
+      // Compound literals
+      is ArrayLiteralContext -> visitArrayLiteral(ctx)
+      is ObjectLiteralContext -> visitObjectLiteral(ctx)
+      is TemplateStringContext -> visitTemplateString(ctx)
+      // Statement wrapper (grammar's statement rule dispatches to sub-rules)
+      is StatementContext -> {
+        val child = ctx.getChild(0) ?: throw TShellError.runtime("Empty statement")
+        if (child is org.antlr.v4.runtime.tree.TerminalNode) TShellValue.TNull // bare semicolons
+        else eval(child)
+      }
+      else -> throw TShellError.runtime("Unknown node type: ${ctx::class.simpleName}")
+    }
+
+    suspend fun visitProgram(ctx: ProgramContext): TShellValue {
       var result: TShellValue = TShellValue.TNull
       for (stmt in ctx.statement()) {
         step(stmt)
-        result = visit(stmt) ?: TShellValue.TNull
+        result = eval(stmt)
       }
       return result
     }
 
     // --- Statements ---
 
-    override fun visitExportStatement(ctx: ExportStatementContext): TShellValue {
+    suspend fun visitExportStatement(ctx: ExportStatementContext): TShellValue {
       // Execute the inner statement
       val result = when {
         ctx.letDecl() != null -> visitLetDecl(ctx.letDecl())
@@ -222,13 +300,13 @@ class Interpreter(
       }
     }
 
-    override fun visitLetDecl(ctx: LetDeclContext): TShellValue {
-      val value = visit(ctx.expression()) ?: TShellValue.TNull
+    suspend fun visitLetDecl(ctx: LetDeclContext): TShellValue {
+      val value = eval(ctx.expression())
       bindDestructure(ctx.destructure(), value)
       return TShellValue.TNull
     }
 
-    override fun visitFnDecl(ctx: FnDeclContext): TShellValue {
+    suspend fun visitFnDecl(ctx: FnDeclContext): TShellValue {
       val name = ctx.IDENTIFIER().text
       val params = ctx.paramList()?.param()?.map { it.IDENTIFIER().text } ?: emptyList()
       val capturedEnv = env
@@ -241,20 +319,22 @@ class Interpreter(
       return TShellValue.TNull
     }
 
-    override fun visitReturnStatement(ctx: ReturnStatementContext): TShellValue {
-      val value = if (ctx.expression() != null) visit(ctx.expression()) ?: TShellValue.TNull else TShellValue.TNull
+    suspend fun visitReturnStatement(ctx: ReturnStatementContext): TShellValue {
+      val value = if (ctx.expression() != null) eval(ctx.expression()) else TShellValue.TNull
       throw ReturnSignal(value)
     }
 
-    override fun visitBreakStatement(ctx: BreakStatementContext): TShellValue {
+    @Suppress("unused")
+    suspend fun visitBreakStatement(ctx: BreakStatementContext): TShellValue {
       throw BreakSignal()
     }
 
-    override fun visitContinueStatement(ctx: ContinueStatementContext): TShellValue {
+    @Suppress("unused")
+    suspend fun visitContinueStatement(ctx: ContinueStatementContext): TShellValue {
       throw ContinueSignal()
     }
 
-    private fun performAssign(target: AssignTargetContext, op: String, rhs: TShellValue) {
+    private suspend fun performAssign(target: AssignTargetContext, op: String, rhs: TShellValue) {
       val rootName = target.IDENTIFIER().text
       val steps = buildAccessorSteps(target)
 
@@ -304,37 +384,42 @@ class Interpreter(
       }
     }
 
-    override fun visitAssignStatement(ctx: AssignStatementContext): TShellValue {
-      val rhs = visit(ctx.expression()) ?: TShellValue.TNull
+    suspend fun visitAssignStatement(ctx: AssignStatementContext): TShellValue {
+      val rhs = eval(ctx.expression())
       performAssign(ctx.assignTarget(), ctx.assignOp().text, rhs)
       return TShellValue.TNull
     }
 
-    private fun performIncrDecr(target: AssignTargetContext, op: String) {
+    private suspend fun performIncrDecr(target: AssignTargetContext, op: String) {
       val delta = if (op == "++") TShellValue.TNumber(1.0) else TShellValue.TNumber(-1.0)
       performAssign(target, "+=", delta)
     }
 
-    override fun visitIncrDecrStatement(ctx: IncrDecrStatementContext): TShellValue {
+    @Suppress("unused")
+    suspend fun visitIncrDecrStatement(ctx: IncrDecrStatementContext): TShellValue {
       val op = if (ctx.INCREMENT() != null) "++" else "--"
       performIncrDecr(ctx.assignTarget(), op)
       return TShellValue.TNull
     }
 
-    override fun visitExpressionStatement(ctx: ExpressionStatementContext): TShellValue {
-      return visit(ctx.expression()) ?: TShellValue.TNull
+    suspend fun visitExpressionStatement(ctx: ExpressionStatementContext): TShellValue {
+      return eval(ctx.expression())
     }
 
-    override fun visitBlockOrStatement(ctx: BlockOrStatementContext): TShellValue {
+    suspend fun visitExpression(ctx: ExpressionContext): TShellValue {
+      return eval(ctx.ternaryExpr())
+    }
+
+    suspend fun visitBlockOrStatement(ctx: BlockOrStatementContext): TShellValue {
       return if (ctx.block() != null) {
         visitBlock(ctx.block())
       } else {
-        visit(ctx.statement()) ?: TShellValue.TNull
+        eval(ctx.statement())
       }
     }
 
-    override fun visitIfStatement(ctx: IfStatementContext): TShellValue {
-      val condition = visit(ctx.expression()) ?: TShellValue.TNull
+    suspend fun visitIfStatement(ctx: IfStatementContext): TShellValue {
+      val condition = eval(ctx.expression())
       return if (condition.isTruthy()) {
         visitBlockOrStatement(ctx.blockOrStatement(0))
       } else if (ctx.ifStatement() != null) {
@@ -346,9 +431,9 @@ class Interpreter(
       }
     }
 
-    override fun visitWhileStatement(ctx: WhileStatementContext): TShellValue {
+    suspend fun visitWhileStatement(ctx: WhileStatementContext): TShellValue {
       var result: TShellValue = TShellValue.TNull
-      while ((visit(ctx.expression()) ?: TShellValue.TNull).isTruthy()) {
+      while (eval(ctx.expression()).isTruthy()) {
         step(ctx)
         try {
           result = visitBlock(ctx.block())
@@ -361,8 +446,8 @@ class Interpreter(
       return result
     }
 
-    override fun visitForOfStatement(ctx: ForOfStatementContext): TShellValue {
-      val iterable = visit(ctx.expression()) ?: TShellValue.TNull
+    suspend fun visitForOfStatement(ctx: ForOfStatementContext): TShellValue {
+      val iterable = eval(ctx.expression())
       val items = when (iterable) {
         is TShellValue.TArray -> iterable.elements
         is TShellValue.TString -> iterable.value.map { TShellValue.TString(it.toString()) }
@@ -389,17 +474,17 @@ class Interpreter(
       return result
     }
 
-    override fun visitForStatement(ctx: ForStatementContext): TShellValue {
+    suspend fun visitForStatement(ctx: ForStatementContext): TShellValue {
       val outerEnv = env
       env = env.child()
       // Init
       val letInit = ctx.forInitLet()
       val assignInit = ctx.forInitAssign()
       if (letInit != null) {
-        val value = visit(letInit.expression()) ?: TShellValue.TNull
+        val value = eval(letInit.expression())
         env.define(letInit.IDENTIFIER().text, value)
       } else if (assignInit != null) {
-        performAssign(assignInit.assignTarget(), assignInit.assignOp().text, visit(assignInit.expression()) ?: TShellValue.TNull)
+        performAssign(assignInit.assignTarget(), assignInit.assignOp().text, eval(assignInit.expression()))
       }
       var result: TShellValue = TShellValue.TNull
       while (true) {
@@ -407,7 +492,7 @@ class Interpreter(
         // Condition
         val condCtx = ctx.expression()
         if (condCtx != null) {
-          val cond = visit(condCtx) ?: TShellValue.TNull
+          val cond = eval(condCtx)
           if (!cond.isTruthy()) break
         }
         try {
@@ -421,7 +506,7 @@ class Interpreter(
         val updateCtx = ctx.forUpdateAssign()
         val updateIncrDecr = ctx.forUpdateIncrDecr()
         if (updateCtx != null) {
-          performAssign(updateCtx.assignTarget(), updateCtx.assignOp().text, visit(updateCtx.expression()) ?: TShellValue.TNull)
+          performAssign(updateCtx.assignTarget(), updateCtx.assignOp().text, eval(updateCtx.expression()))
         } else if (updateIncrDecr != null) {
           val op = if (updateIncrDecr.INCREMENT() != null) "++" else "--"
           performIncrDecr(updateIncrDecr.assignTarget(), op)
@@ -431,13 +516,13 @@ class Interpreter(
       return result
     }
 
-    override fun visitBlock(ctx: BlockContext): TShellValue {
+    suspend fun visitBlock(ctx: BlockContext): TShellValue {
       val blockEnv = env.child()
       val outerEnv = env
       env = blockEnv
       var result: TShellValue = TShellValue.TNull
       for (stmt in ctx.statement()) {
-        result = visit(stmt) ?: TShellValue.TNull
+        result = eval(stmt)
       }
       env = outerEnv
       return result
@@ -452,14 +537,14 @@ class Interpreter(
       else -> listOf(value)
     }
 
-    override fun visitPipeExpr(ctx: PipeExprContext): TShellValue {
+    suspend fun visitPipeExpr(ctx: PipeExprContext): TShellValue {
       val exprs = ctx.additiveExpr()
       if (exprs.size == 1) {
-        return visit(exprs[0]) ?: TShellValue.TNull
+        return eval(exprs[0])
       }
       // Grammar: additiveExpr ((PIPE_RIGHT | PIPE_SCATTER) additiveExpr (PIPE_LEFT additiveExpr)*)*
       // Walk children to determine pipe structure
-      var result = visit(exprs[0]) ?: TShellValue.TNull
+      var result = eval(exprs[0])
       var i = 1
       for (child in ctx.children.drop(1)) {
         if (child is org.antlr.v4.runtime.tree.TerminalNode &&
@@ -490,7 +575,7 @@ class Interpreter(
             val next = ctx.children[j]
             if (next is org.antlr.v4.runtime.tree.TerminalNode &&
                 next.symbol.type == TShellLexer.PIPE_LEFT) {
-              rightArgs.add(visit(exprs[i++]) ?: TShellValue.TNull)
+              rightArgs.add(eval(exprs[i++]))
               j += 2
             } else {
               break
@@ -505,7 +590,7 @@ class Interpreter(
             fn = pipeCall.first
             extraArgs = pipeCall.second + rightArgs
           } else {
-            val rhsVal = visit(rhsExpr) ?: TShellValue.TNull
+            val rhsVal = eval(rhsExpr)
             fn = rhsVal as? TShellValue.TFunction
               ?: throw TShellError.typeMismatch(
                 if (pipeType == TShellLexer.PIPE_SCATTER) "scatter pipe" else "pipe",
@@ -533,14 +618,10 @@ class Interpreter(
                   withLocation(ctx) { callFunction(fn, listOf(elements[0]) + extraArgs, ctx) }
                 ))
               } else {
-                val results = runBlocking(Dispatchers.IO) {
-                  elements.map { elem ->
-                    async {
-                      val branchLimits = limits.fork()
-                      val branchInterpreter = Interpreter(commands, env, branchLimits)
-                      branchInterpreter.executeInBranch(fn, listOf(elem) + extraArgs)
-                    }
-                  }.awaitAll()
+                val branchLimitsList = elements.map { limits.fork() }
+                val results = runParallel(branchLimitsList) { idx ->
+                  val branchInterpreter = Interpreter(commands, env, branchLimitsList[idx])
+                  branchInterpreter.executeInBranch(fn, listOf(elements[idx]) + extraArgs)
                 }
                 TShellValue.TArray(results)
               }
@@ -561,7 +642,7 @@ class Interpreter(
      *
      * Returns null if the RHS is not a simple function call (e.g., it's an arrow, a literal, etc.).
      */
-    private fun extractPipeCall(ctx: AdditiveExprContext): Pair<TShellValue.TFunction, List<TShellValue>>? {
+    private suspend fun extractPipeCall(ctx: AdditiveExprContext): Pair<TShellValue.TFunction, List<TShellValue>>? {
       // Must be a single term (no + or - operators)
       if (ctx.multiplicativeExpr().size != 1) return null
       val mult = ctx.multiplicativeExpr(0)
@@ -580,14 +661,14 @@ class Interpreter(
       if (lastOp.OPTIONAL_CHAIN() != null) return null
 
       // Evaluate the base: primaryExpr + all postfixOps except the last call
-      var base = visit(postfix.primaryExpr()) ?: TShellValue.TNull
+      var base = eval(postfix.primaryExpr())
       for (op in ops.dropLast(1)) {
         val isOptional = op.OPTIONAL_CHAIN() != null
         if (isOptional && base is TShellValue.TNull) continue
         base = withLocation(op) {
           when {
             op.fieldName() != null -> accessMember(base, op.fieldName().text)
-            op.LBRACKET() != null -> accessIndex(base, visit(op.expression()) ?: TShellValue.TNull)
+            op.LBRACKET() != null -> accessIndex(base, eval(op.expression()))
             op.LPAREN() != null -> {
               val callArgs = op.argumentList()?.let { evalCallArgs(it) } ?: CallArgs.EMPTY
               val fn = base as? TShellValue.TFunction
@@ -632,47 +713,47 @@ class Interpreter(
       return if (names.isNotEmpty()) names else null
     }
 
-    override fun visitTernaryExpr(ctx: TernaryExprContext): TShellValue {
-      val condition = visit(ctx.nullCoalesceExpr()) ?: TShellValue.TNull
+    suspend fun visitTernaryExpr(ctx: TernaryExprContext): TShellValue {
+      val condition = eval(ctx.nullCoalesceExpr())
       return if (ctx.expression().size == 2) {
-        if (condition.isTruthy()) visit(ctx.expression(0)) ?: TShellValue.TNull
-        else visit(ctx.expression(1)) ?: TShellValue.TNull
+        if (condition.isTruthy()) eval(ctx.expression(0))
+        else eval(ctx.expression(1))
       } else {
         condition
       }
     }
 
-    override fun visitNullCoalesceExpr(ctx: NullCoalesceExprContext): TShellValue {
-      var result = visit(ctx.orExpr(0)) ?: TShellValue.TNull
+    suspend fun visitNullCoalesceExpr(ctx: NullCoalesceExprContext): TShellValue {
+      var result = eval(ctx.orExpr(0))
       for (i in 1 until ctx.orExpr().size) {
         if (result !is TShellValue.TNull) return result
-        result = visit(ctx.orExpr(i)) ?: TShellValue.TNull
+        result = eval(ctx.orExpr(i))
       }
       return result
     }
 
-    override fun visitOrExpr(ctx: OrExprContext): TShellValue {
-      var result = visit(ctx.andExpr(0)) ?: TShellValue.TNull
+    suspend fun visitOrExpr(ctx: OrExprContext): TShellValue {
+      var result = eval(ctx.andExpr(0))
       for (i in 1 until ctx.andExpr().size) {
         if (result.isTruthy()) return result
-        result = visit(ctx.andExpr(i)) ?: TShellValue.TNull
+        result = eval(ctx.andExpr(i))
       }
       return result
     }
 
-    override fun visitAndExpr(ctx: AndExprContext): TShellValue {
-      var result = visit(ctx.equalityExpr(0)) ?: TShellValue.TNull
+    suspend fun visitAndExpr(ctx: AndExprContext): TShellValue {
+      var result = eval(ctx.equalityExpr(0))
       for (i in 1 until ctx.equalityExpr().size) {
         if (!result.isTruthy()) return result
-        result = visit(ctx.equalityExpr(i)) ?: TShellValue.TNull
+        result = eval(ctx.equalityExpr(i))
       }
       return result
     }
 
-    override fun visitEqualityExpr(ctx: EqualityExprContext): TShellValue {
-      var result = visit(ctx.comparisonExpr(0)) ?: TShellValue.TNull
+    suspend fun visitEqualityExpr(ctx: EqualityExprContext): TShellValue {
+      var result = eval(ctx.comparisonExpr(0))
       for (i in 1 until ctx.comparisonExpr().size) {
-        val right = visit(ctx.comparisonExpr(i)) ?: TShellValue.TNull
+        val right = eval(ctx.comparisonExpr(i))
         val op = ctx.getChild(2 * i - 1).text
         result = TShellValue.TBoolean(
           when (op) {
@@ -685,10 +766,10 @@ class Interpreter(
       return result
     }
 
-    override fun visitComparisonExpr(ctx: ComparisonExprContext): TShellValue {
-      var result = visit(ctx.pipeExpr(0)) ?: TShellValue.TNull
+    suspend fun visitComparisonExpr(ctx: ComparisonExprContext): TShellValue {
+      var result = eval(ctx.pipeExpr(0))
       for (i in 1 until ctx.pipeExpr().size) {
-        val right = visit(ctx.pipeExpr(i)) ?: TShellValue.TNull
+        val right = eval(ctx.pipeExpr(i))
         val op = ctx.getChild(2 * i - 1).text
         val cmp = compareValues(result, right)
         result = TShellValue.TBoolean(
@@ -704,10 +785,10 @@ class Interpreter(
       return result
     }
 
-    override fun visitAdditiveExpr(ctx: AdditiveExprContext): TShellValue {
-      var result = visit(ctx.multiplicativeExpr(0)) ?: TShellValue.TNull
+    suspend fun visitAdditiveExpr(ctx: AdditiveExprContext): TShellValue {
+      var result = eval(ctx.multiplicativeExpr(0))
       for (i in 1 until ctx.multiplicativeExpr().size) {
-        val right = visit(ctx.multiplicativeExpr(i)) ?: TShellValue.TNull
+        val right = eval(ctx.multiplicativeExpr(i))
         val op = ctx.getChild(2 * i - 1).text
         result = when (op) {
           "+" -> add(result, right)
@@ -718,10 +799,10 @@ class Interpreter(
       return result
     }
 
-    override fun visitMultiplicativeExpr(ctx: MultiplicativeExprContext): TShellValue {
-      var result = visit(ctx.unaryExpr(0)) ?: TShellValue.TNull
+    suspend fun visitMultiplicativeExpr(ctx: MultiplicativeExprContext): TShellValue {
+      var result = eval(ctx.unaryExpr(0))
       for (i in 1 until ctx.unaryExpr().size) {
-        val right = visit(ctx.unaryExpr(i)) ?: TShellValue.TNull
+        val right = eval(ctx.unaryExpr(i))
         val op = ctx.getChild(2 * i - 1).text
         result = when (op) {
           "*" -> numericOp(result, right, "*") { a, b -> a * b }
@@ -733,23 +814,23 @@ class Interpreter(
       return result
     }
 
-    override fun visitUnaryExpr(ctx: UnaryExprContext): TShellValue {
+    suspend fun visitUnaryExpr(ctx: UnaryExprContext): TShellValue {
       if (ctx.NOT() != null) {
-        val v = visit(ctx.unaryExpr()) ?: TShellValue.TNull
+        val v = eval(ctx.unaryExpr())
         return TShellValue.TBoolean(!v.isTruthy())
       }
       if (ctx.MINUS() != null) {
-        val v = visit(ctx.unaryExpr()) ?: TShellValue.TNull
+        val v = eval(ctx.unaryExpr())
         return when (v) {
           is TShellValue.TNumber -> TShellValue.TNumber(-v.value)
           else -> throw TShellError.typeMismatch("unary -", "number", v)
         }
       }
-      return visit(ctx.postfixExpr()) ?: TShellValue.TNull
+      return eval(ctx.postfixExpr())
     }
 
-    override fun visitPostfixExpr(ctx: PostfixExprContext): TShellValue {
-      var result = visit(ctx.primaryExpr()) ?: TShellValue.TNull
+    suspend fun visitPostfixExpr(ctx: PostfixExprContext): TShellValue {
+      var result = eval(ctx.primaryExpr())
       for (op in ctx.postfixOp()) {
         val isOptional = op.OPTIONAL_CHAIN() != null
         if (isOptional && result is TShellValue.TNull) {
@@ -764,7 +845,7 @@ class Interpreter(
               accessMember(current, op.fieldName().text)
             }
             op.LBRACKET() != null -> {
-              val index = visit(op.expression()) ?: TShellValue.TNull
+              val index = eval(op.expression())
               accessIndex(current, index)
             }
             op.LPAREN() != null -> {
@@ -786,26 +867,45 @@ class Interpreter(
 
     // --- Primary expressions ---
 
-    override fun visitNumberLiteral(ctx: NumberLiteralContext): TShellValue =
+    @Suppress("unused")
+    suspend fun visitRegexExpr(ctx: RegexExprContext): TShellValue {
+      val text = ctx.REGEX().text
+      // Format: /pattern/flags — strip leading /, split on last /
+      val lastSlash = text.lastIndexOf('/')
+      val pattern = text.substring(1, lastSlash)
+      val flags = text.substring(lastSlash + 1)
+      // Validate the regex
+      try {
+        Regex(pattern)
+      } catch (e: Exception) {
+        throw TShellError.runtime("Invalid regex /$pattern/$flags: ${e.message}")
+      }
+      return TShellValue.TRegex(pattern, flags)
+    }
+
+    @Suppress("unused")
+    suspend fun visitNumberLiteral(ctx: NumberLiteralContext): TShellValue =
       TShellValue.TNumber(ctx.NUMBER().text.toDouble())
 
-    override fun visitStringLiteral(ctx: StringLiteralContext): TShellValue {
+    @Suppress("unused")
+    suspend fun visitStringLiteral(ctx: StringLiteralContext): TShellValue {
       val raw = ctx.STRING().text
       val inner = raw.substring(1, raw.length - 1)
       return TShellValue.TString(unescapeString(inner))
     }
 
-    override fun visitTemplateLiteral(ctx: TemplateLiteralContext): TShellValue =
-      visit(ctx.templateString()) ?: TShellValue.TNull
+    @Suppress("unused")
+    suspend fun visitTemplateLiteral(ctx: TemplateLiteralContext): TShellValue =
+      eval(ctx.templateString())
 
-    override fun visitTemplateString(ctx: TemplateStringContext): TShellValue {
+    suspend fun visitTemplateString(ctx: TemplateStringContext): TShellValue {
       val sb = StringBuilder()
       for (part in ctx.templatePart()) {
         sb.append(
           when {
             part is TemplateTextContext -> unescapeString(part.TEMPLATE_TEXT().text)
             part is TemplateInterpContext -> {
-              val v = visit(part.expression()) ?: TShellValue.TNull
+              val v = eval(part.expression())
               v.toDisplayString()
             }
             else -> ""
@@ -815,11 +915,15 @@ class Interpreter(
       return TShellValue.TString(sb.toString())
     }
 
-    override fun visitTrueLiteral(ctx: TrueLiteralContext): TShellValue = TShellValue.TBoolean(true)
-    override fun visitFalseLiteral(ctx: FalseLiteralContext): TShellValue = TShellValue.TBoolean(false)
-    override fun visitNullLiteral(ctx: NullLiteralContext): TShellValue = TShellValue.TNull
+    @Suppress("unused")
+    suspend fun visitTrueLiteral(ctx: TrueLiteralContext): TShellValue = TShellValue.TBoolean(true)
+    @Suppress("unused")
+    suspend fun visitFalseLiteral(ctx: FalseLiteralContext): TShellValue = TShellValue.TBoolean(false)
+    @Suppress("unused")
+    suspend fun visitNullLiteral(ctx: NullLiteralContext): TShellValue = TShellValue.TNull
 
-    override fun visitIdentifierExpr(ctx: IdentifierExprContext): TShellValue {
+    @Suppress("unused")
+    suspend fun visitIdentifierExpr(ctx: IdentifierExprContext): TShellValue {
       val name = ctx.IDENTIFIER().text
       // Check environment first, then commands
       env.get(name)?.let { return it }
@@ -833,13 +937,14 @@ class Interpreter(
       throw TShellError.unknownCommand(name, env.allBindings().keys + commands.names())
     }
 
-    override fun visitArrayExpr(ctx: ArrayExprContext): TShellValue =
-      visit(ctx.arrayLiteral()) ?: TShellValue.TNull
+    @Suppress("unused")
+    suspend fun visitArrayExpr(ctx: ArrayExprContext): TShellValue =
+      eval(ctx.arrayLiteral())
 
-    override fun visitArrayLiteral(ctx: ArrayLiteralContext): TShellValue {
+    suspend fun visitArrayLiteral(ctx: ArrayLiteralContext): TShellValue {
       val elements = mutableListOf<TShellValue>()
       for (soe in ctx.spreadOrExpr()) {
-        val value = visit(soe.expression()) ?: TShellValue.TNull
+        val value = eval(soe.expression())
         if (soe.SPREAD() != null) {
           when (value) {
             is TShellValue.TArray -> elements.addAll(value.elements)
@@ -852,15 +957,16 @@ class Interpreter(
       return TShellValue.TArray(elements)
     }
 
-    override fun visitObjectExpr(ctx: ObjectExprContext): TShellValue =
-      visit(ctx.objectLiteral()) ?: TShellValue.TNull
+    @Suppress("unused")
+    suspend fun visitObjectExpr(ctx: ObjectExprContext): TShellValue =
+      eval(ctx.objectLiteral())
 
-    override fun visitObjectLiteral(ctx: ObjectLiteralContext): TShellValue {
+    suspend fun visitObjectLiteral(ctx: ObjectLiteralContext): TShellValue {
       val fields = mutableMapOf<String, TShellValue>()
       for (field in ctx.objectField()) {
         when (field) {
           is NamedFieldContext -> {
-            fields[field.fieldName().text] = visit(field.expression()) ?: TShellValue.TNull
+            fields[field.fieldName().text] = eval(field.expression())
           }
           is ShorthandFieldContext -> {
             val name = field.IDENTIFIER().text
@@ -868,31 +974,33 @@ class Interpreter(
               ?: throw TShellError.runtime("'$name' is not defined (used as shorthand in object literal)")
           }
           is SpreadFieldContext -> {
-            val value = visit(field.expression()) ?: TShellValue.TNull
+            val value = eval(field.expression())
             when (value) {
               is TShellValue.TObject -> fields.putAll(value.fields)
               else -> throw TShellError.typeMismatch("spread", "object", value, "... can only spread objects into objects")
             }
           }
           is ComputedFieldContext -> {
-            val key = visit(field.expression(0)) ?: TShellValue.TNull
+            val key = eval(field.expression(0))
             val keyStr = when (key) {
               is TShellValue.TString -> key.value
               else -> throw TShellError.typeMismatch("computed key", "string", key)
             }
-            fields[keyStr] = visit(field.expression(1)) ?: TShellValue.TNull
+            fields[keyStr] = eval(field.expression(1))
           }
         }
       }
       return TShellValue.TObject(fields)
     }
 
-    override fun visitParenExpr(ctx: ParenExprContext): TShellValue =
-      visit(ctx.expression()) ?: TShellValue.TNull
+    @Suppress("unused")
+    suspend fun visitParenExpr(ctx: ParenExprContext): TShellValue =
+      eval(ctx.expression())
 
     // --- Arrow functions ---
 
-    override fun visitSingleParamArrow(ctx: SingleParamArrowContext): TShellValue {
+    @Suppress("unused")
+    suspend fun visitSingleParamArrow(ctx: SingleParamArrowContext): TShellValue {
       val paramName = ctx.IDENTIFIER().text
       return TShellValue.TFunction(
         name = null,
@@ -901,7 +1009,8 @@ class Interpreter(
       )
     }
 
-    override fun visitMultiParamArrow(ctx: MultiParamArrowContext): TShellValue {
+    @Suppress("unused")
+    suspend fun visitMultiParamArrow(ctx: MultiParamArrowContext): TShellValue {
       val params = ctx.paramList()?.param()?.map { it.IDENTIFIER().text } ?: emptyList()
       return TShellValue.TFunction(
         name = null,
@@ -910,7 +1019,8 @@ class Interpreter(
       )
     }
 
-    override fun visitSingleParamArrowBlock(ctx: SingleParamArrowBlockContext): TShellValue {
+    @Suppress("unused")
+    suspend fun visitSingleParamArrowBlock(ctx: SingleParamArrowBlockContext): TShellValue {
       val paramName = ctx.IDENTIFIER().text
       return TShellValue.TFunction(
         name = null,
@@ -919,7 +1029,8 @@ class Interpreter(
       )
     }
 
-    override fun visitMultiParamArrowBlock(ctx: MultiParamArrowBlockContext): TShellValue {
+    @Suppress("unused")
+    suspend fun visitMultiParamArrowBlock(ctx: MultiParamArrowBlockContext): TShellValue {
       val params = ctx.paramList()?.param()?.map { it.IDENTIFIER().text } ?: emptyList()
       return TShellValue.TFunction(
         name = null,
@@ -930,7 +1041,8 @@ class Interpreter(
 
     // --- Composition primitives ---
 
-    override fun visitChainExpr(ctx: ChainExprContext): TShellValue {
+    @Suppress("unused")
+    suspend fun visitChainExpr(ctx: ChainExprContext): TShellValue {
       val args = evalArgumentList(ctx.argumentList())
       if (args.isEmpty()) throw TShellError.runtime("chain() requires at least one function argument")
       var result: TShellValue = TShellValue.TNull
@@ -950,7 +1062,8 @@ class Interpreter(
       return result
     }
 
-    override fun visitAllExpr(ctx: AllExprContext): TShellValue {
+    @Suppress("unused")
+    suspend fun visitAllExpr(ctx: AllExprContext): TShellValue {
       val args = evalArgumentList(ctx.argumentList())
       val fns = args.map { arg ->
         when (arg) {
@@ -967,23 +1080,16 @@ class Interpreter(
         return TShellValue.TArray(fns.map { callFunction(it, emptyList(), ctx) })
       }
 
-      // GIL model: each branch gets its own Interpreter + Visitor on a coroutine.
-      // The Environment GIL serializes state mutations.
-      // Each branch has forked ExecutionLimits (own step budget, own cancellation).
-      // I/O-heavy branches (read, glob, grep) naturally overlap on Dispatchers.IO.
-      val results = runBlocking(Dispatchers.IO) {
-        fns.map { fn ->
-          async {
-            val branchLimits = limits.fork()
-            val branchInterpreter = Interpreter(commands, env, branchLimits)
-            branchInterpreter.executeInBranch(fn, emptyList())
-          }
-        }.awaitAll()
+      val branchLimitsList = fns.map { limits.fork() }
+      val results = runParallel(branchLimitsList) { idx ->
+        val branchInterpreter = Interpreter(commands, env, branchLimitsList[idx])
+        branchInterpreter.executeInBranch(fns[idx], emptyList())
       }
       return TShellValue.TArray(results)
     }
 
-    override fun visitRaceExpr(ctx: RaceExprContext): TShellValue {
+    @Suppress("unused")
+    suspend fun visitRaceExpr(ctx: RaceExprContext): TShellValue {
       val args = evalArgumentList(ctx.argumentList())
       val fns = args.map { arg ->
         when (arg) {
@@ -1001,45 +1107,115 @@ class Interpreter(
         return callFunction(fns[0], emptyList(), ctx)
       }
 
-      // Launch all branches in parallel. First success cancels the rest.
+      // Launch all branches in parallel. First to complete successfully wins;
+      // remaining branches are cancelled via their forked limits.
       val branchLimitsList = fns.map { limits.fork() }
-      val result = runBlocking(Dispatchers.IO) {
-        val deferred = fns.mapIndexed { idx, fn ->
-          async {
+      val remainingMs = limits.timeoutMs - (System.currentTimeMillis() - limits.startTimeMs.get())
+      if (remainingMs <= 0) throw TShellError.runtime("race() — timeout already exceeded")
+      val channel = kotlinx.coroutines.channels.Channel<Result<TShellValue>>(fns.size)
+      return coroutineScope {
+        val jobs = fns.mapIndexed { idx, fn ->
+          launch {
             val branchInterpreter = Interpreter(commands, env, branchLimitsList[idx])
             try {
-              Result.success<TShellValue>(branchInterpreter.executeInBranch(fn, emptyList()))
+              val value = branchInterpreter.executeInBranch(fn, emptyList())
+              channel.send(Result.success(value))
             } catch (e: TShellError) {
-              Result.failure<TShellValue>(e)
+              channel.send(Result.failure(e))
+            } catch (e: Exception) {
+              channel.send(Result.failure(TShellError.runtime("race branch failed: ${e.message}")))
             }
           }
         }
-        val results: List<Result<TShellValue>> = deferred.awaitAll()
-        val firstSuccess: Result<TShellValue>? = results.firstOrNull { it.isSuccess }
-        if (firstSuccess != null) {
-          // Cancel remaining branches
+        var failures = 0
+        var winner: TShellValue? = null
+        val timeoutResult = withTimeoutOrNull(remainingMs) {
+          repeat(fns.size) {
+            val r = channel.receive()
+            if (r.isSuccess && winner == null) {
+              winner = r.getOrThrow()
+              branchLimitsList.forEach { it.cancel() }
+            } else if (r.isFailure) {
+              failures++
+            }
+          }
+        }
+        if (timeoutResult == null) {
           branchLimitsList.forEach { it.cancel() }
-          firstSuccess.getOrThrow()
-        } else {
-          throw TShellError.runtime(
-            "race() — all producers failed\n\n" +
-              "  ${fns.size} producers were tried, all threw errors"
+          jobs.forEach { it.cancel() }
+          throw TShellError.runtime("race() — timeout exceeded (${limits.timeoutMs}ms)")
+        }
+        jobs.forEach { it.cancel() }
+        channel.close()
+        winner ?: throw TShellError.runtime(
+          "race() — all ${fns.size} producers failed"
+        )
+      }
+    }
+
+    @Suppress("unused")
+    suspend fun visitAnyExpr(ctx: AnyExprContext): TShellValue {
+      val args = evalArgumentList(ctx.argumentList())
+      val fns = args.map { arg ->
+        when (arg) {
+          is TShellValue.TFunction -> arg
+          else -> throw TShellError.wrongArguments(
+            "any",
+            "...producers: (() => T)[]",
+            args,
+            "any(() => tryA(), () => tryB(), () => tryC())"
           )
         }
       }
-      return result
+      if (fns.isEmpty()) throw TShellError.runtime("any() — no producers given")
+
+      // Evaluate sequentially, return first truthy non-error result
+      val errors = mutableListOf<String>()
+      for ((idx, fn) in fns.withIndex()) {
+        try {
+          val result = callFunction(fn, emptyList(), ctx)
+          if (result.isTruthy()) return result
+        } catch (e: TShellError) {
+          errors.add("  [${idx + 1}] ${e.message}")
+        }
+      }
+      throw TShellError.runtime(
+        "any() — no producer returned a truthy value\n\n" +
+          if (errors.isNotEmpty()) "Errors:\n${errors.joinToString("\n")}" else "All ${fns.size} producers returned falsy values"
+      )
     }
 
     // --- Helpers ---
 
-    private fun evalCallArgs(ctx: ArgumentListContext): CallArgs {
+    /**
+     * Runs N branches in parallel with timeout enforcement.
+     * If the parent's remaining timeout expires, all branches are cancelled.
+     */
+    private suspend fun runParallel(branchLimitsList: List<ExecutionLimits>, work: suspend (Int) -> TShellValue): List<TShellValue> {
+      val remainingMs = limits.timeoutMs - (System.currentTimeMillis() - limits.startTimeMs.get())
+      if (remainingMs <= 0) throw TShellError.runtime("Timeout already exceeded before parallel execution")
+      return coroutineScope {
+        val result = withTimeoutOrNull(remainingMs) {
+          branchLimitsList.mapIndexed { idx, _ ->
+            async { work(idx) }
+          }.awaitAll()
+        }
+        if (result == null) {
+          branchLimitsList.forEach { it.cancel() }
+          throw TShellError.runtime("Execution timeout exceeded (${limits.timeoutMs}ms) during parallel execution")
+        }
+        result
+      }
+    }
+
+    private suspend fun evalCallArgs(ctx: ArgumentListContext): CallArgs {
       val positional = mutableListOf<TShellValue>()
       val named = linkedMapOf<String, TShellValue>()
       for (arg in ctx.callArg()) {
         when (arg) {
           is NamedCallArgContext -> {
             val name = arg.IDENTIFIER().text
-            val value = visit(arg.expression()) ?: TShellValue.TNull
+            val value = eval(arg.expression())
             if (named.containsKey(name)) {
               throw TShellError.runtime("Duplicate named argument: $name")
             }
@@ -1050,7 +1226,7 @@ class Interpreter(
               throw TShellError.runtime("Positional arguments cannot follow named arguments")
             }
             val soe = arg.spreadOrExpr()
-            val value = visit(soe.expression()) ?: TShellValue.TNull
+            val value = eval(soe.expression())
             if (soe.SPREAD() != null) {
               when (value) {
                 is TShellValue.TArray -> positional.addAll(value.elements)
@@ -1066,7 +1242,7 @@ class Interpreter(
       return CallArgs(positional, named)
     }
 
-    private fun evalArgumentList(ctx: ArgumentListContext): List<TShellValue> {
+    private suspend fun evalArgumentList(ctx: ArgumentListContext): List<TShellValue> {
       val callArgs = evalCallArgs(ctx)
       if (callArgs.hasNamed) {
         throw TShellError.runtime("Named arguments not supported here")
@@ -1103,19 +1279,19 @@ class Interpreter(
       return result.toList()
     }
 
-    private fun callFunction(fn: TShellValue.TFunction, args: List<TShellValue>, ctx: ParserRuleContext): TShellValue {
+    private suspend fun callFunction(fn: TShellValue.TFunction, args: List<TShellValue>, ctx: ParserRuleContext): TShellValue {
       step(ctx)
       return callFunctionInternal(fn, args)
     }
 
     /**
      * Dispatches function call by body type.
-     * Native: runs the suspend fn (bridged via runBlocking).
+     * Native: calls the suspend fn directly (no runBlocking needed — we're already in a coroutine).
      * Expression/Block: evaluates AST in this Visitor's context using the function's captured env.
      */
-    internal fun callFunctionInternal(fn: TShellValue.TFunction, args: List<TShellValue>): TShellValue {
+    internal suspend fun callFunctionInternal(fn: TShellValue.TFunction, args: List<TShellValue>): TShellValue {
       return when (val body = fn.body) {
-        is TShellValue.FunctionBody.Native -> runBlocking { body.fn(args) }
+        is TShellValue.FunctionBody.Native -> body.fn(args)
         is TShellValue.FunctionBody.Expression -> {
           pushCall(body.node as ParserRuleContext)
           val fnEnv = body.capturedEnv.child()
@@ -1123,7 +1299,7 @@ class Interpreter(
           val outerEnv = env
           env = fnEnv
           try {
-            visit(body.node as ParserRuleContext) ?: TShellValue.TNull
+            eval(body.node as ParserRuleContext)
           } finally {
             env = outerEnv
             popCall()
@@ -1136,7 +1312,7 @@ class Interpreter(
           val outerEnv = env
           env = fnEnv
           try {
-            visitBlock(body.node as BlockContext) ?: TShellValue.TNull
+            visitBlock(body.node as BlockContext)
           } catch (r: ReturnSignal) {
             r.value
           } finally {
@@ -1147,7 +1323,7 @@ class Interpreter(
       }
     }
 
-    private fun bindDestructure(ctx: DestructureContext, value: TShellValue) {
+    private suspend fun bindDestructure(ctx: DestructureContext, value: TShellValue) {
       when {
         ctx.IDENTIFIER() != null -> env.define(ctx.IDENTIFIER().text, value)
         ctx.objectDestructure() != null -> {
@@ -1157,7 +1333,7 @@ class Interpreter(
             val fieldName = field.IDENTIFIER().text
             val targetDestructure = field.destructure()
             val fieldValue = obj.fields[fieldName]
-              ?: field.expression()?.let { visit(it) }
+              ?: field.expression()?.let { eval(it) }
               ?: TShellValue.TNull
             if (targetDestructure != null) {
               bindDestructure(targetDestructure, fieldValue)
@@ -1178,7 +1354,7 @@ class Interpreter(
 
     // FieldStep/IndexStep defined at file level
 
-    private fun buildAccessorSteps(target: AssignTargetContext): List<Any> {
+    private suspend fun buildAccessorSteps(target: AssignTargetContext): List<Any> {
       val steps = mutableListOf<Any>()
       var fieldIdx = 0
       var exprIdx = 0
@@ -1191,7 +1367,7 @@ class Interpreter(
               fieldIdx++
             }
             TShellLexer.LBRACKET -> {
-              val indexValue = visit(target.expression(exprIdx)) ?: TShellValue.TNull
+              val indexValue = eval(target.expression(exprIdx))
               steps.add(IndexStep(indexValue))
               exprIdx++
             }
@@ -1225,17 +1401,92 @@ class Interpreter(
         is TShellValue.TObject -> obj.fields[field] ?: TShellValue.TNull
         is TShellValue.TArray -> when (field) {
           "length" -> TShellValue.TNumber(obj.elements.size.toDouble())
-          else -> TShellValue.TNull
+          else -> bindMethodOrHint(obj, "array", field)
         }
         is TShellValue.TString -> when (field) {
           "length" -> TShellValue.TNumber(obj.value.length.toDouble())
-          else -> TShellValue.TNull
+          else -> bindMethodOrHint(obj, "string", field)
         }
         else -> throw TShellError.typeMismatch(
           "member access .$field",
           "object, array, or string",
           obj
         )
+      }
+    }
+
+    /**
+     * Method syntax sugar: `receiver.commandName(args)` → `commandName(receiver, args)`
+     */
+    private fun bindMethodOrHint(receiver: TShellValue, type: String, field: String): TShellValue {
+      // Resolve JS method aliases to tshell command names
+      val cmdName = jsMethodAlias(type, field) ?: field
+      // Check if a command exists with this name — bind receiver as first arg
+      commands.get(cmdName)?.let { cmd ->
+        return TShellValue.TFunction(
+          name = cmdName,
+          params = emptyList(),
+          body = TShellValue.FunctionBody.Native { args ->
+            cmd.fn(listOf(receiver) + args)
+          }
+        )
+      }
+      // No command — give JS-specific guidance if we recognize the method
+      jsMethodHint(type, field)?.let { throw it }
+      // Truly unknown
+      return TShellValue.TNull
+    }
+
+    /** Maps JS method names to tshell command names where they differ */
+    private fun jsMethodAlias(type: String, method: String): String? = when (type) {
+      "array" -> when (method) {
+        "includes" -> "contains"
+        else -> null
+      }
+      "string" -> when (method) {
+        "toUpperCase" -> "upper"
+        "toLowerCase" -> "lower"
+        "includes" -> "contains"
+        "replaceAll" -> "replace"
+        "matchAll" -> "match"
+        "search" -> "test"
+        "slice" -> "substring"
+        "charAt" -> null // handled by str[index]
+        else -> null
+      }
+      else -> null
+    }
+
+    /**
+     * Guidance for JS methods that have NO tshell command equivalent and can't be auto-resolved.
+     */
+    private fun jsMethodHint(type: String, method: String): TShellError? {
+      val hint = when (type) {
+        "array" -> when (method) {
+          "forEach" -> "use map(fn) or for (let x of arr) { ... }"
+          "push" -> "[...arr, newItem] (arrays are immutable)"
+          "pop", "shift", "unshift", "splice" -> "arrays are immutable; use spread [...arr] to build new arrays"
+          "concat" -> "[...arr1, ...arr2]"
+          "every" -> "arr |> filter(fn) |> len() == arr |> len()"
+          "some" -> "arr |> find(fn) != null"
+          "indexOf" -> "arr |> find(x => x == value)"
+          "entries" -> "zip(range(0, len(arr)), arr)"
+          "at" -> "arr[index] (negative indices not supported)"
+          "flatMap" -> "arr |> map(fn) |> flat()"
+          else -> null
+        }
+        "string" -> when (method) {
+          "charAt" -> "str[index]"
+          "charCodeAt", "codePointAt" -> "not available in tshell"
+          "repeat" -> "not available in tshell"
+          "trimStart", "trimEnd" -> "str |> trim() (only full trim)"
+          "at" -> "str[index]"
+          else -> null
+        }
+        else -> null
+      }
+      return hint?.let {
+        TShellError("'$method' is not available as a method — $it")
       }
     }
 

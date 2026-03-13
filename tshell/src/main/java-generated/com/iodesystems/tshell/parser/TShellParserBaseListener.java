@@ -653,6 +653,18 @@ public class TShellParserBaseListener implements TShellParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterRegexExpr(TShellParser.RegexExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitRegexExpr(TShellParser.RegexExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterParenExpr(TShellParser.ParenExprContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -696,6 +708,18 @@ public class TShellParserBaseListener implements TShellParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitRaceExpr(TShellParser.RaceExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterAnyExpr(TShellParser.AnyExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitAnyExpr(TShellParser.AnyExprContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

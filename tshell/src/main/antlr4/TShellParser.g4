@@ -108,10 +108,12 @@ primaryExpr
   | arrayLiteral                                        # arrayExpr
   | objectLiteral                                       # objectExpr
   | arrowFunction                                       # arrowExpr
+  | REGEX                                                # regexExpr
   | LPAREN expression RPAREN                            # parenExpr
   | CHAIN LPAREN argumentList RPAREN                    # chainExpr
   | ALL LPAREN argumentList RPAREN                      # allExpr
   | RACE LPAREN argumentList RPAREN                     # raceExpr
+  | ANY LPAREN argumentList RPAREN                      # anyExpr
   ;
 
 // Arrow functions
@@ -134,7 +136,7 @@ objectField
 
 fieldName
   : IDENTIFIER | LET | FUNCTION | IF | ELSE | WHILE | FOR | OF | IN | RETURN
-  | BREAK | CONTINUE | EXPORT | TRUE | FALSE | NULL | CHAIN | ALL | RACE
+  | BREAK | CONTINUE | EXPORT | TRUE | FALSE | NULL | CHAIN | ALL | RACE | ANY
   ;
 
 spreadOrExpr      : SPREAD? expression;

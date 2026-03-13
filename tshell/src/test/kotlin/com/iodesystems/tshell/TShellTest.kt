@@ -252,7 +252,10 @@ class TShellTest {
 
   @Test fun `race first success`() {
     val sh = shell()
-    assertEquals(TNumber(42.0), sh.eval("race(() => fail(\"nope\"), () => 42, () => 99)"))
+    // True race: either 42 or 99 can win (fail("nope") always loses)
+    val result = sh.eval("race(() => fail(\"nope\"), () => 42, () => 99)")
+    assertTrue(result == TNumber(42.0) || result == TNumber(99.0),
+      "Expected 42 or 99, got $result")
   }
 
   @Test fun `race all fail`() {
