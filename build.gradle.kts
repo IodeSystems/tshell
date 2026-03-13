@@ -1,6 +1,10 @@
+import com.iodesystems.build.Bash.bash
+import com.iodesystems.build.Release
+import java.time.Duration
+
 plugins {
   kotlin("jvm") apply false
-  id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
+  id("io.github.gradle-nexus.publish-plugin")
 }
 
 allprojects {
@@ -23,12 +27,55 @@ subprojects {
 }
 
 nexusPublishing {
+  transitionCheckOptions {
+    maxRetries.set(300)
+    delayBetween.set(Duration.ofSeconds(10))
+  }
   repositories {
     sonatype {
-      nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
-      snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
-      username.set(findProperty("sonatypeUsername") as String?)
-      password.set(findProperty("sonatypePassword") as String?)
+      nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
+      snapshotRepositoryUrl.set(uri("https://central.sonatype.com/repository/maven-snapshots/"))
     }
+  }
+}
+
+tasks.register("releaseStripSnapshotCommitAndTag") {
+  dependsOn(":tshell:test")
+  group = "release"
+  val version = properties["version"]!!.toString()
+  doLast {
+    val status = "git status --porcelain".bash().output.trim()
+    if (status.isNotEmpty()) throw GradleException("There are changes in the working directory:\n$status")
+    val oldVersion = version
+    val newVersion = oldVersion.removeSuffix("-SNAPSHOT")
+    Release.writeVersion(newVersion, oldVersion)
+    "git add .".bash()
+    "git commit -m 'Release $newVersion'".bash()
+    "git tag -a v$newVersion -m 'Release $newVersion'".bash()
+  }
+}
+tasks.register("releaseRevert") {
+  group = "release"
+  val version = properties["version"]!!.toString()
+  doLast {
+    val oldVersion = version
+    val newVersion = "$oldVersion-SNAPSHOT"
+    Release.writeVersion(newVersion, oldVersion)
+    "git reset --hard HEAD~1".bash()
+    "git tag -d v$oldVersion".bash()
+    println("Reverted to $newVersion")
+  }
+}
+tasks.register("releasePrepareNextDevelopmentIteration") {
+  group = "release"
+  val overrideVersion = properties["overrideVersion"]?.toString()
+  val version = properties["version"]!!.toString()
+  doLast {
+    val oldVersion = version
+    val newVersion = Release.generateVersion(version, "dev", overrideVersion)
+    Release.writeVersion(newVersion, oldVersion)
+    "git add .".bash()
+    "git commit -m 'Prepare next development iteration: $newVersion'".bash()
+    "git push".bash()
   }
 }

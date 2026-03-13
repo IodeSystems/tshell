@@ -11,4 +11,5 @@ plugins {
 dependencies {
   implementation(libs.gradle.kotlin.plugin)
   implementation(libs.kotlin.serialization.plugin)
+  implementation(libs.gradle.nexus.publish.plugin)
 }

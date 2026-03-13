@@ -125,11 +125,16 @@ publishing {
   }
 }
 
+val requireSign = !rootProject.hasProperty("skipSigning")
 signing {
+  isRequired = requireSign
   useGpgCmd()
-  sign(publishing.publications["mavenJava"])
+  sign(publishing.publications)
 }
-
-tasks.withType<Sign>().configureEach {
-  onlyIf { !version.toString().endsWith("SNAPSHOT") }
+val signingTasks = tasks.withType<Sign>()
+signingTasks.configureEach {
+  onlyIf { requireSign }
+}
+tasks.withType<AbstractPublishToMaven>().configureEach {
+  dependsOn(signingTasks)
 }

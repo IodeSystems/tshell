@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"/..
+
+./gradlew releaseStripSnapshotCommitAndTag && \
+  (
+    ./gradlew :tshell:publishToMavenLocal && \
+    ./gradlew :tshell:clean :tshell:build publishToSonatype closeAndReleaseSonatypeStagingRepository && \
+    ./gradlew releasePrepareNextDevelopmentIteration \
+  ) || \
+  ./gradlew releaseRevert
