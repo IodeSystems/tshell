@@ -130,14 +130,15 @@ publishing {
       val snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots"
       url = uri(if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl)
       credentials {
-        username = findProperty("ossrhUsername") as String? ?: System.getenv("OSSRH_USERNAME")
-        password = findProperty("ossrhPassword") as String? ?: System.getenv("OSSRH_PASSWORD")
+        username = findProperty("sonatypeUsername") as String? ?: System.getenv("OSSRH_USERNAME")
+        password = findProperty("sonatypePassword") as String? ?: System.getenv("OSSRH_PASSWORD")
       }
     }
   }
 }
 
 signing {
+  useGpgCmd()
   sign(publishing.publications["mavenJava"])
 }
 
