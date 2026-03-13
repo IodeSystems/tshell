@@ -3,8 +3,7 @@ package com.iodesystems.tshell
 import com.iodesystems.tshell.runtime.TShellValue
 import com.iodesystems.tshell.runtime.TShellValue.*
 import com.iodesystems.tshell.toolkit.CoreToolkit
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
+import org.testng.annotations.Test
 
 class TShellSyntaxReferenceTest {
 

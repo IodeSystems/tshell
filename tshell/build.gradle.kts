@@ -51,7 +51,7 @@ tasks {
     dependsOn(parser)
   }
   test {
-    useJUnitPlatform()
+    useTestNG()
   }
 }
 
@@ -83,10 +83,7 @@ dependencies {
   implementation(libs.ktor.client.core)
   implementation(libs.ktor.client.cio)
   implementation(libs.jsoup)
-  testImplementation(libs.junit.jupiter)
-  testImplementation(libs.junit.jupiter.api)
-  testRuntimeOnly(libs.junit.jupiter.engine)
-  testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+  testImplementation(libs.testng)
 }
 
 java {

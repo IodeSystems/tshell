@@ -3,24 +3,24 @@ package com.iodesystems.tshell.toolkit
 import com.iodesystems.tshell.TShell
 import com.iodesystems.tshell.runtime.TShellError
 import com.iodesystems.tshell.runtime.TShellValue.*
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import org.junit.jupiter.api.io.TempDir
+import com.iodesystems.tshell.*
+import org.testng.annotations.AfterMethod
+import org.testng.annotations.BeforeMethod
+import org.testng.annotations.Test
+import com.iodesystems.tshell.assertThrows
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.*
 
 class FileToolkitTest {
 
-  @TempDir
   lateinit var tempDir: Path
 
   private lateinit var shell: TShell
 
-  @BeforeEach
+  @BeforeMethod
   fun setup() {
+    tempDir = java.nio.file.Files.createTempDirectory("test")
     // Copy test-project fixture into tempDir
     val fixture = Path.of("src/test/resources/test-project")
     fixture.toFile().walkTopDown().forEach { file ->
@@ -38,6 +38,9 @@ class FileToolkitTest {
     CoreToolkit.install(shell)
     FileToolkit(tempDir).install(shell)
   }
+
+  @AfterMethod
+  fun deleteTempDir() { tempDir.toFile().deleteRecursively() }
 
   // --- Basic file operations ---
 
@@ -572,8 +575,13 @@ class FileToolkitTest {
 
 class FileToolkitReadOnlyTest {
 
-  @TempDir
   lateinit var tempDir: Path
+
+  @BeforeMethod
+  fun createTempDir() { tempDir = java.nio.file.Files.createTempDirectory("test") }
+
+  @AfterMethod
+  fun deleteTempDir() { tempDir.toFile().deleteRecursively() }
 
   @Test fun `read-only mode registers tree and grep but not write`() {
     val fixture = Path.of("src/test/resources/test-project")

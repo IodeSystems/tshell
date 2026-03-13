@@ -3,9 +3,9 @@ package com.iodesystems.tshell.toolkit
 import com.iodesystems.tshell.TShell
 import com.iodesystems.tshell.runtime.TShellError
 import com.iodesystems.tshell.runtime.TShellValue.*
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
+import org.testng.annotations.AfterMethod
+import com.iodesystems.tshell.*
+import org.testng.annotations.Test
 
 class WebToolkitTest {
 
@@ -26,7 +26,7 @@ class WebToolkitTest {
     return shell
   }
 
-  @AfterEach
+  @AfterMethod
   fun cleanup() {
     web?.close()
   }
@@ -355,7 +355,7 @@ class WebToolkitTest {
   @Test
   fun `domain allowlist blocks disallowed domains`() {
     val shell = shellWithWeb(allowedDomains = setOf("api.example.com"))
-    val error = assertThrows(TShellError::class.java) {
+    val error = assertThrows<TShellError> {
       shell.eval("""Web.fetch("https://evil.com/steal")""")
     }
     assertTrue(error.message!!.contains("not in allowlist"))
@@ -364,7 +364,7 @@ class WebToolkitTest {
   @Test
   fun `domain allowlist allows subdomains`() {
     val shell = shellWithWeb(allowedDomains = setOf("example.com"))
-    val error = assertThrows(Exception::class.java) {
+    val error = assertThrows<Exception> {
       shell.eval("""Web.fetch("https://api.example.com/data")""")
     }
     assertFalse(error.message?.contains("not in allowlist") ?: false)

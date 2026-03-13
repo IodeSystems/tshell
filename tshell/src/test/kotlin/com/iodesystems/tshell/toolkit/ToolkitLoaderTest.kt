@@ -2,16 +2,23 @@ package com.iodesystems.tshell.toolkit
 
 import com.iodesystems.tshell.TShell
 import com.iodesystems.tshell.runtime.TShellValue.*
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import org.junit.jupiter.api.io.TempDir
+import com.iodesystems.tshell.*
+import org.testng.annotations.Test
+import com.iodesystems.tshell.assertThrows
+import org.testng.annotations.AfterMethod
+import org.testng.annotations.BeforeMethod
 import java.nio.file.Path
 import kotlin.io.path.*
 
 class ToolkitLoaderTest {
 
-  @TempDir lateinit var tmp: Path
+  lateinit var tmp: Path
+
+  @BeforeMethod
+  fun createTempDir() { tmp = java.nio.file.Files.createTempDirectory("test") }
+
+  @AfterMethod
+  fun deleteTempDir() { tmp.toFile().deleteRecursively() }
 
   private fun shell(): TShell {
     val sh = TShell()

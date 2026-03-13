@@ -18,12 +18,9 @@ dependencies {
   implementation(project(":tshell"))
   implementation(libs.playwright)
   implementation(libs.jsoup)
-  testImplementation(libs.junit.jupiter)
-  testImplementation(libs.junit.jupiter.api)
-  testRuntimeOnly(libs.junit.jupiter.engine)
-  testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+  testImplementation(libs.testng)
 }
 
 tasks.test {
-  useJUnitPlatform()
+  useTestNG()
 }

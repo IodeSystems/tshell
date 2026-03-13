@@ -2,15 +2,15 @@ package com.iodesystems.tshell.toolkit
 
 import com.iodesystems.tshell.TShell
 import com.iodesystems.tshell.runtime.TShellValue.*
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
+import com.iodesystems.tshell.*
+import org.testng.annotations.BeforeMethod
+import org.testng.annotations.Test
 
 class MathToolkitTest {
 
   private lateinit var shell: TShell
 
-  @BeforeEach
+  @BeforeMethod
   fun setup() {
     shell = TShell()
     CoreToolkit.install(shell)

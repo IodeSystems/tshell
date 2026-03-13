@@ -4,9 +4,9 @@ import com.iodesystems.tshell.TShell
 import com.iodesystems.tshell.runtime.TShellError
 import com.iodesystems.tshell.runtime.TShellValue.*
 import com.iodesystems.tshell.toolkit.CoreToolkit
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
+import com.iodesystems.tshell.*
+import org.testng.annotations.Test
+import com.iodesystems.tshell.assertThrows
 
 class GraphToolkitTest {
 

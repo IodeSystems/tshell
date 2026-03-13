@@ -5,9 +5,7 @@ import com.iodesystems.tshell.runtime.TShellValue.*
 import com.iodesystems.tshell.toolkit.CoreToolkit
 import com.iodesystems.tshell.toolkit.graph.GraphToolkit
 import com.iodesystems.tshell.toolkit.graph.InMemoryGraphStore
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
+import org.testng.annotations.Test
 import java.nio.file.Path
 import kotlin.io.path.*
 

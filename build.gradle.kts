@@ -5,6 +5,7 @@ import java.time.Duration
 plugins {
   kotlin("jvm") apply false
   id("io.github.gradle-nexus.publish-plugin")
+  id("nl.littlerobots.version-catalog-update") version "1.1.0"
 }
 
 allprojects {

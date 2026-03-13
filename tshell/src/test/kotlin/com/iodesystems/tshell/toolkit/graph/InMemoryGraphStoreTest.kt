@@ -1,8 +1,8 @@
 package com.iodesystems.tshell.toolkit.graph
 
 import com.iodesystems.tshell.runtime.TShellValue.*
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
+import com.iodesystems.tshell.*
+import org.testng.annotations.Test
 
 class InMemoryGraphStoreTest {
 
