@@ -1,0 +1,8 @@
+function countTodos(file) {
+  return grep(file, {match: "TODO"}) |> len()
+}
+function todoReport() {
+  return glob("**/*.ts")
+    |> map(f => {file: f, count: countTodos(f)})
+    |> filter(x => x.count > 0)
+}

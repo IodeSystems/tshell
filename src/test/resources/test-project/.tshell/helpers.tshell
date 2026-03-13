@@ -1,0 +1,4 @@
+function double(x) { return x * 2 }
+function isEven(x) { return x % 2 == 0 }
+function greet(name) { return `hello ${name}` }
+let DEFAULT_LIMIT = 10

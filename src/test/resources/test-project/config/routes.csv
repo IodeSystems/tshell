@@ -1,0 +1,7 @@
+method,path,handler,auth
+GET,/users,getUsers,true
+GET,/users/:id,getUser,true
+POST,/users,createUser,true
+GET,/posts,getPosts,false
+POST,/posts,createPost,true
+GET,/health,healthCheck,false
