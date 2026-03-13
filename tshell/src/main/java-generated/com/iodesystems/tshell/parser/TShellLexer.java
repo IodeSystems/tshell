@@ -1,4 +1,4 @@
-// Generated from /home/nthalk/local/src/iodesystems/tshell/src/main/antlr4/TShellLexer.g4 by ANTLR 4.13.2
+// Generated from /home/nthalk/local/src/iodesystems/tshell/tshell/src/main/antlr4/TShellLexer.g4 by ANTLR 4.13.2
 package com.iodesystems.tshell.parser;
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.CharStream;

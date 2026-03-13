@@ -15,7 +15,7 @@ kotlin {
 }
 
 dependencies {
-  implementation(project(":"))
+  implementation(project(":tshell"))
   implementation(libs.playwright)
   implementation(libs.jsoup)
   testImplementation(libs.junit.jupiter)

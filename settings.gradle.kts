@@ -5,7 +5,8 @@ pluginManagement {
   }
 }
 
-rootProject.name = "tshell"
+rootProject.name = "tshell-parent"
 
-include("local-llm")
-include("playwright-tools")
+include("tshell")
+include("tshell-playwright")
+include("tshell-sample-koog")
