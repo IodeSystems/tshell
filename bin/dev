@@ -94,7 +94,7 @@ release)
   git commit -am "Release new version: ${RELEASE_VERSION}"
 
   echo "Publishing ${RELEASE_VERSION}..."
-  ./gradlew :tshell:publishMavenJavaPublicationToOssrhRepository
+  ./gradlew :tshell:publishToSonatype closeAndReleaseSonatypeStagingRepository
 
   echo "Tagging with ${RELEASE_VERSION}..."
   git tag "${RELEASE_VERSION}"

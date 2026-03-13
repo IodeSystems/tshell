@@ -1,5 +1,6 @@
 plugins {
   kotlin("jvm") apply false
+  id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
 }
 
 allprojects {
@@ -18,5 +19,16 @@ subprojects {
 
   extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension> {
     jvmToolchain(21)
+  }
+}
+
+nexusPublishing {
+  repositories {
+    sonatype {
+      nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+      snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+      username.set(findProperty("sonatypeUsername") as String?)
+      password.set(findProperty("sonatypePassword") as String?)
+    }
   }
 }
