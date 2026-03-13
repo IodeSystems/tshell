@@ -22,6 +22,7 @@ application {
 
 dependencies {
   implementation(project(":"))
+  implementation(project(":playwright-tools"))
   implementation(libs.koog.agents)
   implementation(libs.clikt)
   implementation(libs.ktor.client.cio)

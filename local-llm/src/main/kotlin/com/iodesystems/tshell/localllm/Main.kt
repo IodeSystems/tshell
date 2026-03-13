@@ -21,6 +21,8 @@ import com.iodesystems.tshell.TShell
 import com.iodesystems.tshell.toolkit.CoreToolkit
 import com.iodesystems.tshell.toolkit.FileToolkit
 import com.iodesystems.tshell.toolkit.MathToolkit
+import com.iodesystems.tshell.toolkit.WebToolkit
+import com.iodesystems.tshell.playwright.BrowserToolkit
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
@@ -44,6 +46,10 @@ class LocalLlmChat : SuspendingCliktCommand(
     .default("http://localhost:8080")
   private val promptArg by option("--prompt", "-p", help = "Run a single prompt and exit")
   private val dir by option("--dir", "-d", help = "Root directory for read-only file access")
+  private val withBrowser by option("--browser", help = "Enable Playwright browser automation (Browser.* commands)")
+    .default("false")
+  private val browserHeadless by option("--headless", help = "Run browser in headless mode (default: true)")
+    .default("true")
 
   override suspend fun run() {
     // Fetch available models
@@ -90,12 +96,30 @@ class LocalLlmChat : SuspendingCliktCommand(
     val shell = TShell()
     CoreToolkit.install(shell)
     MathToolkit().install(shell)
+    val webToolkit = WebToolkit()
+    webToolkit.install(shell)
+    echo("Web toolkit enabled (Web.*, Html.*)")
+
+    var browserToolkit: BrowserToolkit? = null
+    if (withBrowser.toBoolean()) {
+      browserToolkit = BrowserToolkit(headless = browserHeadless.toBoolean())
+      browserToolkit.install(shell)
+      echo("Browser toolkit enabled (Browser.*) — headless=${browserHeadless}")
+    }
+
     if (dir != null) {
       val root = java.nio.file.Path.of(dir!!).toAbsolutePath().normalize()
       FileToolkit(root, readOnly = true).install(shell)
       echo("File access: $root (read-only)")
     }
     val tools = TShellTools(shell)
+
+    // Shutdown hook — ensures browser/http cleanup on Ctrl+C or crash
+    fun cleanup() {
+      browserToolkit?.close()
+      webToolkit.close()
+    }
+    Runtime.getRuntime().addShutdownHook(Thread { cleanup() })
 
     // Set up Koog with local endpoint
     val settings = OpenAIClientSettings(baseUrl = url)
@@ -158,37 +182,41 @@ class LocalLlmChat : SuspendingCliktCommand(
       echo("llm> $result")
     }
 
-    if (promptArg != null) {
-      try {
-        runPrompt(promptArg!!)
-      } catch (e: Exception) {
-        echo("Error: ${e.message}", err = true)
+    try {
+      if (promptArg != null) {
+        try {
+          runPrompt(promptArg!!)
+        } catch (e: Exception) {
+          echo("Error: ${e.message}", err = true)
+        }
+        return
       }
-      return
-    }
 
-    echo()
-    echo("tshell local-llm chat (type 'quit' to exit)")
-    echo("─".repeat(50))
-
-    while (true) {
       echo()
-      print("you> ")
-      val userInput = readlnOrNull()?.trim() ?: break
-      if (userInput.equals("quit", ignoreCase = true) || userInput.equals("exit", ignoreCase = true)) {
-        break
-      }
-      if (userInput.isEmpty()) continue
+      echo("tshell local-llm chat (type 'quit' to exit)")
+      echo("─".repeat(50))
 
-      try {
-        runPrompt(userInput)
-      } catch (e: Exception) {
+      while (true) {
         echo()
-        echo("Error: ${e.message}", err = true)
-      }
-    }
+        print("you> ")
+        val userInput = readlnOrNull()?.trim() ?: break
+        if (userInput.equals("quit", ignoreCase = true) || userInput.equals("exit", ignoreCase = true)) {
+          break
+        }
+        if (userInput.isEmpty()) continue
 
-    echo("Goodbye.")
+        try {
+          runPrompt(userInput)
+        } catch (e: Exception) {
+          echo()
+          echo("Error: ${e.message}", err = true)
+        }
+      }
+
+      echo("Goodbye.")
+    } finally {
+      cleanup()
+    }
   }
 }
 

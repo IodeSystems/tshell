@@ -33,9 +33,16 @@ class TShell(
     description: String,
     examples: List<String> = emptyList(),
     hidden: Boolean = false,
+    namespace: String? = null,
     fn: suspend (List<TShellValue>) -> TShellValue
   ): TShell {
-    commands.register(name, signature, description, examples, hidden, fn)
+    commands.register(name, signature, description, examples, hidden, namespace, fn)
+    if (namespace != null) {
+      // Auto-lift: rebuild the namespace object in globals
+      commands.buildNamespaceObject(namespace)?.let { nsObj ->
+        globals.defineOrSet(namespace, nsObj)
+      }
+    }
     return this
   }
 

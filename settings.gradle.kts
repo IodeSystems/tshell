@@ -8,3 +8,4 @@ pluginManagement {
 rootProject.name = "tshell"
 
 include("local-llm")
+include("playwright-tools")
