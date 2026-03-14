@@ -112,7 +112,7 @@ LLMs discover available capabilities at runtime via `help()` instead of needing 
 encoded in the system prompt. When you add a toolkit, the LLM finds it automatically.
       """.trim(), listOf(
         Example("""help("sort") |> split("\n") |> limit(1) |> join("")""",
-          "sort(input: array, key?: string)",
+          "sort(input: array, keyOrComparator?: string | (a, b) => number)",
           "LLMs call help() to learn signatures and usage"),
         Example("""help("countBy") |> split("\n") |> limit(1) |> join("")""",
           "countBy(input: array, fn: (T) => string)",

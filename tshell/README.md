@@ -79,7 +79,7 @@ LLMs call help() to learn signatures and usage:
 
 ```javascript
 help("sort") |> split("\n") |> limit(1) |> join("")
-// → sort(input: array, key?: string)
+// → sort(input: array, keyOrComparator?: string | (a, b) => number)
 ```
 
 Exact match shows full signature and docs:

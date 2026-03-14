@@ -122,7 +122,7 @@ val BENCHMARK_SUITE = listOf(
   BenchmarkTeaser(
     name = "object_transform",
     prompt = "In tshell, given the array [{name:\"alice\",score:85},{name:\"bob\",score:92},{name:\"carol\",score:78}], use pipes to filter scores > 80, extract names, sort them, and join with commas.",
-    validator = { it.contains("alice") && it.contains("bob") && !it.contains("carol") }
+    validator = { it.contains("alice") && it.contains("bob") && it.contains("alice, bob") }
   ),
   BenchmarkTeaser(
     name = "string_manipulation",

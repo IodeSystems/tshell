@@ -115,16 +115,33 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       arr.elements.fold(init) { acc, el -> fn.callAsync(listOf(acc, el)) }
     }
 
-    shell.register("sort", "input: array, key?: string", "sorts; optional key for objects",
-      listOf("""[3, 1, 2] |> sort()""", """sort([3, 1, 2])""", """users |> sort("name")""")
+    shell.register("sort", "input: array, keyOrComparator?: string | (a, b) => number",
+      "sorts; string key for objects, or comparator fn returning negative/zero/positive",
+      listOf("""[3, 1, 2] |> sort()""", """sort([3, 1, 2])""", """users |> sort("name")""",
+        """[3, 1, 2] |> sort((a, b) => b - a)""")
     ) { args ->
       val arr = requireArray("sort", args[0])
-      val key = (args.getOrNull(1) as? TString)?.value
-      TArray(arr.elements.sortedWith(Comparator { a, b ->
-        val va = if (key != null && a is TObject) a.fields[key] ?: TNull else a
-        val vb = if (key != null && b is TObject) b.fields[key] ?: TNull else b
-        compareShellValues(va, vb)
-      }))
+      val second = args.getOrNull(1)
+      when (second) {
+        is TFunction -> {
+          // Comparator function: (a, b) => number
+          TArray(arr.elements.sortedWith(Comparator { a, b ->
+            val result = second.call(listOf(a, b))
+            when (result) {
+              is TNumber -> result.value.toInt()
+              else -> 0
+            }
+          }))
+        }
+        else -> {
+          val key = (second as? TString)?.value
+          TArray(arr.elements.sortedWith(Comparator { a, b ->
+            val va = if (key != null && a is TObject) a.fields[key] ?: TNull else a
+            val vb = if (key != null && b is TObject) b.fields[key] ?: TNull else b
+            compareShellValues(va, vb)
+          }))
+        }
+      }
     }
 
     shell.register("shuffle", "input: array", "randomly reorders array elements",
