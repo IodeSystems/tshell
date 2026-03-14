@@ -213,6 +213,11 @@ accepted but ignored. Use `help()` to discover what's available.
       appendLine()
       appendLine("One `eval` tool instead of twenty. Sandboxed JS syntax your LLM already knows.")
       appendLine()
+      appendLine("- **LLMs compute instead of reasoning** — \"how many R's in strawberry?\" becomes `split |> filter |> len`")
+      appendLine("- **Massive context reduction** — one tool replaces dozens of MCP tool schemas (~8KB per server saved)")
+      appendLine("- **Dynamic tool discovery** — add/remove servers at runtime; `help()` reflects changes without prompt updates")
+      appendLine("- **Polyglot composition** — chain tools from Python, Go, TypeScript servers with pipes in a single `eval` call")
+      appendLine()
 
       // ── Quick Start ──
       appendLine("## Quick Start")
