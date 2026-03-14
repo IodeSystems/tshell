@@ -3,9 +3,9 @@
 One `eval` tool instead of twenty. Sandboxed JS syntax your LLM already knows.
 
 - **LLMs compute instead of reasoning** — "how many R's in strawberry?" becomes `split |> filter |> len`
-- **Massive context reduction** — one tool replaces dozens of MCP tool schemas (~8KB per server saved)
-- **Dynamic tool discovery** — add/remove servers at runtime; `help()` reflects changes without prompt updates
-- **Polyglot composition** — chain tools from Python, Go, TypeScript servers with pipes in a single `eval` call
+- **~95% less tool context** — one `eval` tool replaces dozens of MCP tool schemas; the LLM prompt stays constant as you add capabilities
+- **Polyglot composition** — chain tools from Python, Go, TypeScript MCP servers with pipes in a single `eval` call
+- **KV cache friendly** — system prompt doesn't change when tools change; `help()` discovers capabilities at runtime
 
 ## Quick Start
 

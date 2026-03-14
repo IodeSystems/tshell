@@ -214,9 +214,9 @@ accepted but ignored. Use `help()` to discover what's available.
       appendLine("One `eval` tool instead of twenty. Sandboxed JS syntax your LLM already knows.")
       appendLine()
       appendLine("- **LLMs compute instead of reasoning** — \"how many R's in strawberry?\" becomes `split |> filter |> len`")
-      appendLine("- **Massive context reduction** — one tool replaces dozens of MCP tool schemas (~8KB per server saved)")
-      appendLine("- **Dynamic tool discovery** — add/remove servers at runtime; `help()` reflects changes without prompt updates")
-      appendLine("- **Polyglot composition** — chain tools from Python, Go, TypeScript servers with pipes in a single `eval` call")
+      appendLine("- **~95% less tool context** — one `eval` tool replaces dozens of MCP tool schemas; the LLM prompt stays constant as you add capabilities")
+      appendLine("- **Polyglot composition** — chain tools from Python, Go, TypeScript MCP servers with pipes in a single `eval` call")
+      appendLine("- **KV cache friendly** — system prompt doesn't change when tools change; `help()` discovers capabilities at runtime")
       appendLine()
 
       // ── Quick Start ──
