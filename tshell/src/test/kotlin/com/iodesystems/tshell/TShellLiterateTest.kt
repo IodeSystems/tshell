@@ -57,6 +57,70 @@ class TShellLiterateTest {
 
   private val groups = listOf(
 
+    // ======== WHY TSHELL ========
+
+    SectionGroup("Why tshell", """
+LLMs are bad at computation. They can't reliably count letters, do arithmetic on large
+numbers, or sort data by reasoning alone. But they're excellent at writing code —
+especially JavaScript, which dominates their training data.
+
+tshell gives your LLM a single `eval` tool with JS syntax. Instead of defining dozens of
+tools (each requiring schema, validation, and prompt engineering), you get one tool that
+covers computation, string processing, data transformation, and more. Capabilities are
+discovered at runtime via `help()`, so the system prompt stays small and the KV cache
+survives tool set changes.
+    """.trim(), listOf(
+
+      Section("Computation Beats Reasoning", """
+LLMs famously fail at tasks like "how many R's in strawberry?" because they try to
+reason about it instead of computing it. With tshell, they write code instead.
+      """.trim(), listOf(
+        Example(""""strawberry" |> split("") |> filter(c => c == "r") |> len()""", "3",
+          "Count letters — LLMs get this wrong by reasoning, right by computing"),
+        Example("""
+let words = "the quick brown fox jumps over the lazy dog the fox"
+let counts = words |> split(" ") |> countBy(w => w)
+entries(counts) |> filter(e => e[1] > 1) |> map(e => `${'$'}{e[0]}=${'$'}{e[1]}`) |> join(", ")
+        """.trim(), "the=3, fox=2",
+          "Word frequency — multi-step analysis in one expression"),
+      )),
+
+      Section("One Tool Replaces Many", """
+Without tshell, an LLM needs separate tools for search, math, string processing, data
+transformation — each requiring a round-trip. With tshell, complex multi-step operations
+happen in a single `eval` call.
+      """.trim(), listOf(
+        Example("""
+let data = [{name: "Alice", score: 85}, {name: "Bob", score: 92}, {name: "Carol", score: 78}]
+let avg = data |> map(d => d.score) |> reduce((sum, s) => sum + s, 0) |> (total => total / (data |> len()))
+let above = data |> filter(d => d.score >= avg)
+above |> map(d => `${'$'}{d.name}: ${'$'}{d.score}`) |> join(", ")
+        """.trim(), "Alice: 85, Bob: 92",
+          "Filter, aggregate, and format — three tool calls collapsed into one"),
+        Example("""
+"2024-03-14T10:30:00" |> split("T") |> (parts => {
+  let [date, time] = parts
+  let [y, m, d] = date |> split("-")
+  {year: num(y), month: num(m), day: num(d), time: time}
+})
+        """.trim(), """{year: 2024, month: 3, day: 14, time: "10:30:00"}""",
+          "Parse and restructure — no special date-parsing tool needed"),
+      )),
+
+      Section("Runtime Discovery", """
+LLMs discover available capabilities at runtime via `help()` instead of needing them
+encoded in the system prompt. When you add a toolkit, the LLM finds it automatically.
+      """.trim(), listOf(
+        Example("""help("sort") |> split("\n") |> limit(1) |> join("")""",
+          "sort(input: array, key?: string)",
+          "LLMs call help() to learn signatures and usage"),
+        Example("""help("countBy") |> split("\n") |> limit(1) |> join("")""",
+          "countBy(input: array, fn: (T) => string)",
+          "Exact match shows full signature and docs"),
+      )),
+
+    )),
+
     // ======== TYPICAL USAGE ========
 
     SectionGroup("Typical Usage", """
@@ -91,7 +155,7 @@ greet("world")
       )),
 
       Section("Pipes", """
-The pipe operator `|` passes the left-hand value as the first argument to the right-hand
+The pipe operator `|>` passes the left-hand value as the first argument to the right-hand
 function. This is the core composition mechanism — it replaces method chaining and lets
 you build data pipelines. Use `|> fn` for zero-argument functions or `|> fn(args)` when
 passing additional arguments.
@@ -142,13 +206,10 @@ Built-in string commands for common transformations.
       )),
 
       Section("Discovery", """
-`help()` lists all available commands. `help("search")` filters by keyword.
-This is how LLMs discover capabilities at runtime without needing them baked
-into the system prompt.
+`help()` lists all available commands. `help("name")` shows detailed usage.
+See [Runtime Discovery](#runtime-discovery) above for more.
       """.trim(), listOf(
         Example("""typeof(help())""", "string", "help() returns a string listing all commands"),
-        Example("""help("sort") |> split("\n") |> limit(1) |> join("")""",
-          "sort(input: array, key?: string)", "help(name) shows detailed usage"),
       )),
 
       Section("Array Operations", """
@@ -392,14 +453,15 @@ runaway programs.
     val readme = buildString {
       appendLine("# tshell")
       appendLine()
-      appendLine("A sandboxed scripting language that gives LLMs safe, expressive computation")
-      appendLine("through a single `eval` tool.")
+      appendLine("One tool instead of twenty. Give your LLM `eval` and let it compute.")
       appendLine()
-      appendLine("Instead of defining dozens of individual tools — each requiring schema,")
-      appendLine("validation, and prompt engineering — give your LLM one tool: `eval`. tshell's")
-      appendLine("JavaScript syntax means LLMs can write it without new training.")
-      appendLine("Capabilities are discovered at runtime via `help()`, and the KV cache is")
-      appendLine("preserved across tool set changes.")
+      appendLine("tshell is a sandboxed scripting language with JavaScript syntax — the one")
+      appendLine("language every LLM already knows. Instead of building separate tools for")
+      appendLine("search, math, string processing, and data transformation (each needing")
+      appendLine("schema, validation, and prompt engineering), you give your LLM a single")
+      appendLine("`eval` tool that handles all of it. Capabilities are discovered at runtime")
+      appendLine("via `help()`, so the system prompt stays small and the KV cache survives")
+      appendLine("tool set changes.")
       appendLine()
 
       for (group in groups) {
@@ -432,11 +494,11 @@ runaway programs.
 
       appendLine("## Integration")
       appendLine()
-      appendLine("tshell is designed for text-in, text-out integration. Your host application")
-      appendLine("sends tshell source code as a string and receives results as a string. State")
-      appendLine("persists across calls, enabling multi-step interactions.")
+      appendLine("tshell is text-in, text-out. Send source code, get results. State persists")
+      appendLine("across calls. Bind your own Kotlin functions as commands — the LLM discovers")
+      appendLine("them via `help()` without any prompt changes.")
       appendLine()
-      appendLine("### Kotlin / JVM")
+      appendLine("### Quick Start")
       appendLine()
       appendLine("```kotlin")
       appendLine("val shell = TShell()")
@@ -455,70 +517,10 @@ runaway programs.
       appendLine("""shell.eval("x")  // → 42 (unchanged)""")
       appendLine("```")
       appendLine()
-      appendLine("### Adding Capabilities")
+      appendLine("### Bind Your Own Commands")
       appendLine()
-      appendLine("```kotlin")
-      appendLine("// Graph toolkit")
-      appendLine("GraphToolkit(InMemoryGraphStore()).install(shell)")
-      appendLine()
-      appendLine("// Load toolkit extensions from a directory")
-      appendLine("""shell.loadToolkits(Path.of(".tsh"))""")
-      appendLine()
-      appendLine("// Namespaced loading")
-      appendLine("""shell.loadToolkits(Path.of(".tsh"), mapOf("graph" to "g"))""")
-      appendLine("// Now: g.addNode(...), g.out(...)")
-      appendLine("```")
-      appendLine()
-      appendLine("### LLM System Prompt Generation")
-      appendLine()
-      appendLine("```kotlin")
-      appendLine("// Generate a system prompt describing all available commands")
-      appendLine("val prompt = shell.toPrompt()")
-      appendLine("```")
-      appendLine()
-      appendLine("The generated prompt includes syntax, available commands, and their")
-      appendLine("signatures — everything an LLM needs to write tshell code.")
-      appendLine()
-
-      appendLine("### Execution Limits")
-      appendLine()
-      appendLine("tshell sandboxes execution to prevent runaway programs.")
-      appendLine()
-      appendLine("```kotlin")
-      appendLine("val shell = TShell(")
-      appendLine("  maxSteps = 1_000_000,   // max execution steps (default)")
-      appendLine("  maxCallDepth = 256,     // max recursion depth (default)")
-      appendLine("  timeoutMs = 30_000      // wall-clock timeout in ms (default)")
-      appendLine(")")
-      appendLine("```")
-      appendLine()
-      appendLine("From within tshell, `limits()` shows current limits and `extendLimit({steps: n, timeout: ms, callDepth: n, outputBytes: n})`")
-      appendLine("can increase them.")
-      appendLine()
-      appendLine("### State Serialization")
-      appendLine()
-      appendLine("Save and restore session state for multi-turn interactions.")
-      appendLine()
-      appendLine("```kotlin")
-      appendLine("// Capture all global bindings")
-      appendLine("val state = shell.getState()")
-      appendLine()
-      appendLine("// Restore into a new shell instance")
-      appendLine("val newShell = TShell()")
-      appendLine("CoreToolkit.install(newShell)")
-      appendLine("newShell.setState(state)")
-      appendLine()
-      appendLine("// Or inject specific bindings")
-      appendLine("""newShell.setState(mapOf("user" to TShellValue.TString("alice")))""")
-      appendLine("```")
-      appendLine()
-
-      appendLine("## Extending tshell")
-      appendLine()
-      appendLine("Register custom commands from your host language, or package reusable")
-      appendLine("functions as toolkit extensions.")
-      appendLine()
-      appendLine("### Custom Commands (Kotlin)")
+      appendLine("Register any Kotlin function as a tshell command. It appears in `help()` with")
+      appendLine("its signature, description, and examples — the LLM discovers it automatically.")
       appendLine()
       appendLine("```kotlin")
       appendLine("shell.register(")
@@ -530,11 +532,152 @@ runaway programs.
       appendLine("""  TShellValue.TString("hello ${'$'}name")""")
       appendLine("}")
       appendLine()
-      appendLine("""// Now available in tshell: greet("world") // → "hello world"""")
+      appendLine("""// Now in tshell: greet("world") // → "hello world"""")
+      appendLine("""// And: help("greet") shows the signature and examples""")
       appendLine("```")
       appendLine()
-      appendLine("Commands registered this way appear in `help()` with their signature,")
-      appendLine("description, and examples.")
+      appendLine("This is the core integration pattern: your domain logic lives in Kotlin,")
+      appendLine("the LLM composes it via tshell. Add a database query command, an API call,")
+      appendLine("a domain calculation — the LLM chains them with pipes, loops, and data")
+      appendLine("transforms without needing separate tool schemas for each one.")
+      appendLine()
+      appendLine("### LLM Agent Integration (Koog)")
+      appendLine()
+      appendLine("Wrap tshell as a single tool for any LLM agent framework. Here's the")
+      appendLine("complete binding for [Koog](https://github.com/JetBrains/koog):")
+      appendLine()
+      appendLine("```kotlin")
+      appendLine("@LLMDescription(\"tshell scripting\")")
+      appendLine("class TShellTools(private val shell: TShell) : ToolSet {")
+      appendLine("  @Tool")
+      appendLine("  @LLMDescription(TShell.TOOL_DESCRIPTION)")
+      appendLine("  fun tshell(@LLMDescription(\"tshell source code\") code: String): String {")
+      appendLine("    return try {")
+      appendLine("      shell.evalExported(code).toDisplayString()")
+      appendLine("    } catch (e: Exception) {")
+      appendLine("      \"ERROR: ${'$'}{e.message}\"")
+      appendLine("    }")
+      appendLine("  }")
+      appendLine("}")
+      appendLine()
+      appendLine("// Create the agent")
+      appendLine("val shell = TShell()")
+      appendLine("CoreToolkit.install(shell)")
+      appendLine("FileToolkit(Path.of(\"/workspace\")).install(shell)")
+      appendLine()
+      appendLine("val agent = AIAgent(")
+      appendLine("  model = OpenAIModels.chatGPT4o,")
+      appendLine("  systemPrompt = \"You have a tshell tool for computation.\\n\" + shell.toPrompt(),")
+      appendLine("  tools = listOf(TShellTools(shell))")
+      appendLine(")")
+      appendLine("```")
+      appendLine()
+      appendLine("That's it — one class, one tool. The LLM gets computation, file I/O, data")
+      appendLine("processing, and any custom commands you register. `shell.toPrompt()` generates")
+      appendLine("the syntax reference and command signatures automatically.")
+      appendLine()
+      appendLine("The same pattern works for building MCP servers, OpenAI function-calling")
+      appendLine("integrations, or any framework that supports tool use. The binding is always")
+      appendLine("the same: text in, text out.")
+      appendLine()
+      appendLine("See [`tshell-sample-koog`](tshell-sample-koog/) for a complete working example")
+      appendLine("with a local LLM, including benchmarks.")
+      appendLine()
+      appendLine("### Execution Limits")
+      appendLine()
+      appendLine("tshell sandboxes execution to prevent runaway programs.")
+      appendLine()
+      appendLine("```kotlin")
+      appendLine("val shell = TShell(")
+      appendLine("  maxSteps = 1_000_000,   // max AST node evaluations (default)")
+      appendLine("  maxCallDepth = 256,     // max recursion depth (default)")
+      appendLine("  timeoutMs = 30_000      // wall-clock timeout in ms (default)")
+      appendLine(")")
+      appendLine("```")
+      appendLine()
+      appendLine("From within tshell, `limits()` shows current limits and `extendLimit({steps: n, timeout: ms, callDepth: n, outputBytes: n})`")
+      appendLine("can increase them when the LLM needs heavier computation.")
+      appendLine()
+      appendLine("### State Serialization")
+      appendLine()
+      appendLine("Save and restore session state for multi-turn interactions.")
+      appendLine()
+      appendLine("```kotlin")
+      appendLine("val state = shell.getState()")
+      appendLine()
+      appendLine("val newShell = TShell()")
+      appendLine("CoreToolkit.install(newShell)")
+      appendLine("newShell.setState(state)")
+      appendLine()
+      appendLine("// Or inject specific bindings")
+      appendLine("""newShell.setState(mapOf("user" to TShellValue.TString("alice")))""")
+      appendLine("```")
+      appendLine()
+      appendLine("## Modules")
+      appendLine()
+      appendLine("tshell is modular. Install only what you need — each module adds commands")
+      appendLine("that the LLM discovers via `help()`. All modules are published to Maven Central")
+      appendLine("under `com.iodesystems.tshell`.")
+      appendLine()
+      appendLine("### Core (`tshell`)")
+      appendLine()
+      appendLine("```kotlin")
+      appendLine("implementation(\"com.iodesystems.tshell:tshell:0.1.1\")")
+      appendLine("```")
+      appendLine()
+      appendLine("The language runtime plus `CoreToolkit`: pipes, arrays, strings, math, JSON,")
+      appendLine("composition (`all`, `race`, `chain`), and `help()`. Also includes:")
+      appendLine()
+      appendLine("| Toolkit | Install | Commands |")
+      appendLine("| --- | --- | --- |")
+      appendLine("| **CoreToolkit** | `CoreToolkit.install(shell)` | `map`, `filter`, `reduce`, `sort`, `join`, `split`, `keys`, `values`, `entries`, `groupBy`, `countBy`, `range`, `parseJson`, `toJson`, and [more](#typical-usage) |")
+      appendLine("| **MathToolkit** | `MathToolkit().install(shell)` | `Math.sin`, `Math.cos`, `Math.sqrt`, `Math.log`, `Math.PI`, `Math.E`, etc. |")
+      appendLine("| **WebToolkit** | `WebToolkit().install(shell)` | `Web.fetch`, `Web.fetchText`, `Web.search`, `Html.select`, `Html.links`, `Html.text`, `Html.table` |")
+      appendLine("| **FileToolkit** | `FileToolkit(rootPath).install(shell)` | Sandboxed `read`, `write`, `glob`, `grep`, `edit` — LLM can only access files under `rootPath` |")
+      appendLine("| **GraphToolkit** | `GraphToolkit(store).install(shell)` | Property graph: `addNode`, `link`, `out`, `inbound`, `nodes`, `setProps` — see [Graph Toolkit](#graph-toolkit) |")
+      appendLine()
+      appendLine("### Browser Automation (`tshell-playwright`)")
+      appendLine()
+      appendLine("```kotlin")
+      appendLine("implementation(\"com.iodesystems.tshell:tshell-playwright:0.1.1\")")
+      appendLine("```")
+      appendLine()
+      appendLine("Playwright-based browser automation. The LLM can navigate pages, click elements,")
+      appendLine("fill forms, read text, and take screenshots — all through tshell commands.")
+      appendLine()
+      appendLine("```kotlin")
+      appendLine("val browser = BrowserToolkit(headless = true)")
+      appendLine("browser.install(shell)")
+      appendLine("// Commands: Browser.open, Browser.click, Browser.type, Browser.text,")
+      appendLine("//           Browser.select, Browser.screenshot, Browser.eval, ...")
+      appendLine("```")
+      appendLine()
+      appendLine("### SQL (`tshell-sql`)")
+      appendLine()
+      appendLine("```kotlin")
+      appendLine("implementation(\"com.iodesystems.tshell:tshell-sql:0.1.1\")")
+      appendLine("```")
+      appendLine()
+      appendLine("JDBC-based SQL toolkit. Supports multiple databases, read-only mode by default,")
+      appendLine("parameterized queries, and schema introspection.")
+      appendLine()
+      appendLine("```kotlin")
+      appendLine("val sql = SqlToolkit(mapOf(\"db\" to DatabaseConfig(dataSource)))")
+      appendLine("sql.install(shell)")
+      appendLine("// Commands: db.query, db.tables, db.columns, db.schema")
+      appendLine("// Read-only by default — LLM must call db.requestWrite() for mutations")
+      appendLine("```")
+      appendLine()
+      appendLine("### Sample Agent (`tshell-sample-koog`)")
+      appendLine()
+      appendLine("Complete working example: a CLI chat agent powered by a local LLM (any")
+      appendLine("OpenAI-compatible API) with tshell as its computation tool. Includes")
+      appendLine("benchmarks proving LLMs can solve problems via code that they can't solve")
+      appendLine("by reasoning alone (96% pass rate on 32 coding challenges).")
+      appendLine()
+      appendLine("See [`tshell-sample-koog/README.md`](tshell-sample-koog/README.md) for setup.")
+      appendLine()
+      appendLine("## Extending tshell")
       appendLine()
       appendLine("### Toolkit Extensions (.tshell files)")
       appendLine()
@@ -545,53 +688,22 @@ runaway programs.
       appendLine("  math/")
       appendLine("    stats.tshell           # function mean(arr) { ... }")
       appendLine("    typical_usage.md       # shown in help(\"math\")")
-      appendLine("    advanced_usage.md")
       appendLine("  text/")
       appendLine("    nlp.tshell")
       appendLine("    typical_usage.md")
       appendLine("```")
       appendLine()
       appendLine("```kotlin")
-      appendLine("// Load all toolkits — functions become global")
-      appendLine("""shell.loadToolkits(Path.of(".tsh"))""")
+      appendLine("shell.loadToolkits(Path.of(\".tsh\"))")
       appendLine()
-      appendLine("// Or namespace them to avoid collisions")
+      appendLine("// Or namespace to avoid collisions")
       appendLine("""shell.loadToolkits(Path.of(".tsh"), mapOf("math" to "m"))""")
       appendLine("// m.mean([1, 2, 3]) instead of mean([1, 2, 3])")
       appendLine("```")
       appendLine()
-      appendLine("Toolkit files are evaluated in alphabetical order. Prefix with numbers")
-      appendLine("(`01_base.tshell`, `02_derived.tshell`) to control load order when files")
-      appendLine("depend on each other.")
-      appendLine()
-      appendLine("## Optional Modules")
-      appendLine()
-      appendLine("tshell ships with optional modules that can be installed independently.")
-      appendLine("Only `CoreToolkit` is required.")
-      appendLine()
-      appendLine("| Module |> Install |> Provides |")
-      appendLine("| --- |> --- |> --- |")
-      appendLine("| **CoreToolkit** |> `CoreToolkit.install(shell)` |> Pipes, arrays, strings, math, JSON, composition |")
-      appendLine("| **GraphToolkit** |> `GraphToolkit(store).install(shell)` |> Property graph with typed nodes/edges and traversal |")
-      appendLine("| **FileToolkit** |> `FileToolkit(rootPath).install(shell)` |> Sandboxed file I/O: read, write, glob, grep, edit |")
-      appendLine()
-      appendLine("```kotlin")
-      appendLine("// Minimal setup — just the language + core functions")
-      appendLine("val shell = TShell()")
-      appendLine("CoreToolkit.install(shell)")
-      appendLine()
-      appendLine("// Add file operations (sandboxed to a root directory)")
-      appendLine("FileToolkit(Path.of(\"/workspace\")).install(shell)")
-      appendLine()
-      appendLine("// Add graph operations")
-      appendLine("GraphToolkit(InMemoryGraphStore()).install(shell)")
-      appendLine("```")
-      appendLine()
       appendLine("### Graph Schema Enforcement")
       appendLine()
-      appendLine("Define a schema to prevent LLMs from adding invalid data to the graph.")
-      appendLine("Schemas are enforced eagerly — `addNode`, `link`, and `setProps` fail")
-      appendLine("immediately if they violate constraints. The LLM cannot modify the schema.")
+      appendLine("Define a schema to constrain what the LLM can add to the graph.")
       appendLine()
       appendLine("```kotlin")
       appendLine("val schema = GraphSchema(")
@@ -603,22 +715,13 @@ runaway programs.
       appendLine("""    "worksAt" to EdgeSchema(from = "person", to = "company"),""")
       appendLine("""    "knows" to EdgeSchema(from = "person", to = "person"),""")
       appendLine("  ),")
-      appendLine("  strict = true // reject unknown node/edge types entirely")
+      appendLine("  strict = true // reject unknown node/edge types")
       appendLine(")")
-      appendLine()
       appendLine("GraphToolkit(InMemoryGraphStore(), schema = schema).install(shell)")
       appendLine("```")
       appendLine()
-      appendLine("With this schema in place:")
-      appendLine()
-      appendLine("```javascript")
-      appendLine("""addNode(root(), "person", {age: 30})        // ERROR: missing required 'name'""")
-      appendLine("""addNode(root(), "alien", {name: "X"})       // ERROR: unknown node type (strict)""")
-      appendLine("""link(company, person, "worksAt")             // ERROR: worksAt must originate from 'person'""")
-      appendLine("```")
-      appendLine()
-      appendLine("The schema is automatically included in `help(\"graph\")` so LLMs know")
-      appendLine("what types and properties are valid.")
+      appendLine("The schema is enforced eagerly and included in `help(\"graph\")` so the")
+      appendLine("LLM knows what's valid.")
       appendLine()
 
       appendLine("---")

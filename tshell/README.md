@@ -1,13 +1,93 @@
 # tshell
 
-A sandboxed scripting language that gives LLMs safe, expressive computation
-through a single `eval` tool.
+One tool instead of twenty. Give your LLM `eval` and let it compute.
 
-Instead of defining dozens of individual tools — each requiring schema,
-validation, and prompt engineering — give your LLM one tool: `eval`. tshell's
-JavaScript syntax means LLMs can write it without new training.
-Capabilities are discovered at runtime via `help()`, and the KV cache is
-preserved across tool set changes.
+tshell is a sandboxed scripting language with JavaScript syntax — the one
+language every LLM already knows. Instead of building separate tools for
+search, math, string processing, and data transformation (each needing
+schema, validation, and prompt engineering), you give your LLM a single
+`eval` tool that handles all of it. Capabilities are discovered at runtime
+via `help()`, so the system prompt stays small and the KV cache survives
+tool set changes.
+
+## Why tshell
+
+LLMs are bad at computation. They can't reliably count letters, do arithmetic on large
+numbers, or sort data by reasoning alone. But they're excellent at writing code —
+especially JavaScript, which dominates their training data.
+
+tshell gives your LLM a single `eval` tool with JS syntax. Instead of defining dozens of
+tools (each requiring schema, validation, and prompt engineering), you get one tool that
+covers computation, string processing, data transformation, and more. Capabilities are
+discovered at runtime via `help()`, so the system prompt stays small and the KV cache
+survives tool set changes.
+
+### Computation Beats Reasoning
+
+LLMs famously fail at tasks like "how many R's in strawberry?" because they try to
+reason about it instead of computing it. With tshell, they write code instead.
+
+Count letters — LLMs get this wrong by reasoning, right by computing:
+
+```javascript
+"strawberry" |> split("") |> filter(c => c == "r") |> len()
+// → 3
+```
+
+Word frequency — multi-step analysis in one expression:
+
+```javascript
+let words = "the quick brown fox jumps over the lazy dog the fox"
+let counts = words |> split(" ") |> countBy(w => w)
+entries(counts) |> filter(e => e[1] > 1) |> map(e => `${e[0]}=${e[1]}`) |> join(", ")
+// → the=3, fox=2
+```
+
+### One Tool Replaces Many
+
+Without tshell, an LLM needs separate tools for search, math, string processing, data
+transformation — each requiring a round-trip. With tshell, complex multi-step operations
+happen in a single `eval` call.
+
+Filter, aggregate, and format — three tool calls collapsed into one:
+
+```javascript
+let data = [{name: "Alice", score: 85}, {name: "Bob", score: 92}, {name: "Carol", score: 78}]
+let avg = data |> map(d => d.score) |> reduce((sum, s) => sum + s, 0) |> (total => total / (data |> len()))
+let above = data |> filter(d => d.score >= avg)
+above |> map(d => `${d.name}: ${d.score}`) |> join(", ")
+// → Alice: 85, Bob: 92
+```
+
+Parse and restructure — no special date-parsing tool needed:
+
+```javascript
+"2024-03-14T10:30:00" |> split("T") |> (parts => {
+  let [date, time] = parts
+  let [y, m, d] = date |> split("-")
+  {year: num(y), month: num(m), day: num(d), time: time}
+})
+// → {year: 2024, month: 3, day: 14, time: "10:30:00"}
+```
+
+### Runtime Discovery
+
+LLMs discover available capabilities at runtime via `help()` instead of needing them
+encoded in the system prompt. When you add a toolkit, the LLM finds it automatically.
+
+LLMs call help() to learn signatures and usage:
+
+```javascript
+help("sort") |> split("\n") |> limit(1) |> join("")
+// → sort(input: array, key?: string)
+```
+
+Exact match shows full signature and docs:
+
+```javascript
+help("countBy") |> split("\n") |> limit(1) |> join("")
+// → countBy(input: array, fn: (T) => string)
+```
 
 ## Typical Usage
 
@@ -90,7 +170,7 @@ greet("world")
 
 ### Pipes
 
-The pipe operator `|` passes the left-hand value as the first argument to the right-hand
+The pipe operator `|>` passes the left-hand value as the first argument to the right-hand
 function. This is the core composition mechanism — it replaces method chaining and lets
 you build data pipelines. Use `|> fn` for zero-argument functions or `|> fn(args)` when
 passing additional arguments.
@@ -213,22 +293,14 @@ Built-in string commands for common transformations.
 
 ### Discovery
 
-`help()` lists all available commands. `help("search")` filters by keyword.
-This is how LLMs discover capabilities at runtime without needing them baked
-into the system prompt.
+`help()` lists all available commands. `help("name")` shows detailed usage.
+See [Runtime Discovery](#runtime-discovery) above for more.
 
 help() returns a string listing all commands:
 
 ```javascript
 typeof(help())
 // → string
-```
-
-help(name) shows detailed usage:
-
-```javascript
-help("sort") |> split("\n") |> limit(1) |> join("")
-// → sort(input: array, key?: string)
 ```
 
 ### Array Operations
@@ -668,11 +740,11 @@ runaway programs.
 
 ## Integration
 
-tshell is designed for text-in, text-out integration. Your host application
-sends tshell source code as a string and receives results as a string. State
-persists across calls, enabling multi-step interactions.
+tshell is text-in, text-out. Send source code, get results. State persists
+across calls. Bind your own Kotlin functions as commands — the LLM discovers
+them via `help()` without any prompt changes.
 
-### Kotlin / JVM
+### Quick Start
 
 ```kotlin
 val shell = TShell()
@@ -691,68 +763,10 @@ shell.evalTransactional("x = 99; fail(\"boom\")")
 shell.eval("x")  // → 42 (unchanged)
 ```
 
-### Adding Capabilities
+### Bind Your Own Commands
 
-```kotlin
-// Graph toolkit
-GraphToolkit(InMemoryGraphStore()).install(shell)
-
-// Load toolkit extensions from a directory
-shell.loadToolkits(Path.of(".tsh"))
-
-// Namespaced loading
-shell.loadToolkits(Path.of(".tsh"), mapOf("graph" to "g"))
-// Now: g.addNode(...), g.out(...)
-```
-
-### LLM System Prompt Generation
-
-```kotlin
-// Generate a system prompt describing all available commands
-val prompt = shell.toPrompt()
-```
-
-The generated prompt includes syntax, available commands, and their
-signatures — everything an LLM needs to write tshell code.
-
-### Execution Limits
-
-tshell sandboxes execution to prevent runaway programs.
-
-```kotlin
-val shell = TShell(
-  maxSteps = 1_000_000,   // max execution steps (default)
-  maxCallDepth = 256,     // max recursion depth (default)
-  timeoutMs = 30_000      // wall-clock timeout in ms (default)
-)
-```
-
-From within tshell, `limits()` shows current limits and `extendLimit({steps: n, timeout: ms, callDepth: n, outputBytes: n})`
-can increase them.
-
-### State Serialization
-
-Save and restore session state for multi-turn interactions.
-
-```kotlin
-// Capture all global bindings
-val state = shell.getState()
-
-// Restore into a new shell instance
-val newShell = TShell()
-CoreToolkit.install(newShell)
-newShell.setState(state)
-
-// Or inject specific bindings
-newShell.setState(mapOf("user" to TShellValue.TString("alice")))
-```
-
-## Extending tshell
-
-Register custom commands from your host language, or package reusable
-functions as toolkit extensions.
-
-### Custom Commands (Kotlin)
+Register any Kotlin function as a tshell command. It appears in `help()` with
+its signature, description, and examples — the LLM discovers it automatically.
 
 ```kotlin
 shell.register(
@@ -764,11 +778,152 @@ shell.register(
   TShellValue.TString("hello $name")
 }
 
-// Now available in tshell: greet("world") // → "hello world"
+// Now in tshell: greet("world") // → "hello world"
+// And: help("greet") shows the signature and examples
 ```
 
-Commands registered this way appear in `help()` with their signature,
-description, and examples.
+This is the core integration pattern: your domain logic lives in Kotlin,
+the LLM composes it via tshell. Add a database query command, an API call,
+a domain calculation — the LLM chains them with pipes, loops, and data
+transforms without needing separate tool schemas for each one.
+
+### LLM Agent Integration (Koog)
+
+Wrap tshell as a single tool for any LLM agent framework. Here's the
+complete binding for [Koog](https://github.com/JetBrains/koog):
+
+```kotlin
+@LLMDescription("tshell scripting")
+class TShellTools(private val shell: TShell) : ToolSet {
+  @Tool
+  @LLMDescription(TShell.TOOL_DESCRIPTION)
+  fun tshell(@LLMDescription("tshell source code") code: String): String {
+    return try {
+      shell.evalExported(code).toDisplayString()
+    } catch (e: Exception) {
+      "ERROR: ${e.message}"
+    }
+  }
+}
+
+// Create the agent
+val shell = TShell()
+CoreToolkit.install(shell)
+FileToolkit(Path.of("/workspace")).install(shell)
+
+val agent = AIAgent(
+  model = OpenAIModels.chatGPT4o,
+  systemPrompt = "You have a tshell tool for computation.\n" + shell.toPrompt(),
+  tools = listOf(TShellTools(shell))
+)
+```
+
+That's it — one class, one tool. The LLM gets computation, file I/O, data
+processing, and any custom commands you register. `shell.toPrompt()` generates
+the syntax reference and command signatures automatically.
+
+The same pattern works for building MCP servers, OpenAI function-calling
+integrations, or any framework that supports tool use. The binding is always
+the same: text in, text out.
+
+See [`tshell-sample-koog`](tshell-sample-koog/) for a complete working example
+with a local LLM, including benchmarks.
+
+### Execution Limits
+
+tshell sandboxes execution to prevent runaway programs.
+
+```kotlin
+val shell = TShell(
+  maxSteps = 1_000_000,   // max AST node evaluations (default)
+  maxCallDepth = 256,     // max recursion depth (default)
+  timeoutMs = 30_000      // wall-clock timeout in ms (default)
+)
+```
+
+From within tshell, `limits()` shows current limits and `extendLimit({steps: n, timeout: ms, callDepth: n, outputBytes: n})`
+can increase them when the LLM needs heavier computation.
+
+### State Serialization
+
+Save and restore session state for multi-turn interactions.
+
+```kotlin
+val state = shell.getState()
+
+val newShell = TShell()
+CoreToolkit.install(newShell)
+newShell.setState(state)
+
+// Or inject specific bindings
+newShell.setState(mapOf("user" to TShellValue.TString("alice")))
+```
+
+## Modules
+
+tshell is modular. Install only what you need — each module adds commands
+that the LLM discovers via `help()`. All modules are published to Maven Central
+under `com.iodesystems.tshell`.
+
+### Core (`tshell`)
+
+```kotlin
+implementation("com.iodesystems.tshell:tshell:0.1.1")
+```
+
+The language runtime plus `CoreToolkit`: pipes, arrays, strings, math, JSON,
+composition (`all`, `race`, `chain`), and `help()`. Also includes:
+
+| Toolkit | Install | Commands |
+| --- | --- | --- |
+| **CoreToolkit** | `CoreToolkit.install(shell)` | `map`, `filter`, `reduce`, `sort`, `join`, `split`, `keys`, `values`, `entries`, `groupBy`, `countBy`, `range`, `parseJson`, `toJson`, and [more](#typical-usage) |
+| **MathToolkit** | `MathToolkit().install(shell)` | `Math.sin`, `Math.cos`, `Math.sqrt`, `Math.log`, `Math.PI`, `Math.E`, etc. |
+| **WebToolkit** | `WebToolkit().install(shell)` | `Web.fetch`, `Web.fetchText`, `Web.search`, `Html.select`, `Html.links`, `Html.text`, `Html.table` |
+| **FileToolkit** | `FileToolkit(rootPath).install(shell)` | Sandboxed `read`, `write`, `glob`, `grep`, `edit` — LLM can only access files under `rootPath` |
+| **GraphToolkit** | `GraphToolkit(store).install(shell)` | Property graph: `addNode`, `link`, `out`, `inbound`, `nodes`, `setProps` — see [Graph Toolkit](#graph-toolkit) |
+
+### Browser Automation (`tshell-playwright`)
+
+```kotlin
+implementation("com.iodesystems.tshell:tshell-playwright:0.1.1")
+```
+
+Playwright-based browser automation. The LLM can navigate pages, click elements,
+fill forms, read text, and take screenshots — all through tshell commands.
+
+```kotlin
+val browser = BrowserToolkit(headless = true)
+browser.install(shell)
+// Commands: Browser.open, Browser.click, Browser.type, Browser.text,
+//           Browser.select, Browser.screenshot, Browser.eval, ...
+```
+
+### SQL (`tshell-sql`)
+
+```kotlin
+implementation("com.iodesystems.tshell:tshell-sql:0.1.1")
+```
+
+JDBC-based SQL toolkit. Supports multiple databases, read-only mode by default,
+parameterized queries, and schema introspection.
+
+```kotlin
+val sql = SqlToolkit(mapOf("db" to DatabaseConfig(dataSource)))
+sql.install(shell)
+// Commands: db.query, db.tables, db.columns, db.schema
+// Read-only by default — LLM must call db.requestWrite() for mutations
+```
+
+### Sample Agent (`tshell-sample-koog`)
+
+Complete working example: a CLI chat agent powered by a local LLM (any
+OpenAI-compatible API) with tshell as its computation tool. Includes
+benchmarks proving LLMs can solve problems via code that they can't solve
+by reasoning alone (96% pass rate on 32 coding challenges).
+
+See [`tshell-sample-koog/README.md`](tshell-sample-koog/README.md) for setup.
+
+## Extending tshell
 
 ### Toolkit Extensions (.tshell files)
 
@@ -779,53 +934,22 @@ Package reusable functions as `.tshell` files in a directory structure:
   math/
     stats.tshell           # function mean(arr) { ... }
     typical_usage.md       # shown in help("math")
-    advanced_usage.md
   text/
     nlp.tshell
     typical_usage.md
 ```
 
 ```kotlin
-// Load all toolkits — functions become global
 shell.loadToolkits(Path.of(".tsh"))
 
-// Or namespace them to avoid collisions
+// Or namespace to avoid collisions
 shell.loadToolkits(Path.of(".tsh"), mapOf("math" to "m"))
 // m.mean([1, 2, 3]) instead of mean([1, 2, 3])
 ```
 
-Toolkit files are evaluated in alphabetical order. Prefix with numbers
-(`01_base.tshell`, `02_derived.tshell`) to control load order when files
-depend on each other.
-
-## Optional Modules
-
-tshell ships with optional modules that can be installed independently.
-Only `CoreToolkit` is required.
-
-| Module |> Install |> Provides |
-| --- |> --- |> --- |
-| **CoreToolkit** |> `CoreToolkit.install(shell)` |> Pipes, arrays, strings, math, JSON, composition |
-| **GraphToolkit** |> `GraphToolkit(store).install(shell)` |> Property graph with typed nodes/edges and traversal |
-| **FileToolkit** |> `FileToolkit(rootPath).install(shell)` |> Sandboxed file I/O: read, write, glob, grep, edit |
-
-```kotlin
-// Minimal setup — just the language + core functions
-val shell = TShell()
-CoreToolkit.install(shell)
-
-// Add file operations (sandboxed to a root directory)
-FileToolkit(Path.of("/workspace")).install(shell)
-
-// Add graph operations
-GraphToolkit(InMemoryGraphStore()).install(shell)
-```
-
 ### Graph Schema Enforcement
 
-Define a schema to prevent LLMs from adding invalid data to the graph.
-Schemas are enforced eagerly — `addNode`, `link`, and `setProps` fail
-immediately if they violate constraints. The LLM cannot modify the schema.
+Define a schema to constrain what the LLM can add to the graph.
 
 ```kotlin
 val schema = GraphSchema(
@@ -837,22 +961,13 @@ val schema = GraphSchema(
     "worksAt" to EdgeSchema(from = "person", to = "company"),
     "knows" to EdgeSchema(from = "person", to = "person"),
   ),
-  strict = true // reject unknown node/edge types entirely
+  strict = true // reject unknown node/edge types
 )
-
 GraphToolkit(InMemoryGraphStore(), schema = schema).install(shell)
 ```
 
-With this schema in place:
-
-```javascript
-addNode(root(), "person", {age: 30})        // ERROR: missing required 'name'
-addNode(root(), "alien", {name: "X"})       // ERROR: unknown node type (strict)
-link(company, person, "worksAt")             // ERROR: worksAt must originate from 'person'
-```
-
-The schema is automatically included in `help("graph")` so LLMs know
-what types and properties are valid.
+The schema is enforced eagerly and included in `help("graph")` so the
+LLM knows what's valid.
 
 ---
 
