@@ -215,7 +215,7 @@ Inspect and transform objects with keys, values, entries.
       """.trim(), listOf(
         Example("""{a: 1, b: 2} |> keys()""", """["a", "b"]"""),
         Example("""{a: 1, b: 2} |> values()""", "[1, 2]"),
-        Example("""{a: 1, b: 2} |> entries()""", """[{key: "a", value: 1}, {key: "b", value: 2}]"""),
+        Example("""{a: 1, b: 2} |> entries()""", """[["a", 1], ["b", 2]]"""),
       )),
 
       Section("Math", """
@@ -307,7 +307,7 @@ Use it to enforce invariants on data, graph structure, or any intermediate resul
 State persists across `eval` calls. Functions and variables from earlier evals
 are available in later ones.
       """.trim(), listOf(
-        Example("""let x = 42""", "null", "Define in one eval"),
+        Example("""let x = 42""", "42", "Define in one eval"),
       )),
 
       Section("Graph Toolkit", """

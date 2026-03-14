@@ -55,7 +55,7 @@ STAR        : '*';
 
 // Regex literal — must come BEFORE SLASH.
 // Semantic predicate: only match if previous token could NOT end an expression.
-REGEX       : {!prevTokenCouldEndExpr()}? '/' ( ~[/\\\r\n] | '\\' . )+ '/' [gimsuy]* ;
+REGEX       : {!prevTokenCouldEndExpr()}? '/' ( '[' ( ~[\]\\\r\n] | '\\' . )* ']' | ~[/\\\r\n[] | '\\' . )+ '/' [gimsuy]* ;
 
 SLASH       : '/';
 PERCENT     : '%';

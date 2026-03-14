@@ -46,11 +46,11 @@ class ExecutionLimits(
     if (count > maxSteps) {
       throw TShellError(
         "Execution step limit exceeded ($maxSteps steps) at line $line\n\n" +
-          "  Your algorithm is too slow. Do NOT just extend limits — fix the algorithm.\n\n" +
           "  Common fixes:\n" +
           "    - Recursive algorithms (e.g. fib(n-1)+fib(n-2)) are O(2^n) — rewrite with a loop\n" +
           "    - Check while/for conditions for infinite loops\n" +
-          "    - Filter or limit() data earlier to reduce iterations"
+          "    - Filter or limit() data earlier to reduce iterations\n" +
+          "    - If your algorithm is correct but data is large, use extendLimit({steps: ${maxSteps * 5}})"
       )
     }
     if (count % timeoutCheckInterval == 0) {
@@ -64,11 +64,11 @@ class ExecutionLimits(
       val elapsedSec = elapsed / 1000.0
       throw TShellError(
         "Execution timeout exceeded (${timeoutMs}ms / ${String.format("%.1f", elapsedSec)}s elapsed) at line $line\n\n" +
-          "  Your algorithm is too slow. Do NOT just extend the timeout — fix the algorithm.\n\n" +
           "  Common fixes:\n" +
           "    - Recursive algorithms (e.g. fib(n-1)+fib(n-2)) are O(2^n) — rewrite with a loop\n" +
           "    - Process less data: use limit() or filter early\n" +
-          "    - Restructure to avoid redundant computation"
+          "    - Restructure to avoid redundant computation\n" +
+          "    - If your algorithm is correct but data is large, use extendLimit({timeout: ${timeoutMs * 2}})"
       )
     }
   }
@@ -79,11 +79,11 @@ class ExecutionLimits(
     if (depth > maxCallDepth) {
       throw TShellError(
         "Call stack depth exceeded ($maxCallDepth) at line $line\n\n" +
-          "  Your program has deep or infinite recursion. Do NOT just extend the depth — fix the algorithm.\n\n" +
           "  Common fixes:\n" +
           "    - Is the recursion missing a base case?\n" +
           "    - Convert to an iterative approach using while/for\n" +
-          "    - Use reduce() instead of manual recursion"
+          "    - Use reduce() instead of manual recursion\n" +
+          "    - If recursion depth is expected, use extendLimit({callDepth: ${maxCallDepth * 2}})"
       )
     }
   }

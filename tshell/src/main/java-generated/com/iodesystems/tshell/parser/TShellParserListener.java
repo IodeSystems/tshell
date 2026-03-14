@@ -678,6 +678,18 @@ public interface TShellParserListener extends ParseTreeListener {
 	 */
 	void exitArrowExpr(TShellParser.ArrowExprContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code funcExpr}
+	 * labeled alternative in {@link TShellParser#primaryExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterFuncExpr(TShellParser.FuncExprContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code funcExpr}
+	 * labeled alternative in {@link TShellParser#primaryExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitFuncExpr(TShellParser.FuncExprContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code regexExpr}
 	 * labeled alternative in {@link TShellParser#primaryExpr}.
 	 * @param ctx the parse tree
@@ -701,6 +713,16 @@ public interface TShellParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitParenExpr(TShellParser.ParenExprContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link TShellParser#functionExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterFunctionExpr(TShellParser.FunctionExprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TShellParser#functionExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitFunctionExpr(TShellParser.FunctionExprContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code singleParamArrow}
 	 * labeled alternative in {@link TShellParser#arrowFunction}.

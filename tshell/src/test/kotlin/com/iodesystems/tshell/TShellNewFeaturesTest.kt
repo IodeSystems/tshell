@@ -172,7 +172,7 @@ class TShellNewFeaturesTest {
     CoreToolkit.install(sh)
     val err = assertThrows<TShellError> { sh.eval("let i = 0; while (true) { i += 1 }") }
     assertTrue(err.message!!.contains("step limit"))
-    assertTrue(err.message!!.contains("fix the algorithm"))
+    assertTrue(err.message!!.contains("extendLimit"))
   }
 
   @Test fun `call depth limit prevents infinite recursion`() {
@@ -180,7 +180,7 @@ class TShellNewFeaturesTest {
     CoreToolkit.install(sh)
     val err = assertThrows<TShellError> { sh.eval("function f(n) { f(n + 1) }; f(0)") }
     assertTrue(err.message!!.contains("Call stack depth"))
-    assertTrue(err.message!!.contains("fix the algorithm"))
+    assertTrue(err.message!!.contains("extendLimit"))
   }
 
   @Test fun `timeout prevents long-running programs`() {
@@ -188,7 +188,7 @@ class TShellNewFeaturesTest {
     CoreToolkit.install(sh)
     val err = assertThrows<TShellError> { sh.eval("let i = 0; while (true) { i += 1 }") }
     assertTrue(err.message!!.contains("timeout"))
-    assertTrue(err.message!!.contains("fix the algorithm"))
+    assertTrue(err.message!!.contains("extendLimit"))
   }
 
   @Test fun `extendLimit increases limit within same eval`() {
@@ -968,5 +968,127 @@ class TShellNewFeaturesTest {
     assertThrows<TShellError> { sh.eval("\"a\" & 1") }
     assertThrows<TShellError> { sh.eval("1 | \"b\"") }
     assertThrows<TShellError> { sh.eval("~\"x\"") }
+  }
+
+  // --- Regex character classes ---
+
+  @Test fun `regex with character class containing slash`() {
+    val sh = shell()
+    // /[+\-*/]/g — dash escaped, slash allowed inside char class
+    assertEquals(TArray(listOf(TString("+"), TString("-"), TString("*"), TString("/"))),
+      sh.eval(""""a+b-c*d/e" |> match(/[+\-*/]/g) |> map(m => m.match)"""))
+  }
+
+  @Test fun `regex with character class containing brackets`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TString("["), TString("]"))),
+      sh.eval(""""a[b]c" |> match(/[\[\]]/g) |> map(m => m.match)"""))
+  }
+
+  // --- Dynamic field + push (reduce_groupby pattern) ---
+
+  @Test fun `dynamic field assignment then push`() {
+    val sh = shell()
+    assertEquals(TObject(linkedMapOf(
+      "fruit" to TArray(listOf(TString("apple"), TString("banana")))
+    )), sh.eval("""
+      let acc = {}
+      acc["fruit"] = []
+      acc["fruit"].push("apple")
+      acc["fruit"].push("banana")
+      acc
+    """))
+  }
+
+  @Test fun `reduce groupby pattern`() {
+    val sh = shell()
+    val result = sh.eval("""
+      let data = [
+        {type: "fruit", name: "apple"},
+        {type: "veg", name: "carrot"},
+        {type: "fruit", name: "banana"},
+        {type: "veg", name: "pea"}
+      ]
+      data |> reduce((acc, item) => {
+        let key = item.type
+        if (!acc[key]) { acc[key] = [] }
+        acc[key].push(item.name)
+        return acc
+      }, {})
+    """)
+    val obj = result as TObject
+    assertEquals(TArray(listOf(TString("apple"), TString("banana"))), obj.fields["fruit"])
+    assertEquals(TArray(listOf(TString("carrot"), TString("pea"))), obj.fields["veg"])
+  }
+
+  // --- Shuffle ---
+
+  // --- Function expressions ---
+
+  @Test fun `function expression assigned to variable`() {
+    val sh = shell()
+    assertEquals(TNumber(10.0), sh.eval("let double = function(x) { return x * 2 }; double(5)"))
+  }
+
+  @Test fun `anonymous function expression`() {
+    val sh = shell()
+    assertEquals(TNumber(6.0), sh.eval("let add = function(a, b) { return a + b }; add(2, 4)"))
+  }
+
+  @Test fun `named function expression`() {
+    val sh = shell()
+    assertEquals(TNumber(120.0), sh.eval("let f = function factorial(n) { if (n <= 1) return 1; return n * factorial(n - 1) }; f(5)"))
+  }
+
+  @Test fun `function expression as argument`() {
+    val sh = shell()
+    assertEquals(TNumber(14.0), sh.eval("[1, 2, 3] |> map(function(x) { return x * x }) |> reduce(function(a, b) { return a + b }, 0)"))
+  }
+
+  // --- Shuffle ---
+
+  // --- Copy-on-write assignment ---
+
+  @Test fun `nested object assignment does not mutate original`() {
+    val sh = shell()
+    val result = sh.eval("""
+      let a = {x: {y: 1}};
+      let b = a;
+      b.x.y = 99;
+      [a.x.y, b.x.y]
+    """.trimIndent())
+    // a.x.y should still be 1, b.x.y should be 99
+    assertEquals(TArray(listOf(TNumber(1.0), TNumber(99.0))), result)
+  }
+
+  @Test fun `nested array assignment does not mutate original`() {
+    val sh = shell()
+    val result = sh.eval("""
+      let a = [[1, 2], [3, 4]];
+      let b = a;
+      b[0][0] = 99;
+      [a[0][0], b[0][0]]
+    """.trimIndent())
+    assertEquals(TArray(listOf(TNumber(1.0), TNumber(99.0))), result)
+  }
+
+  @Test fun `array auto-grow on assignment`() {
+    val sh = shell()
+    val result = sh.eval("""
+      let arr = [];
+      arr[0] = "a";
+      arr[2] = "c";
+      arr
+    """.trimIndent())
+    assertEquals(TArray(listOf(TString("a"), TNull, TString("c"))), result)
+  }
+
+  // --- Shuffle ---
+
+  @Test fun `shuffle returns array of same length`() {
+    val sh = shell()
+    val result = sh.eval("[1, 2, 3, 4, 5] |> shuffle() |> sort()") as TArray
+    assertEquals(5, result.elements.size)
+    assertEquals(TArray(listOf(TNumber(1.0), TNumber(2.0), TNumber(3.0), TNumber(4.0), TNumber(5.0))), result)
   }
 }

@@ -421,6 +421,7 @@ class Interpreter(
       is RegexExprContext -> visitRegexExpr(ctx)
       is ArrayExprContext -> visitArrayExpr(ctx)
       is ObjectExprContext -> visitObjectExpr(ctx)
+      is FuncExprContext -> visitFuncExpr(ctx)
       is ParenExprContext -> visitParenExpr(ctx)
       // Arrow functions (ArrowExprContext wraps arrowFunction rule)
       is ArrowExprContext -> eval(ctx.arrowFunction())
@@ -491,11 +492,12 @@ class Interpreter(
     }
 
     suspend fun visitLetDecl(ctx: LetDeclContext): TShellValue {
+      var lastValue: TShellValue = TShellValue.TNull
       for (binding in ctx.letBinding()) {
-        val value = if (binding.expression() != null) eval(binding.expression()) else TShellValue.TNull
-        bindDestructure(binding.destructure(), value)
+        lastValue = if (binding.expression() != null) eval(binding.expression()) else TShellValue.TNull
+        bindDestructure(binding.destructure(), lastValue)
       }
-      return TShellValue.TNull
+      return lastValue
     }
 
     suspend fun visitFnDecl(ctx: FnDeclContext): TShellValue {
@@ -509,6 +511,21 @@ class Interpreter(
       )
       env.defineOrSet(name, fn)
       return TShellValue.TNull
+    }
+
+    suspend fun visitFuncExpr(ctx: FuncExprContext): TShellValue {
+      val fCtx = ctx.functionExpr()
+      val name = fCtx.IDENTIFIER()?.text
+      val params = fCtx.paramList()?.param()?.map { it.IDENTIFIER().text } ?: emptyList()
+      // Named function expressions get a child env with self-reference for recursion
+      val closureEnv = if (name != null) env.child() else env
+      val fn = TShellValue.TFunction(
+        name = name ?: "<anonymous>",
+        params = params,
+        body = TShellValue.FunctionBody.Block(fCtx.block(), closureEnv, commands, limits)
+      )
+      if (name != null) closureEnv.define(name, fn)
+      return fn
     }
 
     suspend fun visitReturnStatement(ctx: ReturnStatementContext): TShellValue {
@@ -572,42 +589,57 @@ class Interpreter(
         }
         env.set(rootName, finalValue)
       } else {
+        // Copy-on-write: walk down collecting chain, then rebuild from leaf to root
+        val chain = mutableListOf<TShellValue>()
         var current = env.get(rootName)
           ?: throw TShellError.runtime("'$rootName' is not defined")
+        chain.add(current)
         for (i in 0 until steps.size - 1) {
           current = resolveStep(current, steps[i])
+          chain.add(current)
         }
         val lastStep = steps.last()
         val finalValue = if (op == "=") rhs else {
           val oldValue = resolveStep(current, lastStep)
           applyCompoundOp(op, oldValue, rhs)
         }
-        when (lastStep) {
-          is FieldStep -> {
-            val obj = current as? TShellValue.TObject
-              ?: throw TShellError.typeMismatch("assignment to .${lastStep.name}", "object", current)
-            (obj.fields as MutableMap)[lastStep.name] = finalValue
-          }
-          is IndexStep -> {
-            when (current) {
-              is TShellValue.TObject -> {
-                val key = (lastStep.value as? TShellValue.TString)?.value
-                  ?: throw TShellError.typeMismatch("index assignment", "string key", lastStep.value)
-                (current.fields as MutableMap)[key] = finalValue
-              }
-              is TShellValue.TArray -> {
-                val idx = (lastStep.value as? TShellValue.TNumber)?.value?.toInt()
-                  ?: throw TShellError.typeMismatch("index assignment", "number", lastStep.value)
-                if (idx < 0 || idx >= current.elements.size) {
-                  throw TShellError.runtime("Index $idx out of bounds (size ${current.elements.size})")
-                }
-                (current.elements as MutableList)[idx] = finalValue
-              }
-              else -> throw TShellError.typeMismatch("assignment", "object or array", current)
-            }
-          }
-          else -> throw TShellError.runtime("Unknown accessor step")
+        // Set the value at the leaf, producing a new parent
+        var updated = setStep(chain.last(), lastStep, finalValue)
+        // Rebuild from inside out
+        for (i in steps.size - 2 downTo 0) {
+          updated = setStep(chain[i], steps[i], updated)
         }
+        env.set(rootName, updated)
+      }
+    }
+
+    /** Produce a new value with [step] set to [value] (copy-on-write). */
+    private fun setStep(parent: TShellValue, step: Any, value: TShellValue): TShellValue {
+      return when (step) {
+        is FieldStep -> {
+          val obj = parent as? TShellValue.TObject
+            ?: throw TShellError.typeMismatch("assignment to .${step.name}", "object", parent)
+          TShellValue.TObject(LinkedHashMap(obj.fields).apply { this[step.name] = value })
+        }
+        is IndexStep -> when (parent) {
+          is TShellValue.TObject -> {
+            val key = (step.value as? TShellValue.TString)?.value
+              ?: throw TShellError.typeMismatch("index assignment", "string key", step.value)
+            TShellValue.TObject(LinkedHashMap(parent.fields).apply { this[key] = value })
+          }
+          is TShellValue.TArray -> {
+            val idx = (step.value as? TShellValue.TNumber)?.value?.toInt()
+              ?: throw TShellError.typeMismatch("index assignment", "number", step.value)
+            if (idx < 0) throw TShellError.runtime("Index $idx out of bounds (size ${parent.elements.size})")
+            val newElems = ArrayList(parent.elements)
+            // Auto-grow with nulls (JS behavior)
+            while (newElems.size <= idx) newElems.add(TShellValue.TNull)
+            newElems[idx] = value
+            TShellValue.TArray(newElems)
+          }
+          else -> throw TShellError.typeMismatch("assignment", "object or array", parent)
+        }
+        else -> throw TShellError.runtime("Unknown accessor step")
       }
     }
 
@@ -1221,8 +1253,13 @@ class Interpreter(
               }
             }
             op.LBRACKET() != null -> {
-              lvaluePath.clear() // can't track dynamic index paths for writeback
               val index = eval(op.expression())
+              // Track string-keyed object access for mutating method writeback (e.g. acc[key].push(x))
+              if (current is TShellValue.TObject && index is TShellValue.TString) {
+                lvaluePath.add(index.value)
+              } else {
+                lvaluePath.clear() // can't track non-string index paths for writeback
+              }
               accessIndex(current, index)
             }
             op.LPAREN() != null -> {
@@ -1654,7 +1691,18 @@ class Interpreter(
 
     private fun accessMember(obj: TShellValue, field: String): TShellValue {
       return when (obj) {
-        is TShellValue.TObject -> obj.fields[field] ?: TShellValue.TNull
+        is TShellValue.TObject -> when (field) {
+          "hasOwnProperty" -> TShellValue.TFunction(
+            name = "hasOwnProperty",
+            params = listOf("key"),
+            body = TShellValue.FunctionBody.Native { args ->
+              val key = (args.firstOrNull() as? TShellValue.TString)?.value
+                ?: throw TShellError.typeMismatch("hasOwnProperty", "string", args.firstOrNull() ?: TShellValue.TNull)
+              TShellValue.TBoolean(obj.fields.containsKey(key))
+            }
+          )
+          else -> obj.fields[field] ?: TShellValue.TNull
+        }
         is TShellValue.TArray -> when (field) {
           "length" -> TShellValue.TNumber(obj.elements.size.toDouble())
           else -> bindMethodOrHint(obj, "array", field)
@@ -1820,6 +1868,7 @@ private val JS_NAMESPACE_ALIASES: Map<String, Map<String, String>> = mapOf(
     "keys" to "keys",
     "values" to "values",
     "entries" to "entries",
+    "fromEntries" to "fromEntries",
   ),
   "console" to mapOf(
     "log" to "print",

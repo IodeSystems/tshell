@@ -383,7 +383,7 @@ Inspect and transform objects with keys, values, entries.
 
 ```javascript
 {a: 1, b: 2} |> entries()
-// → [{key: "a", value: 1}, {key: "b", value: 2}]
+// → [["a", 1], ["b", 2]]
 ```
 
 ### Math
@@ -609,7 +609,7 @@ Define in one eval:
 
 ```javascript
 let x = 42
-// → null
+// → 42
 ```
 
 ### Graph Toolkit

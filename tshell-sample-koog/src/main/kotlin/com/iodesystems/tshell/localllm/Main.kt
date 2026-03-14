@@ -16,6 +16,7 @@ import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
 import com.github.ajalt.clikt.command.SuspendingCliktCommand
 import com.github.ajalt.clikt.command.main
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.iodesystems.tshell.TShell
 import com.iodesystems.tshell.toolkit.CoreToolkit
@@ -23,6 +24,7 @@ import com.iodesystems.tshell.toolkit.FileToolkit
 import com.iodesystems.tshell.toolkit.MathToolkit
 import com.iodesystems.tshell.toolkit.WebToolkit
 import com.iodesystems.tshell.playwright.BrowserToolkit
+import java.nio.file.Path
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
@@ -50,6 +52,8 @@ class LocalLlmChat : SuspendingCliktCommand(
     .default("false")
   private val browserHeadless by option("--headless", help = "Run browser in headless mode (default: true)")
     .default("true")
+  private val benchmark by option("--benchmark", help = "Run benchmark suite and write results to benchmarks/results/")
+    .flag()
 
   override suspend fun run() {
     // Fetch available models
@@ -156,6 +160,28 @@ class LocalLlmChat : SuspendingCliktCommand(
         appendLine()
       }
       appendLine(shell.toPrompt())
+    }
+
+    // Benchmark mode
+    if (benchmark) {
+      try {
+        runBenchmarks(
+          executor = executor,
+          model = model,
+          systemPrompt = systemPrompt,
+          shellFactory = {
+            val s = TShell()
+            CoreToolkit.install(s)
+            MathToolkit().install(s)
+            TShellTools(s)
+          },
+          outputDir = Path.of(System.getProperty("user.dir")).resolve("benchmarks/results"),
+          timeoutMs = 30_000
+        )
+      } finally {
+        cleanup()
+      }
+      return
     }
 
     val toolRegistry = ToolRegistry {

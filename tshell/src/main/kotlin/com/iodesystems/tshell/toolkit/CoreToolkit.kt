@@ -127,6 +127,13 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       }))
     }
 
+    shell.register("shuffle", "input: array", "randomly reorders array elements",
+      listOf("""[1, 2, 3, 4, 5] |> shuffle()""")
+    ) { args ->
+      val arr = requireArray("shuffle", args[0])
+      TArray(arr.elements.shuffled())
+    }
+
     shell.register("reverse", "input: array|string", "reverses",
       listOf("""[1, 2, 3] |> reverse()""", """reverse([1, 2, 3])""", """"hello" |> reverse()""")
     ) { args ->
@@ -157,7 +164,12 @@ IMPORTANT — ALGORITHM COMPLEXITY:
         }
         else -> {
           val sepStr = (sep as? TString)?.value ?: ","
-          TArray(s.value.split(sepStr).map { TString(it) })
+          if (sepStr.isEmpty()) {
+            // split('') → individual characters (no leading/trailing empties)
+            TArray(s.value.map { TString(it.toString()) })
+          } else {
+            TArray(s.value.split(sepStr).map { TString(it) })
+          }
         }
       }
     }
@@ -267,13 +279,56 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       TArray(obj.fields.values.toList())
     }
 
-    shell.register("entries", "input: object", "object → [{key, value}]",
-      listOf("""{a: 1, b: 2} |> entries()""", """entries({a: 1, b: 2})""")
+    shell.register("entries", "input: object", "object → [[key, value], ...] (JS-compatible)",
+      listOf("""{a: 1, b: 2} |> entries()""", """entries({a: 1, b: 2}) |> fromEntries()""")
     ) { args ->
       val obj = requireObject("entries", args[0])
       TArray(obj.fields.map { (k, v) ->
-        TObject(mapOf("key" to TString(k), "value" to v))
+        TArray(listOf(TString(k), v))
       })
+    }
+
+    shell.register("fromEntries", "input: array", "[[key, value]] or [{key, value}] → object",
+      listOf(
+        """[["a", 1], ["b", 2]] |> fromEntries()""",
+        """{a: 1, b: 2} |> entries() |> fromEntries()"""
+      )
+    ) { args ->
+      val arr = requireArray("fromEntries", args[0])
+      val result = linkedMapOf<String, TShellValue>()
+      for (elem in arr.elements) {
+        when (elem) {
+          is TArray -> {
+            if (elem.elements.size < 2) throw TShellError.runtime("fromEntries: array entry must have at least 2 elements, got ${elem.elements.size}")
+            val key = (elem.elements[0] as? TString)?.value ?: elem.elements[0].toDisplayString()
+            result[key] = elem.elements[1]
+          }
+          is TObject -> {
+            val key = (elem.fields["key"] as? TString)?.value
+              ?: throw TShellError.runtime("fromEntries: object entry must have a 'key' field")
+            result[key] = elem.fields["value"] ?: TShellValue.TNull
+          }
+          else -> throw TShellError.typeMismatch("fromEntries", "array or {key, value} object", elem)
+        }
+      }
+      TObject(result)
+    }
+
+    shell.register("countBy", "input: array, fn: (T) => string", "→ {key: count}",
+      listOf(
+        """["a", "b", "a", "c", "a"] |> countBy(x => x)""",
+        """[1, 2, 3, 4, 5] |> countBy(x => x % 2 == 0 ? "even" : "odd")"""
+      )
+    ) { args ->
+      val arr = requireArray("countBy", args[0])
+      val fn = requireFn("countBy", args, 1)
+      val counts = linkedMapOf<String, Int>()
+      for (elem in arr.elements) {
+        val key = fn.callAsync(listOf(elem))
+        val keyStr = (key as? TString)?.value ?: key.toDisplayString()
+        counts[keyStr] = (counts[keyStr] ?: 0) + 1
+      }
+      TObject(counts.mapValues { TNumber(it.value.toDouble()) })
     }
 
     shell.register("range", "start: number, end: number", "[start, end) integer array",
@@ -789,13 +844,13 @@ IMPORTANT — ALGORITHM COMPLEXITY:
     // --- Execution limits ---
 
     shell.register("extendLimit", "opts: {steps?: number, timeout?: number, callDepth?: number, outputBytes?: number}",
-      "increases execution limits for this session. Only provide the limits you want to change",
+      "increases execution limits for this eval. Call before heavy computation",
       listOf(
         """extendLimit({steps: 5000000})""",
         """extendLimit({timeout: 60000})""",
         """extendLimit({outputBytes: 128000})""",
         """extendLimit({steps: 5000000, timeout: 60000})"""
-      ), hidden = true
+      )
     ) { args ->
       val opts = args.firstOrNull() as? TObject
         ?: throw TShellError.wrongArguments("extendLimit",
@@ -832,7 +887,7 @@ IMPORTANT — ALGORITHM COMPLEXITY:
     }
 
     shell.register("limits", "", "shows current execution limits",
-      listOf("limits()"), hidden = true
+      listOf("limits()")
     ) { _ ->
       TObject(mapOf(
         "maxSteps" to TNumber(shell.limits.maxSteps.toDouble()),

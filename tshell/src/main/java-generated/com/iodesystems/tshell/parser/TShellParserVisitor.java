@@ -411,6 +411,13 @@ public interface TShellParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitArrowExpr(TShellParser.ArrowExprContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code funcExpr}
+	 * labeled alternative in {@link TShellParser#primaryExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFuncExpr(TShellParser.FuncExprContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code regexExpr}
 	 * labeled alternative in {@link TShellParser#primaryExpr}.
 	 * @param ctx the parse tree
@@ -424,6 +431,12 @@ public interface TShellParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitParenExpr(TShellParser.ParenExprContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link TShellParser#functionExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunctionExpr(TShellParser.FunctionExprContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code singleParamArrow}
 	 * labeled alternative in {@link TShellParser#arrowFunction}.

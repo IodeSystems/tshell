@@ -128,9 +128,12 @@ primaryExpr
   | arrayLiteral                                        # arrayExpr
   | objectLiteral                                       # objectExpr
   | arrowFunction                                       # arrowExpr
+  | functionExpr                                        # funcExpr
   | REGEX                                                # regexExpr
   | LPAREN expression RPAREN                            # parenExpr
   ;
+
+functionExpr  : FUNCTION IDENTIFIER? LPAREN paramList? RPAREN (COLON typeAnnotation)? block;
 
 // Arrow functions
 arrowFunction

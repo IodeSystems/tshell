@@ -251,9 +251,10 @@ chain(() => getData(), d => transform(d))  // sequential pipeline"""
       "Regex: /pattern/flags with match, replace, split, test. " +
       "Method syntax: arr.map(fn), str.toUpperCase() — auto-resolves to commands. " +
       "Parallel: all(() => a(), () => b()), race(), |* scatter. " +
-      "Use 'export' to persist values across calls: export let x = 5, export function f(n) { ... }. " +
-      "Without export, all state is discarded after this call. " +
+      "Use 'export' to persist values across tool calls: export let x = 5, export function f(n) { ... }. " +
+      "Without export, all state is discarded after the tool call returns (not during — code within a single call shares scope normally). " +
       "Use help() to discover commands, help(\"name\") for signatures. " +
+      "Iterate freely — if code errors, read the message, fix, and retry. Multiple calls are fine. " +
       "Output is limited — use limit(), filter(), or read(path, start, lines) to reduce large results."
 
     const val PROMPT_EXAMPLES = """let x = 42
