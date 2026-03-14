@@ -279,7 +279,9 @@ All published to Maven Central under `com.iodesystems.tshell`.
 | Module | Artifact | Provides |
 | --- | --- | --- |
 | **Core** | `tshell` | Language runtime, `CoreToolkit` (pipes, arrays, strings, math, JSON, composition), `MathToolkit`, `WebToolkit`, `FileToolkit`, `GraphToolkit`. See [Graph docs](README-graph.md) |
-| **Browser** | `tshell-playwright` | Playwright-based automation: `Browser.open`, `.click`, `.type`, `.text`, `.screenshot` |
+| **MCP** | `tshell-mcp` | MCP server (expose tshell as a tool) + MCP client toolkit (connect to external MCP servers). See [`tshell-mcp/README.md`](../tshell-mcp/README.md) |
+| **CLI** | `tshell-cli` | Standalone MCP server with `--connect` for polyglot tool composition |
+| **Browser** | `tshell-playwright` | Lean Playwright automation (12 commands, ~800 chars context vs ~8KB for `@playwright/mcp`). See [`tshell-playwright/README.md`](../tshell-playwright/README.md) |
 | **SQL** | `tshell-sql` | JDBC toolkit: `db.query`, `db.tables`, `db.schema`. Read-only by default |
 | **Sample Agent** | `tshell-sample-koog` | CLI chat agent with local LLM + benchmarks. See [`tshell-sample-koog/README.md`](tshell-sample-koog/README.md) |
 
