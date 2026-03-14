@@ -1,14 +1,65 @@
 # tshell
 
-One tool instead of twenty. Give your LLM `eval` and let it compute.
+One `eval` tool instead of twenty. Sandboxed JS syntax your LLM already knows.
 
-tshell is a sandboxed scripting language with JavaScript syntax — the one
-language every LLM already knows. Instead of building separate tools for
-search, math, string processing, and data transformation (each needing
-schema, validation, and prompt engineering), you give your LLM a single
-`eval` tool that handles all of it. Capabilities are discovered at runtime
-via `help()`, so the system prompt stays small and the KV cache survives
-tool set changes.
+## Quick Start
+
+Build and run as an MCP server:
+
+```bash
+git clone https://github.com/IodeSystems/tshell.git && cd tshell
+./gradlew :tshell-cli:installDist
+```
+
+Add to your MCP client (Claude Desktop, Cursor, etc.):
+
+```json
+{
+  "mcpServers": {
+    "tshell": {
+      "command": "./tshell-cli/build/install/tshell-cli/bin/tshell-cli"
+    }
+  }
+}
+```
+
+Your LLM now has `eval` and `help`. It writes JS-syntax code; tshell executes it.
+
+```javascript
+// LLM can compute instead of reasoning:
+"strawberry" |> split("") |> filter(c => c == "r") |> len()  // → 3
+
+// Chain operations in a single tool call:
+let data = [{name: "Alice", score: 85}, {name: "Bob", score: 92}]
+data |> filter(d => d.score > 80) |> map(d => d.name) |> join(", ")  // → "Alice, Bob"
+```
+
+## MCP Composition
+
+Connect external MCP servers — their tools become tshell commands, composed with pipes:
+
+```bash
+tshell-cli --connect "app=python my_tools.py" --connect "data=npx data-server"
+```
+
+```
+LLM
+ │
+ ▼
+tshell-cli (single MCP server)
+ ├── eval("app.users() |> filter(u => u.active) |> sort(\"name\")")
+ │    ├── tshell core (pipes, filter, sort, strings, math)
+ │    ├── app.* → Python MCP server (your app code)
+ │    └── data.* → Go MCP server (your data pipeline)
+ └── help() → all commands from all servers
+```
+
+**Context reduction:** each MCP tool inflates the LLM's prompt with schema and
+descriptions. A Playwright MCP server adds ~8KB of tool definitions. tshell
+replaces all of it with one `eval` tool — commands are discovered via `help()`
+at runtime, not baked into the prompt. The KV cache survives tool set changes.
+
+See [`tshell-mcp/README.md`](../tshell-mcp/README.md) for the programmatic API.
 
 ## Why tshell
 
@@ -208,43 +259,16 @@ No `class`, `this`, `new`, `var`, `const`, `async`/`await`, `try`/`catch`,
 `import`/`require`, prototypes, generators, or `Symbol`. Type annotations are
 accepted but ignored. Use `help()` to discover what's available.
 
-## MCP Composition
+## Programmatic Integration
 
-tshell connects to any MCP server and collapses its tools into the same
-`eval` call. Write your tools in Go, Python, TypeScript, Rust — whatever
-fits your stack. The LLM sees one tool; tshell handles the plumbing.
+Published to Maven Central as `com.iodesystems.tshell:tshell`.
 
+```kotlin
+// build.gradle.kts
+dependencies {
+  implementation("com.iodesystems.tshell:tshell:0.1.0")
+}
 ```
-LLM
- │
- ▼
-tshell-cli (single MCP server)
- ├── eval("app.users() |> filter(u => u.active) |> sort(\"name\")")
- │    ├── tshell core (pipes, filter, sort, strings, math)
- │    ├── app.* → Python MCP server (your app code)
- │    └── data.* → Go MCP server (your data pipeline)
- └── help() → all commands from all servers
-```
-
-**Why this matters:** each MCP tool you add inflates the LLM's context with
-schema, descriptions, and examples. A typical Playwright MCP server adds ~8KB
-of tool definitions. tshell replaces all of it with a single `eval` tool —
-commands are discovered via `help()` at runtime, not baked into the prompt.
-The LLM's KV cache survives when you add or remove servers.
-
-```bash
-# Standalone MCP server
-tshell-cli
-
-# Connect to external MCP servers — tools become namespaced commands
-tshell-cli --connect "app=python my_tools.py" --connect "data=npx data-server"
-```
-
-See [`tshell-mcp/README.md`](../tshell-mcp/README.md) for the full API.
-
-## Integration
-
-### Quick Start
 
 ```kotlin
 val shell = TShell()
@@ -254,7 +278,7 @@ val result = shell.eval("[1, 2, 3] |> map(x => x * 2)")
 println(result.toDisplayString()) // "[2, 4, 6]"
 ```
 
-### Bind Your Own Commands
+### Custom Commands
 
 Register Kotlin functions as tshell commands. They appear in `help()`
 automatically — the LLM discovers them without prompt changes.
@@ -270,30 +294,6 @@ shell.register(
 }
 ```
 
-This is the core pattern: domain logic in Kotlin, composed via tshell.
-Add a database query, an API call, a domain calculation — the LLM chains
-them with pipes without needing separate tool schemas.
-
-### LLM Agent Integration (Koog)
-
-Wrap tshell as a single tool for any agent framework:
-
-```kotlin
-@LLMDescription("tshell scripting")
-class TShellTools(private val shell: TShell) : ToolSet {
-  @Tool @LLMDescription(TShell.TOOL_DESCRIPTION)
-  fun tshell(@LLMDescription("tshell source code") code: String): String =
-    try { shell.evalExported(code).toDisplayString() }
-    catch (e: Exception) { "ERROR: ${e.message}" }
-}
-```
-
-`shell.toPrompt()` generates the syntax reference and command signatures
-for the system prompt. Same pattern works for MCP servers or OpenAI function calling.
-
-See [`tshell-sample-koog`](tshell-sample-koog/) for a complete working example
-with benchmarks (96% on 32 coding challenges with a local LLM).
-
 ### Execution Limits
 
 ```kotlin
@@ -304,21 +304,17 @@ val shell = TShell(
 )
 ```
 
-The LLM can call `extendLimit({steps: n})` when it needs heavier computation.
-
 ## Modules
-
-All published to Maven Central under `com.iodesystems.tshell`.
 
 | Module | Artifact | Provides |
 | --- | --- | --- |
 | **Core** | `tshell` | Language runtime, `CoreToolkit` (pipes, arrays, strings, math, JSON, composition), `MathToolkit`, `WebToolkit`, `FileToolkit` |
 | **Graph** | `tshell-graph` | Graph database toolkit: nodes, edges, traversal, schema validation. See [`tshell-graph/README.md`](../tshell-graph/README.md) |
-| **MCP** | `tshell-mcp` | MCP server (expose tshell as a tool) + MCP client toolkit (connect to external MCP servers). See [`tshell-mcp/README.md`](../tshell-mcp/README.md) |
-| **CLI** | `tshell-cli` | Standalone MCP server with `--connect` for polyglot tool composition |
+| **MCP** | `tshell-mcp` | MCP server + client toolkit for polyglot composition. See [`tshell-mcp/README.md`](../tshell-mcp/README.md) |
+| **CLI** | `tshell-cli` | Standalone MCP server with `--connect` for external tool servers |
 | **Browser** | `tshell-playwright` | Lean Playwright automation (12 commands, ~800 chars context vs ~8KB for `@playwright/mcp`). See [`tshell-playwright/README.md`](../tshell-playwright/README.md) |
 | **SQL** | `tshell-sql` | JDBC toolkit: `db.query`, `db.tables`, `db.schema`. Read-only by default |
-| **Sample Agent** | `tshell-sample-koog` | CLI chat agent with local LLM + benchmarks. See [`tshell-sample-koog/README.md`](tshell-sample-koog/README.md) |
+| **Sample** | `tshell-sample-koog` | CLI chat agent + benchmarks (96% on 32 challenges). See [`tshell-sample-koog/README.md`](tshell-sample-koog/README.md) |
 
 ---
 
