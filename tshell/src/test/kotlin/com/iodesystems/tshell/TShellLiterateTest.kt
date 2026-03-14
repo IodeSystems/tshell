@@ -274,7 +274,7 @@ accepted but ignored. Use `help()` to discover what's available.
       appendLine("replaces all of it with one `eval` tool — commands are discovered via `help()`")
       appendLine("at runtime, not baked into the prompt. The KV cache survives tool set changes.")
       appendLine()
-      appendLine("See [`tshell-mcp/README.md`](../tshell-mcp/README.md) for the programmatic API.")
+      appendLine("See [`tshell-mcp/README.md`](tshell-mcp/README.md) for the programmatic API.")
       appendLine()
 
       // ── Why tshell ──
@@ -359,10 +359,10 @@ accepted but ignored. Use `help()` to discover what's available.
       appendLine("| Module | Artifact | Provides |")
       appendLine("| --- | --- | --- |")
       appendLine("| **Core** | `tshell` | Language runtime, `CoreToolkit` (pipes, arrays, strings, math, JSON, composition), `MathToolkit`, `WebToolkit`, `FileToolkit` |")
-      appendLine("| **Graph** | `tshell-graph` | Graph database toolkit: nodes, edges, traversal, schema validation. See [`tshell-graph/README.md`](../tshell-graph/README.md) |")
-      appendLine("| **MCP** | `tshell-mcp` | MCP server + client toolkit for polyglot composition. See [`tshell-mcp/README.md`](../tshell-mcp/README.md) |")
+      appendLine("| **Graph** | `tshell-graph` | Graph database toolkit: nodes, edges, traversal, schema validation. See [`tshell-graph/README.md`](tshell-graph/README.md) |")
+      appendLine("| **MCP** | `tshell-mcp` | MCP server + client toolkit for polyglot composition. See [`tshell-mcp/README.md`](tshell-mcp/README.md) |")
       appendLine("| **CLI** | `tshell-cli` | Standalone MCP server with `--connect` for external tool servers |")
-      appendLine("| **Browser** | `tshell-playwright` | Lean Playwright automation (12 commands, ~800 chars context vs ~8KB for `@playwright/mcp`). See [`tshell-playwright/README.md`](../tshell-playwright/README.md) |")
+      appendLine("| **Browser** | `tshell-playwright` | Lean Playwright automation (12 commands, ~800 chars context vs ~8KB for `@playwright/mcp`). See [`tshell-playwright/README.md`](tshell-playwright/README.md) |")
       appendLine("| **SQL** | `tshell-sql` | JDBC toolkit: `db.query`, `db.tables`, `db.schema`. Read-only by default |")
       appendLine("| **Sample** | `tshell-sample-koog` | CLI chat agent + benchmarks (96% on 32 challenges). See [`tshell-sample-koog/README.md`](tshell-sample-koog/README.md) |")
       appendLine()
@@ -370,12 +370,13 @@ accepted but ignored. Use `help()` to discover what's available.
       appendLine("---")
       appendLine()
       appendLine("*This README is generated from")
-      appendLine("[`TShellLiterateTest.kt`](src/test/kotlin/com/iodesystems/tshell/TShellLiterateTest.kt).")
+      appendLine("[`TShellLiterateTest.kt`](tshell/src/test/kotlin/com/iodesystems/tshell/TShellLiterateTest.kt).")
       appendLine("Every code example above is executed as part of the test — if an example")
       appendLine("is wrong, the build fails.*")
     }
 
-    val readmePath = Path.of("").toAbsolutePath().resolve("README.md")
+    // Write to repo root (parent of the tshell submodule dir)
+    val readmePath = Path.of("").toAbsolutePath().parent.resolve("README.md")
     readmePath.writeText(readme)
   }
 }
