@@ -12,6 +12,7 @@ statement
   | whileStatement
   | doWhileStatement
   | forOfStatement
+  | forInStatement
   | forStatement
   | tryCatchStatement
   | throwStatement
@@ -39,7 +40,8 @@ incrDecrStatement : assignTarget (INCREMENT | DECREMENT) SEMI?;
 expressionStatement : expression SEMI?;
 
 assignTarget      : IDENTIFIER (DOT fieldName | LBRACKET expression RBRACKET)*;
-assignOp          : ASSIGN | PLUS_ASSIGN | MINUS_ASSIGN | STAR_ASSIGN | SLASH_ASSIGN | PERCENT_ASSIGN;
+assignOp          : ASSIGN | PLUS_ASSIGN | MINUS_ASSIGN | STAR_ASSIGN | SLASH_ASSIGN | PERCENT_ASSIGN
+                   | AMP_ASSIGN | PIPE_ASSIGN | CARET_ASSIGN | LSHIFT_ASSIGN | RSHIFT_ASSIGN | URSHIFT_ASSIGN;
 
 ifStatement       : IF LPAREN expression RPAREN blockOrStatement (ELSE ifStatement | ELSE blockOrStatement)?;
 switchStatement   : SWITCH LPAREN expression RPAREN LBRACE switchCase* switchDefault? RBRACE;
@@ -48,6 +50,7 @@ switchDefault     : DEFAULT COLON statement*;
 whileStatement    : WHILE LPAREN expression RPAREN block;
 doWhileStatement  : DO block WHILE LPAREN expression RPAREN SEMI?;
 forOfStatement    : FOR LPAREN LET destructure OF expression RPAREN block;
+forInStatement    : FOR LPAREN LET IDENTIFIER IN expression RPAREN block;
 forStatement      : FOR LPAREN (forInitLet | forInitAssign)? SEMI expression? SEMI (forUpdateAssign | forUpdateIncrDecr)? RPAREN block;
 forInitLet        : LET IDENTIFIER ASSIGN expression;
 forInitAssign     : assignTarget assignOp expression;
@@ -82,9 +85,13 @@ ternaryExpr       : nullCoalesceExpr (QUESTION expression COLON expression)?;
 nullCoalesceExpr  : orExpr (NULLISH orExpr)*;
 
 orExpr            : andExpr (OR andExpr)*;
-andExpr           : equalityExpr (AND equalityExpr)*;
+andExpr           : bitwiseOrExpr (AND bitwiseOrExpr)*;
+bitwiseOrExpr     : bitwiseXorExpr (PIPE bitwiseXorExpr)*;
+bitwiseXorExpr    : bitwiseAndExpr (CARET bitwiseAndExpr)*;
+bitwiseAndExpr    : equalityExpr (AMP equalityExpr)*;
 equalityExpr      : comparisonExpr ((EQ | NEQ | SEQ | SNEQ) comparisonExpr)*;
-comparisonExpr    : pipeExpr ((LT | GT | LTE | GTE) pipeExpr)*;
+comparisonExpr    : shiftExpr ((LT | GT | LTE | GTE | IN) shiftExpr)*;
+shiftExpr         : pipeExpr ((LSHIFT | RSHIFT | URSHIFT) pipeExpr)*;
 pipeExpr          : additiveExpr ((PIPE_RIGHT | PIPE_SCATTER) additiveExpr (PIPE_LEFT additiveExpr)*)*;
 additiveExpr      : multiplicativeExpr ((PLUS | MINUS) multiplicativeExpr)*;
 multiplicativeExpr: unaryExpr ((STAR | SLASH | PERCENT) unaryExpr)*;
@@ -92,6 +99,8 @@ multiplicativeExpr: unaryExpr ((STAR | SLASH | PERCENT) unaryExpr)*;
 unaryExpr
   : NOT unaryExpr
   | MINUS unaryExpr
+  | TILDE unaryExpr
+  | TYPEOF unaryExpr
   | postfixExpr
   ;
 
@@ -121,10 +130,6 @@ primaryExpr
   | arrowFunction                                       # arrowExpr
   | REGEX                                                # regexExpr
   | LPAREN expression RPAREN                            # parenExpr
-  | CHAIN LPAREN argumentList RPAREN                    # chainExpr
-  | ALL LPAREN argumentList RPAREN                      # allExpr
-  | RACE LPAREN argumentList RPAREN                     # raceExpr
-  | ANY LPAREN argumentList RPAREN                      # anyExpr
   ;
 
 // Arrow functions
@@ -147,8 +152,8 @@ objectField
 
 fieldName
   : IDENTIFIER | LET | FUNCTION | IF | ELSE | WHILE | DO | FOR | OF | IN | RETURN
-  | BREAK | CONTINUE | EXPORT | SWITCH | CASE | DEFAULT | TRY | CATCH | FINALLY | THROW
-  | TRUE | FALSE | NULL | CHAIN | ALL | RACE | ANY
+  | BREAK | CONTINUE | EXPORT | SWITCH | CASE | DEFAULT | TRY | CATCH | FINALLY | THROW | TYPEOF
+  | TRUE | FALSE | NULL
   ;
 
 spreadOrExpr      : SPREAD? expression;

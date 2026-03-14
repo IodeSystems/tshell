@@ -5,13 +5,13 @@ through a single `eval` tool.
 
 Instead of defining dozens of individual tools — each requiring schema,
 validation, and prompt engineering — give your LLM one tool: `eval`. tshell's
-TypeScript-like syntax means LLMs can write it without new training.
+JavaScript syntax means LLMs can write it without new training.
 Capabilities are discovered at runtime via `help()`, and the KV cache is
 preserved across tool set changes.
 
 ## Typical Usage
 
-tshell reads like TypeScript and composes like a shell. These are the features you'll
+tshell reads like JavaScript and composes like a shell. These are the features you'll
 use in most programs.
 
 ### Variables and Types

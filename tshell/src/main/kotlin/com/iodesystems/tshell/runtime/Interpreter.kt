@@ -32,6 +32,10 @@ class Interpreter(
   private val limits: ExecutionLimits = ExecutionLimits()
 ) {
 
+  init {
+    initBuiltinBindings()
+  }
+
   fun eval(source: String): EvalResult = runBlocking(Dispatchers.Default) {
     evalAsync(source)
   }
@@ -64,6 +68,184 @@ class Interpreter(
     return visitor.callFunctionInternal(fn, args)
   }
 
+  // --- Built-in bindings (namespaces + composition fns) ---
+
+  /**
+   * Registers a namespace as a TObject in globals, with optional global-scope fallback for each method.
+   * @param name The namespace identifier (e.g. "Promise", "JSON")
+   * @param methods Map of method name → TFunction
+   * @param globalFallback If true, each method is also defined at global scope
+   */
+  private fun registerNamespace(name: String, methods: Map<String, TShellValue.TFunction>, globalFallback: Boolean = false) {
+    val obj = TShellValue.TObject(methods.mapValues { it.value as TShellValue })
+    globals.defineOrSet(name, obj)
+    if (globalFallback) {
+      for ((methodName, fn) in methods) {
+        if (globals.get(methodName) == null) {
+          globals.defineOrSet(methodName, fn)
+        }
+      }
+    }
+  }
+
+  private fun nativeFn(name: String, fn: suspend (List<TShellValue>) -> TShellValue): TShellValue.TFunction =
+    TShellValue.TFunction(name = name, params = emptyList(), body = TShellValue.FunctionBody.Native(fn))
+
+  private fun commandFn(cmdName: String): TShellValue.TFunction? {
+    val cmd = commands.get(cmdName) ?: return null
+    return nativeFn(cmdName, cmd.fn)
+  }
+
+  private fun initBuiltinBindings() {
+    // Composition functions — close over this Interpreter for parallel execution
+    val allFn = nativeFn("all") { args -> executeAll(args) }
+    val raceFn = nativeFn("race") { args -> executeRace(args) }
+    val anyFn = nativeFn("any") { args -> executeAny(args) }
+    val chainFn = nativeFn("chain") { args -> executeChain(args) }
+
+    // Register at global scope (always update — these close over this interpreter's limits)
+    globals.defineOrSet("all", allFn)
+    globals.defineOrSet("race", raceFn)
+    globals.defineOrSet("any", anyFn)
+    globals.defineOrSet("chain", chainFn)
+
+    // JS constructor aliases — String(x) → str(x), Number("42") → num("42"), etc.
+    for ((jsName, tshellCmd) in JS_CONSTRUCTOR_ALIASES) {
+      if (globals.get(jsName) != null) continue
+      commandFn(tshellCmd)?.let { globals.defineOrSet(jsName, it) }
+    }
+
+    // JS namespaces — only define if not already set (toolkits may install richer versions)
+    for ((nsName, mapping) in JS_NAMESPACE_ALIASES) {
+      if (globals.get(nsName) != null) continue
+      val methods = mutableMapOf<String, TShellValue.TFunction>()
+      for ((jsMethod, tshellCmd) in mapping) {
+        commandFn(tshellCmd)?.let { methods[jsMethod] = it }
+      }
+      if (methods.isNotEmpty()) {
+        registerNamespace(nsName, methods, globalFallback = false)
+      }
+    }
+
+    // Promise namespace (always update — uses interpreter-level fns)
+    registerNamespace("Promise", mapOf("all" to allFn, "race" to raceFn), globalFallback = false)
+  }
+
+  // --- Composition execution ---
+
+  private suspend fun executeAll(args: List<TShellValue>): TShellValue {
+    val fns = requireFnArgs("all", args)
+    if (fns.size <= 1) {
+      return TShellValue.TArray(fns.map { it.callAsync(emptyList()) })
+    }
+    val branchLimitsList = fns.map { limits.fork() }
+    val results = runParallel(branchLimitsList) { idx ->
+      val branchInterpreter = Interpreter(commands, globals, branchLimitsList[idx])
+      branchInterpreter.executeInBranch(fns[idx], emptyList())
+    }
+    return TShellValue.TArray(results)
+  }
+
+  private suspend fun executeRace(args: List<TShellValue>): TShellValue {
+    val fns = requireFnArgs("race", args)
+    if (fns.isEmpty()) throw TShellError.runtime("race() — no producers given")
+    if (fns.size == 1) return fns[0].callAsync(emptyList())
+
+    val branchLimitsList = fns.map { limits.fork() }
+    val remainingMs = limits.timeoutMs - (System.currentTimeMillis() - limits.startTimeMs.get())
+    if (remainingMs <= 0) throw TShellError.runtime("race() — timeout already exceeded")
+    val channel = kotlinx.coroutines.channels.Channel<Result<TShellValue>>(fns.size)
+    return coroutineScope {
+      val jobs = fns.mapIndexed { idx, fn ->
+        launch {
+          val branchInterpreter = Interpreter(commands, globals, branchLimitsList[idx])
+          try {
+            val value = branchInterpreter.executeInBranch(fn, emptyList())
+            channel.send(Result.success(value))
+          } catch (e: TShellError) {
+            channel.send(Result.failure(e))
+          } catch (e: Exception) {
+            channel.send(Result.failure(TShellError.runtime("race branch failed: ${e.message}")))
+          }
+        }
+      }
+      var failures = 0
+      var winner: TShellValue? = null
+      val timeoutResult = withTimeoutOrNull(remainingMs) {
+        repeat(fns.size) {
+          val r = channel.receive()
+          if (r.isSuccess && winner == null) {
+            winner = r.getOrThrow()
+            branchLimitsList.forEach { it.cancel() }
+          } else if (r.isFailure) {
+            failures++
+          }
+        }
+      }
+      if (timeoutResult == null) {
+        branchLimitsList.forEach { it.cancel() }
+        jobs.forEach { it.cancel() }
+        throw TShellError.runtime("race() — timeout exceeded (${limits.timeoutMs}ms)")
+      }
+      jobs.forEach { it.cancel() }
+      channel.close()
+      winner ?: throw TShellError.runtime("race() — all ${fns.size} producers failed")
+    }
+  }
+
+  private suspend fun executeAny(args: List<TShellValue>): TShellValue {
+    val fns = requireFnArgs("any", args)
+    if (fns.isEmpty()) throw TShellError.runtime("any() — no producers given")
+    val errors = mutableListOf<String>()
+    for ((idx, fn) in fns.withIndex()) {
+      try {
+        val result = fn.callAsync(emptyList())
+        if (result.isTruthy()) return result
+      } catch (e: TShellError) {
+        errors.add("  [${idx + 1}] ${e.message}")
+      }
+    }
+    throw TShellError.runtime(
+      "any() — no producer returned a truthy value\n\n" +
+        if (errors.isNotEmpty()) "Errors:\n${errors.joinToString("\n")}" else "All ${fns.size} producers returned falsy values"
+    )
+  }
+
+  private suspend fun executeChain(args: List<TShellValue>): TShellValue {
+    val fns = requireFnArgs("chain", args)
+    if (fns.isEmpty()) throw TShellError.runtime("chain() requires at least one function argument")
+    var result: TShellValue = TShellValue.TNull
+    for ((idx, fn) in fns.withIndex()) {
+      result = if (idx == 0) fn.callAsync(emptyList()) else fn.callAsync(listOf(result))
+    }
+    return result
+  }
+
+  private fun requireFnArgs(name: String, args: List<TShellValue>): List<TShellValue.TFunction> =
+    args.map { arg ->
+      when (arg) {
+        is TShellValue.TFunction -> arg
+        else -> throw TShellError.wrongArguments(name, "...fns: function[]", args,
+          "$name(() => a(), () => b())")
+      }
+    }
+
+  private suspend fun runParallel(branchLimitsList: List<ExecutionLimits>, work: suspend (Int) -> TShellValue): List<TShellValue> {
+    val remainingMs = limits.timeoutMs - (System.currentTimeMillis() - limits.startTimeMs.get())
+    if (remainingMs <= 0) throw TShellError.runtime("Timeout already exceeded before parallel execution")
+    return coroutineScope {
+      val result = withTimeoutOrNull(remainingMs) {
+        branchLimitsList.mapIndexed { idx, _ ->
+          async { work(idx) }
+        }.awaitAll()
+      }
+      if (result == null) {
+        branchLimitsList.forEach { it.cancel() }
+        throw TShellError.runtime("Execution timeout exceeded (${limits.timeoutMs}ms) during parallel execution")
+      }
+      result
+    }
+  }
 
   private class DescriptiveErrorListener(private val source: String) : BaseErrorListener() {
     override fun syntaxError(
@@ -156,6 +338,9 @@ class Interpreter(
 
     val exportedNames = mutableSetOf<String>()
 
+    /** Cache: command name → wrapped TFunction. Avoids re-wrapping on every identifier access. */
+    private val commandFnCache = HashMap<String, TShellValue.TFunction>()
+
     private fun step(ctx: ParserRuleContext) {
       limits.step(ctx.start?.line ?: 0)
     }
@@ -204,6 +389,7 @@ class Interpreter(
       is WhileStatementContext -> visitWhileStatement(ctx)
       is DoWhileStatementContext -> visitDoWhileStatement(ctx)
       is ForOfStatementContext -> visitForOfStatement(ctx)
+      is ForInStatementContext -> visitForInStatement(ctx)
       is ForStatementContext -> visitForStatement(ctx)
       is BlockContext -> visitBlock(ctx)
       is BlockOrStatementContext -> visitBlockOrStatement(ctx)
@@ -213,8 +399,12 @@ class Interpreter(
       is NullCoalesceExprContext -> visitNullCoalesceExpr(ctx)
       is OrExprContext -> visitOrExpr(ctx)
       is AndExprContext -> visitAndExpr(ctx)
+      is BitwiseOrExprContext -> visitBitwiseOrExpr(ctx)
+      is BitwiseXorExprContext -> visitBitwiseXorExpr(ctx)
+      is BitwiseAndExprContext -> visitBitwiseAndExpr(ctx)
       is EqualityExprContext -> visitEqualityExpr(ctx)
       is ComparisonExprContext -> visitComparisonExpr(ctx)
+      is ShiftExprContext -> visitShiftExpr(ctx)
       is PipeExprContext -> visitPipeExpr(ctx)
       is AdditiveExprContext -> visitAdditiveExpr(ctx)
       is MultiplicativeExprContext -> visitMultiplicativeExpr(ctx)
@@ -232,10 +422,6 @@ class Interpreter(
       is ArrayExprContext -> visitArrayExpr(ctx)
       is ObjectExprContext -> visitObjectExpr(ctx)
       is ParenExprContext -> visitParenExpr(ctx)
-      is ChainExprContext -> visitChainExpr(ctx)
-      is AllExprContext -> visitAllExpr(ctx)
-      is RaceExprContext -> visitRaceExpr(ctx)
-      is AnyExprContext -> visitAnyExpr(ctx)
       // Arrow functions (ArrowExprContext wraps arrowFunction rule)
       is ArrowExprContext -> eval(ctx.arrowFunction())
       is SingleParamArrowContext -> visitSingleParamArrow(ctx)
@@ -558,6 +744,35 @@ class Interpreter(
       return result
     }
 
+    suspend fun visitForInStatement(ctx: ForInStatementContext): TShellValue {
+      val obj = eval(ctx.expression())
+      val keys = when (obj) {
+        is TShellValue.TObject -> obj.fields.keys.map { TShellValue.TString(it) }
+        is TShellValue.TArray -> (0 until obj.elements.size).map { TShellValue.TNumber(it.toDouble()) }
+        else -> throw TShellError.typeMismatch("for..in", "object or array", obj)
+      }
+      val varName = ctx.IDENTIFIER().text
+      var result: TShellValue = TShellValue.TNull
+      for (key in keys) {
+        step(ctx)
+        val loopEnv = env.child()
+        val outerEnv = env
+        env = loopEnv
+        env.define(varName, key)
+        try {
+          result = visitBlock(ctx.block())
+        } catch (_: BreakSignal) {
+          env = outerEnv
+          break
+        } catch (_: ContinueSignal) {
+          env = outerEnv
+          continue
+        }
+        env = outerEnv
+      }
+      return result
+    }
+
     suspend fun visitForStatement(ctx: ForStatementContext): TShellValue {
       val outerEnv = env
       env = env.child()
@@ -826,10 +1041,37 @@ class Interpreter(
     }
 
     suspend fun visitAndExpr(ctx: AndExprContext): TShellValue {
+      var result = eval(ctx.bitwiseOrExpr(0))
+      for (i in 1 until ctx.bitwiseOrExpr().size) {
+        if (!result.isTruthy()) return result
+        result = eval(ctx.bitwiseOrExpr(i))
+      }
+      return result
+    }
+
+    suspend fun visitBitwiseOrExpr(ctx: BitwiseOrExprContext): TShellValue {
+      var result = eval(ctx.bitwiseXorExpr(0))
+      for (i in 1 until ctx.bitwiseXorExpr().size) {
+        val right = eval(ctx.bitwiseXorExpr(i))
+        result = intBitwiseOp(result, right, "|") { a, b -> a or b }
+      }
+      return result
+    }
+
+    suspend fun visitBitwiseXorExpr(ctx: BitwiseXorExprContext): TShellValue {
+      var result = eval(ctx.bitwiseAndExpr(0))
+      for (i in 1 until ctx.bitwiseAndExpr().size) {
+        val right = eval(ctx.bitwiseAndExpr(i))
+        result = intBitwiseOp(result, right, "^") { a, b -> a xor b }
+      }
+      return result
+    }
+
+    suspend fun visitBitwiseAndExpr(ctx: BitwiseAndExprContext): TShellValue {
       var result = eval(ctx.equalityExpr(0))
       for (i in 1 until ctx.equalityExpr().size) {
-        if (!result.isTruthy()) return result
-        result = eval(ctx.equalityExpr(i))
+        val right = eval(ctx.equalityExpr(i))
+        result = intBitwiseOp(result, right, "&") { a, b -> a and b }
       }
       return result
     }
@@ -851,20 +1093,45 @@ class Interpreter(
     }
 
     suspend fun visitComparisonExpr(ctx: ComparisonExprContext): TShellValue {
+      var result = eval(ctx.shiftExpr(0))
+      for (i in 1 until ctx.shiftExpr().size) {
+        val right = eval(ctx.shiftExpr(i))
+        val op = ctx.getChild(2 * i - 1).text
+        result = if (op == "in") {
+          TShellValue.TBoolean(
+            when (right) {
+              is TShellValue.TObject -> (result as? TShellValue.TString)?.value?.let { right.fields.containsKey(it) } ?: false
+              is TShellValue.TArray -> right.elements.any { valueEquals(result, it) }
+              else -> throw TShellError.typeMismatch("'in'", "object or array", right)
+            }
+          )
+        } else {
+          val cmp = compareValues(result, right)
+          TShellValue.TBoolean(
+            when (op) {
+              "<" -> cmp < 0
+              ">" -> cmp > 0
+              "<=" -> cmp <= 0
+              ">=" -> cmp >= 0
+              else -> false
+            }
+          )
+        }
+      }
+      return result
+    }
+
+    suspend fun visitShiftExpr(ctx: ShiftExprContext): TShellValue {
       var result = eval(ctx.pipeExpr(0))
       for (i in 1 until ctx.pipeExpr().size) {
         val right = eval(ctx.pipeExpr(i))
         val op = ctx.getChild(2 * i - 1).text
-        val cmp = compareValues(result, right)
-        result = TShellValue.TBoolean(
-          when (op) {
-            "<" -> cmp < 0
-            ">" -> cmp > 0
-            "<=" -> cmp <= 0
-            ">=" -> cmp >= 0
-            else -> false
-          }
-        )
+        result = when (op) {
+          "<<" -> intBitwiseOp(result, right, "<<") { a, b -> a shl (b and 0x1f) }
+          ">>" -> intBitwiseOp(result, right, ">>") { a, b -> a shr (b and 0x1f) }
+          ">>>" -> intBitwiseOp(result, right, ">>>") { a, b -> a ushr (b and 0x1f) }
+          else -> result
+        }
       }
       return result
     }
@@ -910,12 +1177,28 @@ class Interpreter(
           else -> throw TShellError.typeMismatch("unary -", "number", v)
         }
       }
+      if (ctx.TILDE() != null) {
+        val v = eval(ctx.unaryExpr())
+        return when (v) {
+          is TShellValue.TNumber -> TShellValue.TNumber(v.value.toInt().inv().toDouble())
+          else -> throw TShellError.typeMismatch("unary ~", "number", v)
+        }
+      }
+      if (ctx.TYPEOF() != null) {
+        val v = eval(ctx.unaryExpr())
+        return TShellValue.TString(v.typeName())
+      }
       return eval(ctx.postfixExpr())
     }
 
     suspend fun visitPostfixExpr(ctx: PostfixExprContext): TShellValue {
       var result = eval(ctx.primaryExpr())
-      for (op in ctx.postfixOp()) {
+      // Track lvalue path for mutating method writeback (e.g. arr.push(x) → reassign arr)
+      val lvaluePath = mutableListOf<String>()
+      val primaryIdent = (ctx.primaryExpr() as? IdentifierExprContext)?.IDENTIFIER()?.text
+      if (primaryIdent != null) lvaluePath.add(primaryIdent)
+
+      for ((opIdx, op) in ctx.postfixOp().withIndex()) {
         val isOptional = op.OPTIONAL_CHAIN() != null
         if (isOptional && result is TShellValue.TNull) {
           // Short-circuit: null?.anything = null
@@ -926,9 +1209,19 @@ class Interpreter(
         result = withLocation(op) {
           when {
             op.fieldName() != null -> {
-              accessMember(current, op.fieldName().text)
+              val field = op.fieldName().text
+              // Check if next op is a call and this is a mutating array method
+              val nextOp = ctx.postfixOp().getOrNull(opIdx + 1)
+              if (nextOp?.LPAREN() != null && current is TShellValue.TArray && field in MUTATING_ARRAY_METHODS && lvaluePath.isNotEmpty()) {
+                // Return a function that performs the mutation and writes back
+                bindMutatingArrayMethod(current, field, lvaluePath.toList())
+              } else {
+                lvaluePath.add(field)
+                accessMember(current, field)
+              }
             }
             op.LBRACKET() != null -> {
+              lvaluePath.clear() // can't track dynamic index paths for writeback
               val index = eval(op.expression())
               accessIndex(current, index)
             }
@@ -947,6 +1240,41 @@ class Interpreter(
         }
       }
       return result
+    }
+
+    private fun bindMutatingArrayMethod(
+      arr: TShellValue.TArray,
+      method: String,
+      lvaluePath: List<String>
+    ): TShellValue.TFunction {
+      return TShellValue.TFunction(
+        name = method,
+        params = emptyList(),
+        body = TShellValue.FunctionBody.Native { args ->
+          // Atomic read-modify-write under the GIL
+          env.mutate(lvaluePath) { current ->
+            val currentArr = current as? TShellValue.TArray ?: arr
+            when (method) {
+              "push" -> TShellValue.TArray(currentArr.elements + args)
+              "pop" -> TShellValue.TArray(currentArr.elements.dropLast(1))
+              "shift" -> TShellValue.TArray(currentArr.elements.drop(1))
+              "unshift" -> TShellValue.TArray(args + currentArr.elements)
+              "splice" -> {
+                val start = ((args.getOrNull(0) as? TShellValue.TNumber)?.value?.toInt() ?: 0)
+                  .coerceIn(0, currentArr.elements.size)
+                val deleteCount = ((args.getOrNull(1) as? TShellValue.TNumber)?.value?.toInt() ?: currentArr.elements.size)
+                  .coerceIn(0, currentArr.elements.size - start)
+                val inserts = args.drop(2)
+                val result = currentArr.elements.toMutableList()
+                result.subList(start, start + deleteCount).clear()
+                result.addAll(start, inserts)
+                TShellValue.TArray(result)
+              }
+              else -> currentArr
+            }
+          }
+        }
+      )
     }
 
     // --- Primary expressions ---
@@ -1009,47 +1337,21 @@ class Interpreter(
     @Suppress("unused")
     suspend fun visitIdentifierExpr(ctx: IdentifierExprContext): TShellValue {
       val name = ctx.IDENTIFIER().text
-      // Check environment first, then commands
       env.get(name)?.let { return it }
-      commands.get(name)?.let { cmd ->
-        return TShellValue.TFunction(
-          name = cmd.name,
-          params = emptyList(),
-          body = TShellValue.FunctionBody.Native(cmd.fn)
-        )
-      }
-      // JS constructor aliases — String(x) → str(x), Number(x) → num(x), Boolean(x)
-      JS_CONSTRUCTOR_ALIASES[name]?.let { cmdName ->
-        commands.get(cmdName)?.let { cmd ->
-          return TShellValue.TFunction(
-            name = cmdName,
-            params = emptyList(),
-            body = TShellValue.FunctionBody.Native(cmd.fn)
-          )
-        }
-      }
-      // JS namespace aliases — resolve e.g. JSON.parse → parseJson, Math.floor → floor
-      jsNamespaceOf(name)?.let { return it }
+      resolveCommand(name)?.let { return it }
       throw TShellError.unknownCommand(name, env.allBindings().keys + commands.names())
     }
 
-    /**
-     * Returns a synthetic TObject for JS global namespaces (JSON, Math, Object, console, etc.)
-     * whose fields resolve to tshell commands. Returns null if the name isn't a known namespace.
-     */
-    private fun jsNamespaceOf(name: String): TShellValue? {
-      val mapping = JS_NAMESPACE_ALIASES[name] ?: return null
-      val fields = mutableMapOf<String, TShellValue>()
-      for ((jsMethod, tshellCmd) in mapping) {
-        val cmd = commands.get(tshellCmd) ?: continue
-        fields[jsMethod] = TShellValue.TFunction(
-          name = tshellCmd,
-          params = emptyList(),
-          body = TShellValue.FunctionBody.Native(cmd.fn)
-        )
-      }
-      if (fields.isEmpty()) return null
-      return TShellValue.TObject(fields)
+    private fun resolveCommand(name: String): TShellValue.TFunction? {
+      commandFnCache[name]?.let { return it }
+      val cmd = commands.get(name) ?: return null
+      val fn = TShellValue.TFunction(
+        name = cmd.name,
+        params = emptyList(),
+        body = TShellValue.FunctionBody.Native(cmd.fn)
+      )
+      commandFnCache[name] = fn
+      return fn
     }
 
     @Suppress("unused")
@@ -1154,174 +1456,7 @@ class Interpreter(
       )
     }
 
-    // --- Composition primitives ---
-
-    @Suppress("unused")
-    suspend fun visitChainExpr(ctx: ChainExprContext): TShellValue {
-      val args = evalArgumentList(ctx.argumentList())
-      if (args.isEmpty()) throw TShellError.runtime("chain() requires at least one function argument")
-      var result: TShellValue = TShellValue.TNull
-      for ((idx, arg) in args.withIndex()) {
-        when (arg) {
-          is TShellValue.TFunction -> {
-            result = if (idx == 0) callFunction(arg, emptyList(), ctx) else callFunction(arg, listOf(result), ctx)
-          }
-          else -> throw TShellError.wrongArguments(
-            "chain",
-            "...fns: function[]",
-            args,
-            "chain(() => getData(), data => transform(data), result => save(result))"
-          )
-        }
-      }
-      return result
-    }
-
-    @Suppress("unused")
-    suspend fun visitAllExpr(ctx: AllExprContext): TShellValue {
-      val args = evalArgumentList(ctx.argumentList())
-      val fns = args.map { arg ->
-        when (arg) {
-          is TShellValue.TFunction -> arg
-          else -> throw TShellError.wrongArguments(
-            "all",
-            "...producers: (() => T)[]",
-            args,
-            "all(() => getA(), () => getB(), () => getC())"
-          )
-        }
-      }
-      if (fns.size <= 1) {
-        return TShellValue.TArray(fns.map { callFunction(it, emptyList(), ctx) })
-      }
-
-      val branchLimitsList = fns.map { limits.fork() }
-      val results = runParallel(branchLimitsList) { idx ->
-        val branchInterpreter = Interpreter(commands, env, branchLimitsList[idx])
-        branchInterpreter.executeInBranch(fns[idx], emptyList())
-      }
-      return TShellValue.TArray(results)
-    }
-
-    @Suppress("unused")
-    suspend fun visitRaceExpr(ctx: RaceExprContext): TShellValue {
-      val args = evalArgumentList(ctx.argumentList())
-      val fns = args.map { arg ->
-        when (arg) {
-          is TShellValue.TFunction -> arg
-          else -> throw TShellError.wrongArguments(
-            "race",
-            "...producers: (() => T)[]",
-            args,
-            "race(() => tryFirst(), () => trySecond())"
-          )
-        }
-      }
-      if (fns.size <= 1) {
-        if (fns.isEmpty()) throw TShellError.runtime("race() — no producers given")
-        return callFunction(fns[0], emptyList(), ctx)
-      }
-
-      // Launch all branches in parallel. First to complete successfully wins;
-      // remaining branches are cancelled via their forked limits.
-      val branchLimitsList = fns.map { limits.fork() }
-      val remainingMs = limits.timeoutMs - (System.currentTimeMillis() - limits.startTimeMs.get())
-      if (remainingMs <= 0) throw TShellError.runtime("race() — timeout already exceeded")
-      val channel = kotlinx.coroutines.channels.Channel<Result<TShellValue>>(fns.size)
-      return coroutineScope {
-        val jobs = fns.mapIndexed { idx, fn ->
-          launch {
-            val branchInterpreter = Interpreter(commands, env, branchLimitsList[idx])
-            try {
-              val value = branchInterpreter.executeInBranch(fn, emptyList())
-              channel.send(Result.success(value))
-            } catch (e: TShellError) {
-              channel.send(Result.failure(e))
-            } catch (e: Exception) {
-              channel.send(Result.failure(TShellError.runtime("race branch failed: ${e.message}")))
-            }
-          }
-        }
-        var failures = 0
-        var winner: TShellValue? = null
-        val timeoutResult = withTimeoutOrNull(remainingMs) {
-          repeat(fns.size) {
-            val r = channel.receive()
-            if (r.isSuccess && winner == null) {
-              winner = r.getOrThrow()
-              branchLimitsList.forEach { it.cancel() }
-            } else if (r.isFailure) {
-              failures++
-            }
-          }
-        }
-        if (timeoutResult == null) {
-          branchLimitsList.forEach { it.cancel() }
-          jobs.forEach { it.cancel() }
-          throw TShellError.runtime("race() — timeout exceeded (${limits.timeoutMs}ms)")
-        }
-        jobs.forEach { it.cancel() }
-        channel.close()
-        winner ?: throw TShellError.runtime(
-          "race() — all ${fns.size} producers failed"
-        )
-      }
-    }
-
-    @Suppress("unused")
-    suspend fun visitAnyExpr(ctx: AnyExprContext): TShellValue {
-      val args = evalArgumentList(ctx.argumentList())
-      val fns = args.map { arg ->
-        when (arg) {
-          is TShellValue.TFunction -> arg
-          else -> throw TShellError.wrongArguments(
-            "any",
-            "...producers: (() => T)[]",
-            args,
-            "any(() => tryA(), () => tryB(), () => tryC())"
-          )
-        }
-      }
-      if (fns.isEmpty()) throw TShellError.runtime("any() — no producers given")
-
-      // Evaluate sequentially, return first truthy non-error result
-      val errors = mutableListOf<String>()
-      for ((idx, fn) in fns.withIndex()) {
-        try {
-          val result = callFunction(fn, emptyList(), ctx)
-          if (result.isTruthy()) return result
-        } catch (e: TShellError) {
-          errors.add("  [${idx + 1}] ${e.message}")
-        }
-      }
-      throw TShellError.runtime(
-        "any() — no producer returned a truthy value\n\n" +
-          if (errors.isNotEmpty()) "Errors:\n${errors.joinToString("\n")}" else "All ${fns.size} producers returned falsy values"
-      )
-    }
-
     // --- Helpers ---
-
-    /**
-     * Runs N branches in parallel with timeout enforcement.
-     * If the parent's remaining timeout expires, all branches are cancelled.
-     */
-    private suspend fun runParallel(branchLimitsList: List<ExecutionLimits>, work: suspend (Int) -> TShellValue): List<TShellValue> {
-      val remainingMs = limits.timeoutMs - (System.currentTimeMillis() - limits.startTimeMs.get())
-      if (remainingMs <= 0) throw TShellError.runtime("Timeout already exceeded before parallel execution")
-      return coroutineScope {
-        val result = withTimeoutOrNull(remainingMs) {
-          branchLimitsList.mapIndexed { idx, _ ->
-            async { work(idx) }
-          }.awaitAll()
-        }
-        if (result == null) {
-          branchLimitsList.forEach { it.cancel() }
-          throw TShellError.runtime("Execution timeout exceeded (${limits.timeoutMs}ms) during parallel execution")
-        }
-        result
-      }
-    }
 
     private suspend fun evalCallArgs(ctx: ArgumentListContext): CallArgs {
       val positional = mutableListOf<TShellValue>()
@@ -1507,6 +1642,12 @@ class Interpreter(
         "*=" -> numericOp(current, rhs, "*") { a, b -> a * b }
         "/=" -> numericOp(current, rhs, "/") { a, b -> a / b }
         "%=" -> numericOp(current, rhs, "%") { a, b -> a % b }
+        "&=" -> intBitwiseOp(current, rhs, "&") { a, b -> a and b }
+        "|=" -> intBitwiseOp(current, rhs, "|") { a, b -> a or b }
+        "^=" -> intBitwiseOp(current, rhs, "^") { a, b -> a xor b }
+        "<<=" -> intBitwiseOp(current, rhs, "<<") { a, b -> a shl (b and 0x1f) }
+        ">>=" -> intBitwiseOp(current, rhs, ">>") { a, b -> a shr (b and 0x1f) }
+        ">>>=" -> intBitwiseOp(current, rhs, ">>>") { a, b -> a ushr (b and 0x1f) }
         else -> throw TShellError.runtime("Unknown assignment operator: $op")
       }
     }
@@ -1534,9 +1675,7 @@ class Interpreter(
      * Method syntax sugar: `receiver.commandName(args)` → `commandName(receiver, args)`
      */
     private fun bindMethodOrHint(receiver: TShellValue, type: String, field: String): TShellValue {
-      // Resolve JS method aliases to tshell command names
-      val cmdName = jsMethodAlias(type, field) ?: field
-      // Check if a command exists with this name — bind receiver as first arg
+      val cmdName = JS_METHOD_ALIASES[type]?.get(field) ?: field
       commands.get(cmdName)?.let { cmd ->
         return TShellValue.TFunction(
           name = cmdName,
@@ -1546,58 +1685,10 @@ class Interpreter(
           }
         )
       }
-      // No command — give JS-specific guidance if we recognize the method
-      jsMethodHint(type, field)?.let { throw it }
-      // Truly unknown
+      JS_METHOD_HINTS[type]?.get(field)?.let { hint ->
+        throw TShellError("'$field' is not available as a method — $hint")
+      }
       return TShellValue.TNull
-    }
-
-    /** Maps JS method names to tshell command names where they differ */
-    private fun jsMethodAlias(type: String, method: String): String? = when (type) {
-      "array" -> when (method) {
-        "includes" -> "contains"
-        // forEach, concat, indexOf, flatMap, some, every, slice are now real commands
-        else -> null
-      }
-      "string" -> when (method) {
-        "toUpperCase" -> "upper"
-        "toLowerCase" -> "lower"
-        "includes" -> "contains"
-        "replaceAll" -> "replace"
-        "matchAll" -> "match"
-        "search" -> "test"
-        "slice" -> "substring"
-        else -> null
-      }
-      else -> null
-    }
-
-    /**
-     * Guidance for JS methods that have NO tshell command equivalent and can't be auto-resolved.
-     */
-    private fun jsMethodHint(type: String, method: String): TShellError? {
-      val hint = when (type) {
-        "array" -> when (method) {
-          // forEach, concat, indexOf, flatMap, some, every, slice are now real commands — no hint needed
-          "push" -> "[...arr, newItem] (arrays are immutable)"
-          "pop", "shift", "unshift", "splice" -> "arrays are immutable; use spread [...arr] to build new arrays"
-          "entries" -> "zip(range(0, len(arr)), arr)"
-          "at" -> "arr[index] (negative indices not supported)"
-          else -> null
-        }
-        "string" -> when (method) {
-          "charAt" -> "str[index]"
-          "charCodeAt", "codePointAt" -> "not available in tshell"
-          "repeat" -> "not available in tshell"
-          "trimStart", "trimEnd" -> "str |> trim() (only full trim)"
-          "at" -> "str[index]"
-          else -> null
-        }
-        else -> null
-      }
-      return hint?.let {
-        TShellError("'$method' is not available as a method — $it")
-      }
     }
 
     private fun accessIndex(obj: TShellValue, index: TShellValue): TShellValue {
@@ -1627,6 +1718,19 @@ class Interpreter(
         return TShellValue.TString(left.toDisplayString() + right.toDisplayString())
       }
       return numericOp(left, right, "+") { a, b -> a + b }
+    }
+
+    private fun intBitwiseOp(
+      left: TShellValue,
+      right: TShellValue,
+      op: String,
+      fn: (Int, Int) -> Int
+    ): TShellValue {
+      val l = (left as? TShellValue.TNumber)
+        ?: throw TShellError.typeMismatch("'$op'", "number", left)
+      val r = (right as? TShellValue.TNumber)
+        ?: throw TShellError.typeMismatch("'$op'", "number", right)
+      return TShellValue.TNumber(fn(l.value.toInt(), r.value.toInt()).toDouble())
     }
 
     private fun numericOp(
@@ -1726,8 +1830,44 @@ private val JS_NAMESPACE_ALIASES: Map<String, Map<String, String>> = mapOf(
   ),
 )
 
+/** Array methods that mutate-and-writeback via lvalue tracking */
+private val MUTATING_ARRAY_METHODS = setOf("push", "pop", "shift", "unshift", "splice")
+
 /** JS constructor-style calls → tshell command names */
 private val JS_CONSTRUCTOR_ALIASES: Map<String, String> = mapOf(
   "String" to "str",
   "Number" to "num",
+  "Boolean" to "bool",
+  "parseInt" to "num",
+  "parseFloat" to "num",
+)
+
+/** JS method names → tshell command names, keyed by receiver type */
+private val JS_METHOD_ALIASES: Map<String, Map<String, String>> = mapOf(
+  "array" to mapOf(
+    "includes" to "contains",
+  ),
+  "string" to mapOf(
+    "toUpperCase" to "upper",
+    "toLowerCase" to "lower",
+    "includes" to "contains",
+    "replaceAll" to "replace",
+    "matchAll" to "match",
+    "search" to "test",
+    "slice" to "substring",
+  ),
+)
+
+/** JS methods with no tshell equivalent — error hints */
+private val JS_METHOD_HINTS: Map<String, Map<String, String>> = mapOf(
+  "array" to mapOf(
+    "entries" to "zip(range(0, len(arr)), arr)",
+  ),
+  "string" to mapOf(
+    "charCodeAt" to "not available in tshell",
+    "codePointAt" to "not available in tshell",
+    "repeat" to "not available in tshell",
+    "trimStart" to "str |> trim() (only full trim)",
+    "trimEnd" to "str |> trim() (only full trim)",
+  ),
 )

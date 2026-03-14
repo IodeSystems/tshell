@@ -181,7 +181,7 @@ class TShell(
    */
   fun toPrompt(compact: Boolean = false): String = buildString {
     appendLine("# tshell — language reference")
-    appendLine("Not JS/TS. Similar tokens, different grammar. Only commands listed below exist.")
+    appendLine("JS subset with pipes. Type annotations are accepted but ignored. Only commands listed below exist.")
     appendLine()
     appendLine(PROMPT_SYNTAX)
     appendLine()
@@ -199,59 +199,41 @@ class TShell(
      * Syntax reference used in toPrompt(). Kept as a const so tests can verify
      * that every example line is valid tshell.
      */
-    const val PROMPT_SYNTAX = """## Variables
-let x = 42              // declare (required — no bare assignment); var/const also accepted
-let a, b = 1, c = "two" // multi-bind: uninitialized → null
-x = 99; x += 1          // reassign, compound: +=, -=, *=, /=, %=
-export let y = 10       // export persists across eval calls; without export, discarded
-export function add(a, b) { return a + b }
+    const val PROMPT_SYNTAX = """## Syntax: JS subset
+let/const/var, function, =>, if/else, while, do..while, for/for..of/for..in, switch/case,
+try/catch/finally, throw, break, continue, destructuring, spread, ?., ??, ternary,
+template strings, regex, typeof, ===. All work as expected.
+Bitwise: &, |, ^, ~, <<, >>, >>>, and compound &=, |=, ^=, <<=, >>=, >>>=.
+Not supported: class, new, this, import, yield, async/await, generators.
 
-## Functions
-function fib(n) { if (n <= 1) { return n } else { return fib(n-1) + fib(n-2) } }
-let double = x => x * 2            // arrow lambda
-let add = (a, b) => a + b          // NO 'fn' keyword — use function or let
+## Key differences from JS
+export let x = 10          // export persists across eval calls; without export, discarded
+export function f(a) { return a }
+fn(name: "Alice", age: 30) // named args (matched to param names)
+The last expression is the output. `let` returns null — end with the value you want.
 
-## Control flow — same as JS
-if/else, while, do...while, for(;;), for..of, switch/case/default, break, continue
-try { risky() } catch(e) { "error: " + e } finally { cleanup() }
-throw "message"          // or throw expression — caught by try/catch
-// No: yield, async/await (use all()/race())
-
-## Pipes
+## Pipes (not in JS)
 [1,2,3] |> filter(n => n > 1) |> map(n => n * 10)  // |> passes left as first arg
 [3,1,2] |> sort("name")       // sort([3,1,2], "name") — extra args in parens
 3 |> add <| 4                 // <| adds right-side args: add(3, 4)
-[10, 20, 30] |> [a, b, c]    // destructure: a=10, b=20, c=30
-// |* scatter: normalize to array (null→[], non-array→[x]), parallel map each element
+[10, 20, 30] |> [a, b, c]    // pipe destructure: a=10, b=20, c=30
+
+## Scatter pipe (not in JS)
+// |* normalizes to array (null→[], non-array→[x]), parallel maps each element
 [1,2,3] |* (x => x * 2)     // → [2, 4, 6] (parallel)
 [1,2,3] |* double |> reduce((acc, x) => acc + x)  // scatter then reduce
 
-## Method syntax
+## Method syntax → command resolution
 [1,2,3].map(x => x * 2)     // resolves to map([1,2,3], x => x * 2)
 "hello".toUpperCase()        // resolves to upper("hello")
 [1,2,3].includes(2)         // resolves to contains([1,2,3], 2)
+// JS method names auto-resolve to tshell commands. Use help() to discover all commands.
 
-## Composition
-all(() => getA(), () => getB())    // parallel execution, returns [resultA, resultB]
-race(() => tryA(), () => tryB())   // parallel, returns first success (cancels rest)
-any(() => tryA(), () => tryB())    // sequential, returns first truthy result
-chain(() => getData(), d => transform(d))  // sequential pipeline
-
-## Literals and operators
-"str", 'str', `template ${'$'}{x}`              // strings
-/pattern/flags                               // regex: /[0-9]+/gi, used with match, replace, split, test
-[1, 2, 3], {key: val}                        // arrays, objects
-obj.field, arr[0], obj?.field                 // access, optional chaining
-==, !=, <, >, <=, >=, &&, ||, !, a ?? b      // comparison, logic, null coalescing
-[...a, ...b], {...a, key: val}               // spread
-let {name, age} = obj; let [a, b] = arr      // destructuring
-fn(name: "Alice", age: 30)                   // named args (matched to param names)
-
-## Output
-The last expression's value is printed as the program result. `let` returns null.
-let x = [1, 2, 3]; x |> map(n => n * 10)  // output: [10, 20, 30]
-
-## Not supported: class, new, this, import, yield, async/await"""
+## Composition (not in JS)
+all(() => getA(), () => getB())    // parallel, returns [resultA, resultB]
+race(() => tryA(), () => tryB())   // parallel, first success wins
+any(() => tryA(), () => tryB())    // sequential, first truthy result
+chain(() => getData(), d => transform(d))  // sequential pipeline"""
 
     /**
      * Executable examples from the prompt syntax section.
@@ -262,7 +244,7 @@ let x = [1, 2, 3]; x |> map(n => n * 10)  // output: [10, 20, 30]
      * Kept here so it stays in sync with the language and can be verified by tests.
      */
     const val TOOL_DESCRIPTION =
-      "Execute tshell code. NOT JavaScript or Kotlin. " +
+      "Execute tshell code (JS subset with pipes, not full JS). " +
       "The last expression's value is the output (let returns null — end with the value you want). " +
       "Variables: let x = 5. Named functions: function name(x) { return x * 2 }. " +
       "Lambdas: let f = x => x + 1. Pipes: [1,2,3] |> map(n => n * 10). " +

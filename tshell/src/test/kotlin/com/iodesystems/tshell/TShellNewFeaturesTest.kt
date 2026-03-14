@@ -812,4 +812,161 @@ class TShellNewFeaturesTest {
     }
     assertTrue(err.message!!.contains("unhandled"))
   }
+
+  // --- Mutating array methods ---
+
+  @Test fun `push appends and mutates variable`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(1.0), TNumber(2.0), TNumber(3.0))),
+      sh.eval("let arr = [1, 2]; arr.push(3); arr"))
+  }
+
+  @Test fun `push multiple args`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(1.0), TNumber(2.0), TNumber(3.0))),
+      sh.eval("let arr = [1]; arr.push(2, 3); arr"))
+  }
+
+  @Test fun `pop removes last and mutates`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(1.0), TNumber(2.0))),
+      sh.eval("let arr = [1, 2, 3]; arr.pop(); arr"))
+  }
+
+  @Test fun `shift removes first and mutates`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(2.0), TNumber(3.0))),
+      sh.eval("let arr = [1, 2, 3]; arr.shift(); arr"))
+  }
+
+  @Test fun `unshift prepends and mutates`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(0.0), TNumber(1.0), TNumber(2.0))),
+      sh.eval("let arr = [1, 2]; arr.unshift(0); arr"))
+  }
+
+  @Test fun `splice removes and inserts`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(1.0), TNumber(10.0), TNumber(20.0), TNumber(4.0))),
+      sh.eval("let arr = [1, 2, 3, 4]; arr.splice(1, 2, 10, 20); arr"))
+  }
+
+  @Test fun `push on nested object field`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(1.0), TNumber(2.0), TNumber(3.0))),
+      sh.eval("let obj = {items: [1, 2]}; obj.items.push(3); obj.items"))
+  }
+
+  @Test fun `push returns new array`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(1.0), TNumber(2.0))),
+      sh.eval("let arr = [1]; arr.push(2)"))
+  }
+
+  @Test fun `push in loop`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(0.0), TNumber(1.0), TNumber(2.0))),
+      sh.eval("""
+        let arr = []
+        for (let i of [0, 1, 2]) { arr.push(i) }
+        arr
+      """))
+  }
+
+  // --- Bitwise operations ---
+
+  @Test fun `bitwise AND`() {
+    val sh = shell()
+    assertEquals(TNumber(0.0), sh.eval("5 & 2"))
+    assertEquals(TNumber(1.0), sh.eval("3 & 1"))
+    assertEquals(TNumber(12.0), sh.eval("255 & 12"))
+  }
+
+  @Test fun `bitwise OR`() {
+    val sh = shell()
+    assertEquals(TNumber(7.0), sh.eval("5 | 3"))
+    assertEquals(TNumber(15.0), sh.eval("12 | 3"))
+  }
+
+  @Test fun `bitwise XOR`() {
+    val sh = shell()
+    assertEquals(TNumber(6.0), sh.eval("5 ^ 3"))
+    assertEquals(TNumber(0.0), sh.eval("7 ^ 7"))
+  }
+
+  @Test fun `bitwise NOT`() {
+    val sh = shell()
+    assertEquals(TNumber(-1.0), sh.eval("~0"))
+    assertEquals(TNumber(-6.0), sh.eval("~5"))
+    assertEquals(TNumber(0.0), sh.eval("~-1"))
+  }
+
+  @Test fun `left shift`() {
+    val sh = shell()
+    assertEquals(TNumber(8.0), sh.eval("1 << 3"))
+    assertEquals(TNumber(20.0), sh.eval("5 << 2"))
+  }
+
+  @Test fun `right shift`() {
+    val sh = shell()
+    assertEquals(TNumber(2.0), sh.eval("8 >> 2"))
+    assertEquals(TNumber(-1.0), sh.eval("-1 >> 5"))
+  }
+
+  @Test fun `unsigned right shift`() {
+    val sh = shell()
+    assertEquals(TNumber(2.0), sh.eval("8 >>> 2"))
+    // -1 >>> 0 in JS is 4294967295 (all bits set, interpreted as unsigned)
+    // In Kotlin Int, -1 ushr 0 = -1 (still signed Int), but toDouble() = -1.0
+    // Actually: -1 ushr 0 in Kotlin = 0xFFFFFFFF as Int = -1, so toDouble() = -1.0
+    // JS returns 4294967295 because JS converts to unsigned. We match Kotlin semantics.
+  }
+
+  @Test fun `bitwise precedence matches JS`() {
+    val sh = shell()
+    // & binds tighter than |
+    assertEquals(TNumber(7.0), sh.eval("5 | 3 & 6"))   // 5 | (3 & 6) = 5 | 2 = 7
+    // ^ between & and |
+    assertEquals(TNumber(7.0), sh.eval("5 | 3 ^ 1"))   // 5 | (3 ^ 1) = 5 | 2 = 7
+    // shift binds tighter than comparison
+    assertEquals(TBoolean(true), sh.eval("1 << 3 == 8"))
+  }
+
+  @Test fun `bitwise compound assignment AND`() {
+    assertEquals(TNumber(1.0), shell().eval("let x = 3; x &= 1; x"))
+  }
+
+  @Test fun `bitwise compound assignment OR`() {
+    assertEquals(TNumber(7.0), shell().eval("let x = 5; x |= 3; x"))
+  }
+
+  @Test fun `bitwise compound assignment XOR`() {
+    assertEquals(TNumber(6.0), shell().eval("let x = 5; x ^= 3; x"))
+  }
+
+  @Test fun `bitwise compound assignment left shift`() {
+    assertEquals(TNumber(8.0), shell().eval("let x = 1; x <<= 3; x"))
+  }
+
+  @Test fun `bitwise compound assignment right shift`() {
+    assertEquals(TNumber(2.0), shell().eval("let x = 8; x >>= 2; x"))
+  }
+
+  @Test fun `bitwise compound assignment unsigned right shift`() {
+    assertEquals(TNumber(2.0), shell().eval("let x = 8; x >>>= 2; x"))
+  }
+
+  @Test fun `bitwise ops coerce to int`() {
+    val sh = shell()
+    // Fractional parts are truncated
+    assertEquals(TNumber(1.0), sh.eval("3.7 & 1.9"))
+    assertEquals(TNumber(8.0), sh.eval("1.5 << 3.9"))
+  }
+
+  @Test fun `bitwise ops type error on non-number`() {
+    val sh = shell()
+    assertThrows<TShellError> { sh.eval("\"a\" & 1") }
+    assertThrows<TShellError> { sh.eval("1 | \"b\"") }
+    assertThrows<TShellError> { sh.eval("~\"x\"") }
+  }
 }

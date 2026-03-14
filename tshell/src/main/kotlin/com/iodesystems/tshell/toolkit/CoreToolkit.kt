@@ -370,6 +370,38 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       })
     }
 
+    shell.register("bool", "value: any", "→ boolean",
+      listOf("""bool(1)""", """bool("")""", """bool(null)""")
+    ) { args ->
+      TBoolean((args.firstOrNull() ?: TNull).isTruthy())
+    }
+
+    shell.register("charAt", "input: string, index: number", "character at index",
+      listOf(""""hello" |> charAt(1)""")
+    ) { args ->
+      val s = requireString("charAt", args[0])
+      val idx = requireNumber("charAt", args, 1).toInt()
+      if (idx in s.value.indices) TString(s.value[idx].toString()) else TString("")
+    }
+
+    shell.register("at", "input: array|string, index: number", "element at index (supports negative)",
+      listOf("""[1,2,3] |> at(-1)""", """"hello" |> at(-2)""")
+    ) { args ->
+      val input = args[0]
+      val idx = requireNumber("at", args, 1).toInt()
+      when (input) {
+        is TArray -> {
+          val resolved = if (idx < 0) input.elements.size + idx else idx
+          if (resolved in input.elements.indices) input.elements[resolved] else TNull
+        }
+        is TString -> {
+          val resolved = if (idx < 0) input.value.length + idx else idx
+          if (resolved in input.value.indices) TString(input.value[resolved].toString()) else TNull
+        }
+        else -> throw TShellError.typeMismatch("at", "array or string", input)
+      }
+    }
+
     shell.register("print", "...values: any", "prints, returns last",
       listOf("""print("hello", "world")""", """let x = 42; print("x is", x)""")
     ) { args ->

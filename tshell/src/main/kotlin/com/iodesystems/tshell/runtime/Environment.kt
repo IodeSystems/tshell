@@ -55,6 +55,46 @@ class Environment private constructor(
     }
   }
 
+  /**
+   * Atomic read-modify-write for a value at the given path.
+   * Reads the current value, applies the transform, and writes back — all under the GIL.
+   * For nested paths (e.g. ["obj", "items"]), rebuilds the object chain.
+   * Returns the new value.
+   */
+  fun mutate(path: List<String>, transform: (TShellValue) -> TShellValue): TShellValue = gil.withLock {
+    if (path.isEmpty()) throw TShellError.runtime("mutate: empty path")
+    if (path.size == 1) {
+      val current = get(path[0]) ?: TShellValue.TNull
+      val newVal = transform(current)
+      setLocked(path[0], newVal)
+      return@withLock newVal
+    }
+    // Nested path: read the chain, transform the leaf, rebuild and write back
+    val root = get(path[0]) ?: throw TShellError.runtime("'${path[0]}' is not defined")
+    val chain = mutableListOf(root)
+    var current: TShellValue = root
+    for (i in 1 until path.size) {
+      current = when (current) {
+        is TShellValue.TObject -> current.fields[path[i]] ?: TShellValue.TNull
+        else -> throw TShellError.runtime("Cannot access '${path[i]}' on ${current.typeName()}")
+      }
+      chain.add(current)
+    }
+    // Transform the leaf
+    val newLeaf = transform(chain.last())
+    // Rebuild from inside out
+    var updated: TShellValue = newLeaf
+    for (i in path.size - 1 downTo 1) {
+      val parent = chain[i - 1]
+      updated = when (parent) {
+        is TShellValue.TObject -> TShellValue.TObject(parent.fields + (path[i] to updated))
+        else -> throw TShellError.runtime("Cannot set '${path[i]}' on ${parent.typeName()}")
+      }
+    }
+    setLocked(path[0], updated)
+    newLeaf
+  }
+
   fun child(): Environment = Environment(this, gil)
 
   fun ownBindings(): Map<String, TShellValue> = bindings.toMap()

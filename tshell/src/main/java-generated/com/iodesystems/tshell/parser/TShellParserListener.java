@@ -238,6 +238,16 @@ public interface TShellParserListener extends ParseTreeListener {
 	 */
 	void exitForOfStatement(TShellParser.ForOfStatementContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link TShellParser#forInStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterForInStatement(TShellParser.ForInStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TShellParser#forInStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitForInStatement(TShellParser.ForInStatementContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link TShellParser#forStatement}.
 	 * @param ctx the parse tree
 	 */
@@ -428,6 +438,36 @@ public interface TShellParserListener extends ParseTreeListener {
 	 */
 	void exitAndExpr(TShellParser.AndExprContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link TShellParser#bitwiseOrExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterBitwiseOrExpr(TShellParser.BitwiseOrExprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TShellParser#bitwiseOrExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitBitwiseOrExpr(TShellParser.BitwiseOrExprContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link TShellParser#bitwiseXorExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterBitwiseXorExpr(TShellParser.BitwiseXorExprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TShellParser#bitwiseXorExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitBitwiseXorExpr(TShellParser.BitwiseXorExprContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link TShellParser#bitwiseAndExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterBitwiseAndExpr(TShellParser.BitwiseAndExprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TShellParser#bitwiseAndExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitBitwiseAndExpr(TShellParser.BitwiseAndExprContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link TShellParser#equalityExpr}.
 	 * @param ctx the parse tree
 	 */
@@ -447,6 +487,16 @@ public interface TShellParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitComparisonExpr(TShellParser.ComparisonExprContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link TShellParser#shiftExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterShiftExpr(TShellParser.ShiftExprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TShellParser#shiftExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitShiftExpr(TShellParser.ShiftExprContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link TShellParser#pipeExpr}.
 	 * @param ctx the parse tree
@@ -651,54 +701,6 @@ public interface TShellParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitParenExpr(TShellParser.ParenExprContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code chainExpr}
-	 * labeled alternative in {@link TShellParser#primaryExpr}.
-	 * @param ctx the parse tree
-	 */
-	void enterChainExpr(TShellParser.ChainExprContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code chainExpr}
-	 * labeled alternative in {@link TShellParser#primaryExpr}.
-	 * @param ctx the parse tree
-	 */
-	void exitChainExpr(TShellParser.ChainExprContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code allExpr}
-	 * labeled alternative in {@link TShellParser#primaryExpr}.
-	 * @param ctx the parse tree
-	 */
-	void enterAllExpr(TShellParser.AllExprContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code allExpr}
-	 * labeled alternative in {@link TShellParser#primaryExpr}.
-	 * @param ctx the parse tree
-	 */
-	void exitAllExpr(TShellParser.AllExprContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code raceExpr}
-	 * labeled alternative in {@link TShellParser#primaryExpr}.
-	 * @param ctx the parse tree
-	 */
-	void enterRaceExpr(TShellParser.RaceExprContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code raceExpr}
-	 * labeled alternative in {@link TShellParser#primaryExpr}.
-	 * @param ctx the parse tree
-	 */
-	void exitRaceExpr(TShellParser.RaceExprContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code anyExpr}
-	 * labeled alternative in {@link TShellParser#primaryExpr}.
-	 * @param ctx the parse tree
-	 */
-	void enterAnyExpr(TShellParser.AnyExprContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code anyExpr}
-	 * labeled alternative in {@link TShellParser#primaryExpr}.
-	 * @param ctx the parse tree
-	 */
-	void exitAnyExpr(TShellParser.AnyExprContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code singleParamArrow}
 	 * labeled alternative in {@link TShellParser#arrowFunction}.

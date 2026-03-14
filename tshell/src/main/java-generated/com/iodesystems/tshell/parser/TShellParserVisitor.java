@@ -149,6 +149,12 @@ public interface TShellParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitForOfStatement(TShellParser.ForOfStatementContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link TShellParser#forInStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitForInStatement(TShellParser.ForInStatementContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link TShellParser#forStatement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -263,6 +269,24 @@ public interface TShellParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitAndExpr(TShellParser.AndExprContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link TShellParser#bitwiseOrExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBitwiseOrExpr(TShellParser.BitwiseOrExprContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link TShellParser#bitwiseXorExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBitwiseXorExpr(TShellParser.BitwiseXorExprContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link TShellParser#bitwiseAndExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBitwiseAndExpr(TShellParser.BitwiseAndExprContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link TShellParser#equalityExpr}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -274,6 +298,12 @@ public interface TShellParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitComparisonExpr(TShellParser.ComparisonExprContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link TShellParser#shiftExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitShiftExpr(TShellParser.ShiftExprContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link TShellParser#pipeExpr}.
 	 * @param ctx the parse tree
@@ -394,34 +424,6 @@ public interface TShellParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitParenExpr(TShellParser.ParenExprContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code chainExpr}
-	 * labeled alternative in {@link TShellParser#primaryExpr}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitChainExpr(TShellParser.ChainExprContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code allExpr}
-	 * labeled alternative in {@link TShellParser#primaryExpr}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitAllExpr(TShellParser.AllExprContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code raceExpr}
-	 * labeled alternative in {@link TShellParser#primaryExpr}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitRaceExpr(TShellParser.RaceExprContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code anyExpr}
-	 * labeled alternative in {@link TShellParser#primaryExpr}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitAnyExpr(TShellParser.AnyExprContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code singleParamArrow}
 	 * labeled alternative in {@link TShellParser#arrowFunction}.

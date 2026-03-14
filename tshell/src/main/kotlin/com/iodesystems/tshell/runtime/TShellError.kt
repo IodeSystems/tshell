@@ -35,7 +35,7 @@ class TShellError(message: String) : RuntimeException(message) {
       // try, catch, finally, throw are now supported as keywords
       "delete" -> "tshell does not support 'delete' — objects are immutable; build a new object without the key\n\n  Example: obj |> entries() |> filter(e => e.key != \"unwanted\") |> reduce((o, e) => ({...o, [e.key]: e.value}), {})"
       "void" -> "tshell does not support 'void' — use null instead"
-      "instanceof" -> "tshell does not support 'instanceof' — use typeof(value) to check types\n\n  Example: typeof(x) == \"array\""
+      "instanceof" -> "tshell does not support 'instanceof' — use typeof to check types\n\n  Example: typeof x == \"array\""
       "fn" -> "tshell does not have 'fn' — use 'function' for declarations or '=>' for arrows\n\n  Example: function add(a, b) { return a + b }\n  Example: let add = (a, b) => a + b"
       "this" -> "tshell does not support 'this' — there are no classes or methods"
       "super" -> "tshell does not support 'super' — there is no inheritance"
@@ -43,10 +43,8 @@ class TShellError(message: String) : RuntimeException(message) {
       "with" -> "tshell does not support 'with'"
       "enum" -> "tshell does not support enums — use objects as constants\n\n  Example: let Status = {OK: 0, ERR: 1}"
 
-      // console, JSON, Math, Object, Array → auto-resolved via JS_NAMESPACE_ALIASES in Interpreter
-      // String, Number → auto-resolved via JS_CONSTRUCTOR_ALIASES in Interpreter
-      "Boolean" -> "tshell does not have 'Boolean' constructor — use truthiness directly or ternary\n\n  Example: x ? true : false"
-      "Promise" -> "tshell does not have Promises — use all() for parallel execution\n\n  Example: all(() => taskA(), () => taskB())"
+      // console, JSON, Math, Object, Array, Promise → auto-resolved via JS_NAMESPACE_ALIASES
+      // String, Number, Boolean, parseInt, parseFloat → auto-resolved via JS_CONSTRUCTOR_ALIASES
       "setTimeout", "setInterval", "clearTimeout", "clearInterval" -> "tshell does not support timers"
       "RegExp" -> "tshell has regex literals instead\n\n  Example: /[0-9]+/g\n  Example: \"abc123\" |> match(/[0-9]+/)"
       "Map", "Set", "WeakMap", "WeakSet" -> "tshell does not have $name — use objects and arrays\n\n  Example: unique([1, 2, 2, 3])  // Set-like dedup"
@@ -54,7 +52,6 @@ class TShellError(message: String) : RuntimeException(message) {
       "Error", "TypeError", "RangeError" -> "tshell does not have error types — use fail(message)\n\n  Example: fail(\"invalid input\")"
       "undefined" -> "tshell does not have 'undefined' — use null instead"
       "NaN", "Infinity" -> "tshell does not have $name — use numeric checks instead"
-      "parseInt", "parseFloat" -> "tshell does not have '$name' — use num() instead\n\n  Example: num(\"42\")  // → 42"
       "isNaN", "isFinite" -> "tshell does not have '$name'"
       "encodeURIComponent", "decodeURIComponent", "encodeURI", "decodeURI" -> "tshell does not have URI encoding functions"
       "atob", "btoa" -> "tshell does not have base64 functions"

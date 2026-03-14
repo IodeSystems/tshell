@@ -60,7 +60,7 @@ class TShellLiterateTest {
     // ======== TYPICAL USAGE ========
 
     SectionGroup("Typical Usage", """
-tshell reads like TypeScript and composes like a shell. These are the features you'll
+tshell reads like JavaScript and composes like a shell. These are the features you'll
 use in most programs.
     """.trim(), listOf(
 
@@ -397,7 +397,7 @@ runaway programs.
       appendLine()
       appendLine("Instead of defining dozens of individual tools — each requiring schema,")
       appendLine("validation, and prompt engineering — give your LLM one tool: `eval`. tshell's")
-      appendLine("TypeScript-like syntax means LLMs can write it without new training.")
+      appendLine("JavaScript syntax means LLMs can write it without new training.")
       appendLine("Capabilities are discovered at runtime via `help()`, and the KV cache is")
       appendLine("preserved across tool set changes.")
       appendLine()

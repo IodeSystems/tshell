@@ -226,9 +226,10 @@ class TShellErrorQualityTest {
     )
   }
 
-  @Test fun `array push explains immutability`() {
-    val msg = errorMessage("[1,2].push(3)")
-    assertTrue(msg.contains("immutable"), msg)
+  @Test fun `array push mutates and returns new array`() {
+    val sh = shell()
+    assertEquals(TShellValue.TArray(listOf(TShellValue.TNumber(1.0), TShellValue.TNumber(2.0), TShellValue.TNumber(3.0))),
+      sh.eval("let arr = [1, 2]; arr.push(3); arr"))
   }
 
   @Test fun `switch works`() {
@@ -286,8 +287,65 @@ class TShellErrorQualityTest {
     assertTrue(msg.contains("immutable"), msg)
   }
 
-  @Test fun `Promise suggests all`() {
-    val msg = errorMessage("Promise.all([])")
-    assertTrue(msg.contains("all()"), msg)
+  @Test fun `Promise all resolves to all`() {
+    val sh = shell()
+    assertEquals(TShellValue.TArray(listOf(TShellValue.TNumber(1.0), TShellValue.TNumber(2.0))),
+      sh.eval("Promise.all(() => 1, () => 2)"))
+  }
+
+  @Test fun `typeof operator works`() {
+    val sh = shell()
+    assertEquals(TString("number"), sh.eval("typeof 42"))
+    assertEquals(TString("string"), sh.eval("""typeof "hello""""))
+    assertEquals(TString("array"), sh.eval("typeof [1, 2]"))
+    assertEquals(TString("null"), sh.eval("typeof null"))
+    assertEquals(TString("boolean"), sh.eval("typeof true"))
+    assertEquals(TString("object"), sh.eval("typeof {a: 1}"))
+  }
+
+  @Test fun `typeof in condition`() {
+    val sh = shell()
+    assertEquals(TBoolean(true), sh.eval("""typeof 42 == "number""""))
+  }
+
+  // --- for-in ---
+
+  @Test fun `for-in iterates object keys`() {
+    val sh = shell()
+    assertEquals(TShellValue.TArray(listOf(TString("a"), TString("b"))),
+      sh.eval("let result = []; for (let k in {a: 1, b: 2}) { result.push(k) }; result"))
+  }
+
+  @Test fun `for-in iterates array indices`() {
+    val sh = shell()
+    assertEquals(TShellValue.TArray(listOf(TShellValue.TNumber(0.0), TShellValue.TNumber(1.0), TShellValue.TNumber(2.0))),
+      sh.eval("let result = []; for (let i in [10, 20, 30]) { result.push(i) }; result"))
+  }
+
+  // --- in operator ---
+
+  @Test fun `in operator checks object keys`() {
+    val sh = shell()
+    assertEquals(TBoolean(true), sh.eval(""""a" in {a: 1, b: 2}"""))
+    assertEquals(TBoolean(false), sh.eval(""""c" in {a: 1, b: 2}"""))
+  }
+
+  @Test fun `in operator checks array membership`() {
+    val sh = shell()
+    assertEquals(TBoolean(true), sh.eval("2 in [1, 2, 3]"))
+    assertEquals(TBoolean(false), sh.eval("5 in [1, 2, 3]"))
+  }
+
+  // --- at() with negative indexing ---
+
+  @Test fun `at with negative index on array`() {
+    val sh = shell()
+    assertEquals(TShellValue.TNumber(3.0), sh.eval("[1, 2, 3].at(-1)"))
+    assertEquals(TShellValue.TNumber(1.0), sh.eval("[1, 2, 3].at(0)"))
+  }
+
+  @Test fun `at with negative index on string`() {
+    val sh = shell()
+    assertEquals(TString("o"), sh.eval(""""hello".at(-1)"""))
   }
 }
