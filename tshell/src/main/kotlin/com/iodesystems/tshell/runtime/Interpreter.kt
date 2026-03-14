@@ -589,53 +589,43 @@ class Interpreter(
         }
         env.set(rootName, finalValue)
       } else {
-        // Copy-on-write: walk down collecting chain, then rebuild from leaf to root
-        val chain = mutableListOf<TShellValue>()
+        // JS reference semantics: walk to the parent container and mutate in-place
         var current = env.get(rootName)
           ?: throw TShellError.runtime("'$rootName' is not defined")
-        chain.add(current)
         for (i in 0 until steps.size - 1) {
           current = resolveStep(current, steps[i])
-          chain.add(current)
         }
         val lastStep = steps.last()
         val finalValue = if (op == "=") rhs else {
           val oldValue = resolveStep(current, lastStep)
           applyCompoundOp(op, oldValue, rhs)
         }
-        // Set the value at the leaf, producing a new parent
-        var updated = setStep(chain.last(), lastStep, finalValue)
-        // Rebuild from inside out
-        for (i in steps.size - 2 downTo 0) {
-          updated = setStep(chain[i], steps[i], updated)
-        }
-        env.set(rootName, updated)
+        mutateInPlace(current, lastStep, finalValue)
       }
     }
 
-    /** Produce a new value with [step] set to [value] (copy-on-write). */
-    private fun setStep(parent: TShellValue, step: Any, value: TShellValue): TShellValue {
-      return when (step) {
+    /** Mutate a container in-place at the given step (JS reference semantics). */
+    private fun mutateInPlace(parent: TShellValue, step: Any, value: TShellValue) {
+      when (step) {
         is FieldStep -> {
           val obj = parent as? TShellValue.TObject
             ?: throw TShellError.typeMismatch("assignment to .${step.name}", "object", parent)
-          TShellValue.TObject(LinkedHashMap(obj.fields).apply { this[step.name] = value })
+          (obj.fields as MutableMap)[step.name] = value
         }
         is IndexStep -> when (parent) {
           is TShellValue.TObject -> {
             val key = (step.value as? TShellValue.TString)?.value
               ?: throw TShellError.typeMismatch("index assignment", "string key", step.value)
-            TShellValue.TObject(LinkedHashMap(parent.fields).apply { this[key] = value })
+            (parent.fields as MutableMap)[key] = value
           }
           is TShellValue.TArray -> {
             val idx = (step.value as? TShellValue.TNumber)?.value?.toInt()
               ?: throw TShellError.typeMismatch("index assignment", "number", step.value)
             if (idx < 0) throw TShellError.runtime("Index $idx out of bounds (size ${parent.elements.size})")
-            val newElems = ArrayList(parent.elements)
+            val elems = parent.elements as MutableList
             // Auto-grow with nulls (JS behavior)
-            while (newElems.size <= idx) newElems.add(TShellValue.TNull)
-            newElems[idx] = value
-            TShellValue.TArray(newElems)
+            while (elems.size <= idx) elems.add(TShellValue.TNull)
+            elems[idx] = value
           }
           else -> throw TShellError.typeMismatch("assignment", "object or array", parent)
         }
@@ -1288,24 +1278,24 @@ class Interpreter(
         name = method,
         params = emptyList(),
         body = TShellValue.FunctionBody.Native { args ->
-          // Atomic read-modify-write under the GIL
+          // Mutate the array in-place (JS reference semantics)
           env.mutate(lvaluePath) { current ->
             val currentArr = current as? TShellValue.TArray ?: arr
+            val elems = currentArr.elements as MutableList
             when (method) {
-              "push" -> TShellValue.TArray(currentArr.elements + args)
-              "pop" -> TShellValue.TArray(currentArr.elements.dropLast(1))
-              "shift" -> TShellValue.TArray(currentArr.elements.drop(1))
-              "unshift" -> TShellValue.TArray(args + currentArr.elements)
+              "push" -> { elems.addAll(args); currentArr }
+              "pop" -> { if (elems.isNotEmpty()) elems.removeAt(elems.size - 1); currentArr }
+              "shift" -> { if (elems.isNotEmpty()) elems.removeAt(0); currentArr }
+              "unshift" -> { elems.addAll(0, args); currentArr }
               "splice" -> {
                 val start = ((args.getOrNull(0) as? TShellValue.TNumber)?.value?.toInt() ?: 0)
-                  .coerceIn(0, currentArr.elements.size)
-                val deleteCount = ((args.getOrNull(1) as? TShellValue.TNumber)?.value?.toInt() ?: currentArr.elements.size)
-                  .coerceIn(0, currentArr.elements.size - start)
+                  .coerceIn(0, elems.size)
+                val deleteCount = ((args.getOrNull(1) as? TShellValue.TNumber)?.value?.toInt() ?: elems.size)
+                  .coerceIn(0, elems.size - start)
                 val inserts = args.drop(2)
-                val result = currentArr.elements.toMutableList()
-                result.subList(start, start + deleteCount).clear()
-                result.addAll(start, inserts)
-                TShellValue.TArray(result)
+                elems.subList(start, start + deleteCount).clear()
+                elems.addAll(start, inserts)
+                currentArr
               }
               else -> currentArr
             }

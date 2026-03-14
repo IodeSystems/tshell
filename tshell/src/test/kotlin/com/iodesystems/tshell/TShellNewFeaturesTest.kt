@@ -1047,9 +1047,9 @@ class TShellNewFeaturesTest {
 
   // --- Shuffle ---
 
-  // --- Copy-on-write assignment ---
+  // --- JS reference semantics ---
 
-  @Test fun `nested object assignment does not mutate original`() {
+  @Test fun `nested object assignment mutates shared reference (JS semantics)`() {
     val sh = shell()
     val result = sh.eval("""
       let a = {x: {y: 1}};
@@ -1057,11 +1057,11 @@ class TShellNewFeaturesTest {
       b.x.y = 99;
       [a.x.y, b.x.y]
     """.trimIndent())
-    // a.x.y should still be 1, b.x.y should be 99
-    assertEquals(TArray(listOf(TNumber(1.0), TNumber(99.0))), result)
+    // JS: a and b are the same object, so both see the mutation
+    assertEquals(TArray(listOf(TNumber(99.0), TNumber(99.0))), result)
   }
 
-  @Test fun `nested array assignment does not mutate original`() {
+  @Test fun `nested array assignment mutates shared reference (JS semantics)`() {
     val sh = shell()
     val result = sh.eval("""
       let a = [[1, 2], [3, 4]];
@@ -1069,7 +1069,8 @@ class TShellNewFeaturesTest {
       b[0][0] = 99;
       [a[0][0], b[0][0]]
     """.trimIndent())
-    assertEquals(TArray(listOf(TNumber(1.0), TNumber(99.0))), result)
+    // JS: a and b are the same array, so both see the mutation
+    assertEquals(TArray(listOf(TNumber(99.0), TNumber(99.0))), result)
   }
 
   @Test fun `array auto-grow on assignment`() {

@@ -129,8 +129,8 @@ use in most programs.
     """.trim(), listOf(
 
       Section("Variables and Types", """
-`let` declares variables. Types are inferred. All values are immutable data —
-variables are reassignable but there is no mutation of values themselves.
+`let` declares variables. Types are inferred. Objects and arrays are references
+(JS semantics) — assignment to fields/indices mutates the value in-place.
       """.trim(), listOf(
         Example("""let x = 42; x""", "42"),
         Example("""let name = "alice"; name""", "alice"),

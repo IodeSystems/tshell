@@ -96,8 +96,8 @@ use in most programs.
 
 ### Variables and Types
 
-`let` declares variables. Types are inferred. All values are immutable data —
-variables are reassignable but there is no mutation of values themselves.
+`let` declares variables. Types are inferred. Objects and arrays are references
+(JS semantics) — assignment to fields/indices mutates the value in-place.
 
 ```javascript
 let x = 42; x

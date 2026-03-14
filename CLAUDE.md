@@ -58,7 +58,7 @@ tshell-sample-koog/              # Sample LLM integration
 ## Conventions
 
 - README.md is auto-generated from `TShellLiterateTest.kt` — do not edit README directly
-- Values are immutable data; variables are reassignable
+- Objects and arrays are mutable references (JS semantics); variables are reassignable
 - `bindDestructure()` in Interpreter handles all destructuring patterns (simple, object, array)
 - `collectDestructureNames()` extracts names for export tracking
 - Export wraps letDecl/fnDecl/assignStatement

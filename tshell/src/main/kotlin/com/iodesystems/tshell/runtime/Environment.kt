@@ -58,8 +58,8 @@ class Environment private constructor(
   /**
    * Atomic read-modify-write for a value at the given path.
    * Reads the current value, applies the transform, and writes back — all under the GIL.
-   * For nested paths (e.g. ["obj", "items"]), rebuilds the object chain.
-   * Returns the new value.
+   * For nested paths (e.g. ["obj", "items"]), walks to the parent and mutates in-place
+   * (JS reference semantics). Returns the new value.
    */
   fun mutate(path: List<String>, transform: (TShellValue) -> TShellValue): TShellValue = gil.withLock {
     if (path.isEmpty()) throw TShellError.runtime("mutate: empty path")
@@ -69,29 +69,26 @@ class Environment private constructor(
       setLocked(path[0], newVal)
       return@withLock newVal
     }
-    // Nested path: read the chain, transform the leaf, rebuild and write back
+    // Nested path: walk to the parent, read the leaf, transform, write back in-place
     val root = get(path[0]) ?: throw TShellError.runtime("'${path[0]}' is not defined")
-    val chain = mutableListOf(root)
     var current: TShellValue = root
-    for (i in 1 until path.size) {
+    for (i in 1 until path.size - 1) {
       current = when (current) {
         is TShellValue.TObject -> current.fields[path[i]] ?: TShellValue.TNull
         else -> throw TShellError.runtime("Cannot access '${path[i]}' on ${current.typeName()}")
       }
-      chain.add(current)
     }
-    // Transform the leaf
-    val newLeaf = transform(chain.last())
-    // Rebuild from inside out
-    var updated: TShellValue = newLeaf
-    for (i in path.size - 1 downTo 1) {
-      val parent = chain[i - 1]
-      updated = when (parent) {
-        is TShellValue.TObject -> TShellValue.TObject(parent.fields + (path[i] to updated))
-        else -> throw TShellError.runtime("Cannot set '${path[i]}' on ${parent.typeName()}")
-      }
+    val leafKey = path.last()
+    val leafValue = when (current) {
+      is TShellValue.TObject -> current.fields[leafKey] ?: TShellValue.TNull
+      else -> throw TShellError.runtime("Cannot access '$leafKey' on ${current.typeName()}")
     }
-    setLocked(path[0], updated)
+    val newLeaf = transform(leafValue)
+    // Mutate the parent in-place (JS reference semantics)
+    when (current) {
+      is TShellValue.TObject -> (current.fields as MutableMap)[leafKey] = newLeaf
+      else -> throw TShellError.runtime("Cannot set '$leafKey' on ${current.typeName()}")
+    }
     newLeaf
   }
 
