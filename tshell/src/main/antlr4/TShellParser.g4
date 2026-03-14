@@ -13,6 +13,8 @@ statement
   | doWhileStatement
   | forOfStatement
   | forStatement
+  | tryCatchStatement
+  | throwStatement
   | returnStatement
   | breakStatement
   | continueStatement
@@ -27,6 +29,8 @@ exportStatement   : EXPORT (letDecl | fnDecl | assignStatement);
 letDecl           : LET letBinding (COMMA letBinding)* SEMI?;
 letBinding        : destructure (ASSIGN expression)?;
 fnDecl            : FUNCTION IDENTIFIER LPAREN paramList? RPAREN (COLON typeAnnotation)? block;
+tryCatchStatement : TRY block (CATCH LPAREN IDENTIFIER RPAREN block)? (FINALLY block)?;
+throwStatement    : THROW expression SEMI?;
 returnStatement   : RETURN expression? SEMI?;
 breakStatement    : BREAK SEMI?;
 continueStatement : CONTINUE SEMI?;
@@ -143,7 +147,8 @@ objectField
 
 fieldName
   : IDENTIFIER | LET | FUNCTION | IF | ELSE | WHILE | DO | FOR | OF | IN | RETURN
-  | BREAK | CONTINUE | EXPORT | SWITCH | CASE | DEFAULT | TRUE | FALSE | NULL | CHAIN | ALL | RACE | ANY
+  | BREAK | CONTINUE | EXPORT | SWITCH | CASE | DEFAULT | TRY | CATCH | FINALLY | THROW
+  | TRUE | FALSE | NULL | CHAIN | ALL | RACE | ANY
   ;
 
 spreadOrExpr      : SPREAD? expression;

@@ -656,4 +656,160 @@ class TShellNewFeaturesTest {
     assertEquals(TNumber(1.0), sh.eval("a"))
     assertEquals(TNumber(2.0), sh.eval("b"))
   }
+
+  // --- JS compat: new commands ---
+
+  @Test fun `forEach iterates and returns null`() {
+    val sh = shell()
+    assertEquals(TNull, sh.eval("let r = []; [1, 2, 3].forEach(x => { r = [...r, x * 2] }); r; null"))
+  }
+
+  @Test fun `concat arrays`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(1.0), TNumber(2.0), TNumber(3.0), TNumber(4.0))),
+      sh.eval("[1, 2].concat([3, 4])"))
+  }
+
+  @Test fun `indexOf on array`() {
+    val sh = shell()
+    assertEquals(TNumber(1.0), sh.eval("[10, 20, 30].indexOf(20)"))
+    assertEquals(TNumber(-1.0), sh.eval("[10, 20, 30].indexOf(99)"))
+  }
+
+  @Test fun `indexOf on string`() {
+    val sh = shell()
+    assertEquals(TNumber(2.0), sh.eval(""""hello".indexOf("ll")"""))
+  }
+
+  @Test fun `flatMap`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(1.0), TNumber(10.0), TNumber(2.0), TNumber(20.0))),
+      sh.eval("[1, 2].flatMap(x => [x, x * 10])"))
+  }
+
+  @Test fun `some`() {
+    val sh = shell()
+    assertEquals(TBoolean(true), sh.eval("[1, 2, 3].some(x => x > 2)"))
+    assertEquals(TBoolean(false), sh.eval("[1, 2, 3].some(x => x > 5)"))
+  }
+
+  @Test fun `every`() {
+    val sh = shell()
+    assertEquals(TBoolean(true), sh.eval("[1, 2, 3].every(x => x > 0)"))
+    assertEquals(TBoolean(false), sh.eval("[1, 2, 3].every(x => x > 1)"))
+  }
+
+  @Test fun `slice on array`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(2.0), TNumber(3.0))),
+      sh.eval("[1, 2, 3, 4].slice(1, 3)"))
+  }
+
+  @Test fun `Array isArray`() {
+    val sh = shell()
+    assertEquals(TBoolean(true), sh.eval("Array.isArray([1, 2])"))
+    assertEquals(TBoolean(false), sh.eval("Array.isArray(42)"))
+  }
+
+  @Test fun `Array from`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(5.0))), sh.eval("Array.from(5)"))
+    assertEquals(TArray(emptyList()), sh.eval("Array.from(null)"))
+  }
+
+  @Test fun `String constructor`() {
+    val sh = shell()
+    assertEquals(TString("42"), sh.eval("String(42)"))
+  }
+
+  @Test fun `Number constructor`() {
+    val sh = shell()
+    assertEquals(TNumber(42.0), sh.eval("""Number("42")"""))
+  }
+
+  // --- try/catch/finally/throw ---
+
+  @Test fun `try-catch catches throw`() {
+    val sh = shell()
+    assertEquals(TString("got: oops"), sh.eval("""
+      try { throw "oops" } catch(e) { "got: " + e }
+    """))
+  }
+
+  @Test fun `try-catch catches fail`() {
+    val sh = shell()
+    assertEquals(TString("handled"), sh.eval("""
+      try { fail("bad") } catch(e) { "handled" }
+    """))
+  }
+
+  @Test fun `try-catch catches runtime errors`() {
+    val sh = shell()
+    assertEquals(TString("caught"), sh.eval("""
+      try { null.foo } catch(e) { "caught" }
+    """))
+  }
+
+  @Test fun `try without catch but with finally`() {
+    val sh = shell()
+    assertEquals(TNumber(42.0), sh.eval("""
+      let x = 0
+      try { x = 42 } finally { x = x }
+      x
+    """))
+  }
+
+  @Test fun `finally runs after catch`() {
+    val sh = shell()
+    assertEquals(TNumber(2.0), sh.eval("""
+      let x = 0
+      try { throw "err" } catch(e) { x = 1 } finally { x = 2 }
+      x
+    """))
+  }
+
+  @Test fun `finally runs on success`() {
+    val sh = shell()
+    assertEquals(TNumber(99.0), sh.eval("""
+      let x = 0
+      try { x = 1 } finally { x = 99 }
+      x
+    """))
+  }
+
+  @Test fun `throw with non-string value`() {
+    val sh = shell()
+    assertEquals(TString("caught: 42"), sh.eval("""
+      try { throw 42 } catch(e) { "caught: " + e }
+    """))
+  }
+
+  @Test fun `catch variable is scoped`() {
+    val sh = shell()
+    // e should not leak outside the catch block
+    val err = assertThrows<com.iodesystems.tshell.runtime.TShellError> {
+      sh.eval("""
+        try { throw "x" } catch(e) { e }
+        e
+      """)
+    }
+    assertTrue(err.message!!.contains("Unknown"))
+  }
+
+  @Test fun `nested try-catch`() {
+    val sh = shell()
+    assertEquals(TString("inner"), sh.eval("""
+      try {
+        try { throw "inner" } catch(e) { e }
+      } catch(e) { "outer" }
+    """))
+  }
+
+  @Test fun `uncaught throw propagates`() {
+    val sh = shell()
+    val err = assertThrows<com.iodesystems.tshell.runtime.TShellError> {
+      sh.eval("""throw "unhandled"""")
+    }
+    assertTrue(err.message!!.contains("unhandled"))
+  }
 }

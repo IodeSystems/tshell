@@ -551,6 +551,90 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       TBoolean(regex.containsMatchIn(s))
     }
 
+    // --- Array methods that JS LLMs expect ---
+
+    shell.register("forEach", "input: array, fn: (T) => void", "applies fn to each element, returns null",
+      listOf("""[1, 2, 3] |> forEach(x => print(x))""")
+    ) { args ->
+      val arr = requireArray("forEach", args[0])
+      val fn = requireFn("forEach", args, 1)
+      for (el in arr.elements) { fn.callAsync(listOf(el)) }
+      TNull
+    }
+
+    shell.register("concat", "a: array, b: array", "concatenates two arrays",
+      listOf("""[1, 2] |> concat([3, 4])""", """concat([1, 2], [3, 4])""")
+    ) { args ->
+      val a = requireArray("concat", args[0])
+      val b = requireArray("concat", args.getOrElse(1) { TNull })
+      TArray(a.elements + b.elements)
+    }
+
+    shell.register("indexOf", "input: array|string, value: any", "first index of value, or -1",
+      listOf("""[10, 20, 30] |> indexOf(20)""", """"hello" |> indexOf("ll")""")
+    ) { args ->
+      when (val input = args[0]) {
+        is TArray -> {
+          val target = args.getOrElse(1) { TNull }
+          TNumber(input.elements.indexOfFirst { valuesEqual(it, target) }.toDouble())
+        }
+        is TString -> {
+          val substr = (args.getOrElse(1) { TNull } as? TString)?.value
+            ?: throw TShellError.typeMismatch("indexOf", "string", args.getOrElse(1) { TNull })
+          TNumber(input.value.indexOf(substr).toDouble())
+        }
+        else -> throw TShellError.typeMismatch("indexOf", "array or string", input)
+      }
+    }
+
+    shell.register("flatMap", "input: array, fn: (T) => array", "maps then flattens one level",
+      listOf("""[1, 2, 3] |> flatMap(x => [x, x * 10])""")
+    ) { args ->
+      val arr = requireArray("flatMap", args[0])
+      val fn = requireFn("flatMap", args, 1)
+      val result = mutableListOf<TShellValue>()
+      for (el in arr.elements) {
+        when (val mapped = fn.callAsync(listOf(el))) {
+          is TArray -> result.addAll(mapped.elements)
+          else -> result.add(mapped)
+        }
+      }
+      TArray(result)
+    }
+
+    shell.register("some", "input: array, fn: (T) => boolean", "true if any element matches",
+      listOf("""[1, 2, 3] |> some(x => x > 2)""")
+    ) { args ->
+      val arr = requireArray("some", args[0])
+      val fn = requireFn("some", args, 1)
+      TBoolean(arr.elements.any { fn.callAsync(listOf(it)).isTruthy() })
+    }
+
+    shell.register("every", "input: array, fn: (T) => boolean", "true if all elements match",
+      listOf("""[1, 2, 3] |> every(x => x > 0)""")
+    ) { args ->
+      val arr = requireArray("every", args[0])
+      val fn = requireFn("every", args, 1)
+      TBoolean(arr.elements.all { fn.callAsync(listOf(it)).isTruthy() })
+    }
+
+    shell.register("slice", "input: array|string, start: number, end?: number", "extracts section",
+      listOf("""[1, 2, 3, 4] |> slice(1, 3)""", """"hello" |> slice(1, 4)""")
+    ) { args ->
+      val start = requireNumber("slice", args, 1).toInt()
+      when (val input = args[0]) {
+        is TArray -> {
+          val end = (args.getOrNull(2) as? TNumber)?.value?.toInt() ?: input.elements.size
+          TArray(input.elements.subList(start.coerceAtLeast(0), end.coerceAtMost(input.elements.size)))
+        }
+        is TString -> {
+          val end = (args.getOrNull(2) as? TNumber)?.value?.toInt() ?: input.value.length
+          TString(input.value.substring(start.coerceAtLeast(0), end.coerceAtMost(input.value.length)))
+        }
+        else -> throw TShellError.typeMismatch("slice", "array or string", input)
+      }
+    }
+
     // --- Set operations ---
 
     shell.register("difference", "a: array, b: array", "elements in a not in b",
@@ -655,6 +739,12 @@ IMPORTANT — ALGORITHM COMPLEXITY:
         is TArray -> v
         else -> TArray(listOf(v))
       }
+    }
+
+    shell.register("isArray", "value: any", "true if value is an array",
+      listOf("""isArray([1, 2])""", """isArray("hello")""")
+    ) { args ->
+      TBoolean(args.firstOrNull() is TArray)
     }
 
     shell.register("typeof", "value: any", "type name",

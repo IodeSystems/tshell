@@ -47,6 +47,18 @@ public interface TShellParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFnDecl(TShellParser.FnDeclContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link TShellParser#tryCatchStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitTryCatchStatement(TShellParser.TryCatchStatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link TShellParser#throwStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitThrowStatement(TShellParser.ThrowStatementContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link TShellParser#returnStatement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

@@ -213,7 +213,9 @@ let add = (a, b) => a + b          // NO 'fn' keyword — use function or let
 
 ## Control flow — same as JS
 if/else, while, do...while, for(;;), for..of, switch/case/default, break, continue
-// No: try/catch (use fail()), yield, async/await (use all()/race())
+try { risky() } catch(e) { "error: " + e } finally { cleanup() }
+throw "message"          // or throw expression — caught by try/catch
+// No: yield, async/await (use all()/race())
 
 ## Pipes
 [1,2,3] |> filter(n => n > 1) |> map(n => n * 10)  // |> passes left as first arg
@@ -249,7 +251,7 @@ fn(name: "Alice", age: 30)                   // named args (matched to param nam
 The last expression's value is printed as the program result. `let` returns null.
 let x = [1, 2, 3]; x |> map(n => n * 10)  // output: [10, 20, 30]
 
-## Not supported: class, new, this, import, try/catch, yield, async/await"""
+## Not supported: class, new, this, import, yield, async/await"""
 
     /**
      * Executable examples from the prompt syntax section.
@@ -301,6 +303,8 @@ add(b: 2, a: 1)
 [1,2,3].map(x => x * 2)
 "hello".toUpperCase()
 all(() => 1, () => 2)
-any(() => null, () => 42)"""
+any(() => null, () => 42)
+try { fail("oops") } catch(e) { "caught" }
+try { throw "oops" } catch(e) { e }"""
   }
 }

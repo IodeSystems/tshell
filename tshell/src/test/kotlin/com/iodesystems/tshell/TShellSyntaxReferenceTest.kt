@@ -91,7 +91,7 @@ safe
     val prompt = sh.toPrompt()
     assertTrue(prompt.contains("help"))
     assertTrue(prompt.contains("map"))
-    assertTrue(prompt.length < 5600, "Full prompt is ${prompt.length} chars, should be < 5600")
+    assertTrue(prompt.length < 6200, "Full prompt is ${prompt.length} chars, should be < 6200")
   }
 
   @Test
@@ -105,7 +105,7 @@ safe
     assertTrue(compact.contains("help(\"core\")"), "Compact prompt must reference guides")
     assertTrue(compact.length < full.length * 0.75,
       "Compact (${compact.length}) should be at least 25% smaller than full (${full.length})")
-    assertTrue(compact.length < 3500, "Compact prompt is ${compact.length} chars, should be < 3500")
+    assertTrue(compact.length < 3700, "Compact prompt is ${compact.length} chars, should be < 3700")
   }
 
   /**

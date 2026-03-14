@@ -191,6 +191,8 @@ class Interpreter(
       is ExportStatementContext -> visitExportStatement(ctx)
       is LetDeclContext -> visitLetDecl(ctx)
       is FnDeclContext -> visitFnDecl(ctx)
+      is TryCatchStatementContext -> visitTryCatchStatement(ctx)
+      is ThrowStatementContext -> visitThrowStatement(ctx)
       is ReturnStatementContext -> visitReturnStatement(ctx)
       is BreakStatementContext -> visitBreakStatement(ctx)
       is ContinueStatementContext -> visitContinueStatement(ctx)
@@ -326,6 +328,41 @@ class Interpreter(
     suspend fun visitReturnStatement(ctx: ReturnStatementContext): TShellValue {
       val value = if (ctx.expression() != null) eval(ctx.expression()) else TShellValue.TNull
       throw ReturnSignal(value)
+    }
+
+    suspend fun visitTryCatchStatement(ctx: TryCatchStatementContext): TShellValue {
+      var result: TShellValue = TShellValue.TNull
+      try {
+        result = visitBlock(ctx.block(0))
+      } catch (e: TShellError) {
+        val catchBlock = if (ctx.CATCH() != null) ctx.block(1) else null
+        if (catchBlock != null) {
+          val catchEnv = env.child()
+          catchEnv.define(ctx.IDENTIFIER().text, TShellValue.TString(e.message ?: "unknown error"))
+          val outerEnv = env
+          env = catchEnv
+          try {
+            result = visitBlock(catchBlock)
+          } finally {
+            env = outerEnv
+          }
+        }
+      } finally {
+        val finallyBlock = if (ctx.FINALLY() != null) ctx.block().last() else null
+        if (finallyBlock != null) {
+          visitBlock(finallyBlock)
+        }
+      }
+      return result
+    }
+
+    suspend fun visitThrowStatement(ctx: ThrowStatementContext): TShellValue {
+      val value = eval(ctx.expression())
+      val message = when (value) {
+        is TShellValue.TString -> value.value
+        else -> value.toDisplayString()
+      }
+      throw TShellError.runtime(message)
     }
 
     @Suppress("unused")
@@ -981,6 +1018,16 @@ class Interpreter(
           body = TShellValue.FunctionBody.Native(cmd.fn)
         )
       }
+      // JS constructor aliases — String(x) → str(x), Number(x) → num(x), Boolean(x)
+      JS_CONSTRUCTOR_ALIASES[name]?.let { cmdName ->
+        commands.get(cmdName)?.let { cmd ->
+          return TShellValue.TFunction(
+            name = cmdName,
+            params = emptyList(),
+            body = TShellValue.FunctionBody.Native(cmd.fn)
+          )
+        }
+      }
       // JS namespace aliases — resolve e.g. JSON.parse → parseJson, Math.floor → floor
       jsNamespaceOf(name)?.let { return it }
       throw TShellError.unknownCommand(name, env.allBindings().keys + commands.names())
@@ -1509,6 +1556,7 @@ class Interpreter(
     private fun jsMethodAlias(type: String, method: String): String? = when (type) {
       "array" -> when (method) {
         "includes" -> "contains"
+        // forEach, concat, indexOf, flatMap, some, every, slice are now real commands
         else -> null
       }
       "string" -> when (method) {
@@ -1519,7 +1567,6 @@ class Interpreter(
         "matchAll" -> "match"
         "search" -> "test"
         "slice" -> "substring"
-        "charAt" -> null // handled by str[index]
         else -> null
       }
       else -> null
@@ -1531,16 +1578,11 @@ class Interpreter(
     private fun jsMethodHint(type: String, method: String): TShellError? {
       val hint = when (type) {
         "array" -> when (method) {
-          "forEach" -> "use map(fn) or for (let x of arr) { ... }"
+          // forEach, concat, indexOf, flatMap, some, every, slice are now real commands — no hint needed
           "push" -> "[...arr, newItem] (arrays are immutable)"
           "pop", "shift", "unshift", "splice" -> "arrays are immutable; use spread [...arr] to build new arrays"
-          "concat" -> "[...arr1, ...arr2]"
-          "every" -> "arr |> filter(fn) |> len() == arr |> len()"
-          "some" -> "arr |> find(fn) != null"
-          "indexOf" -> "arr |> find(x => x == value)"
           "entries" -> "zip(range(0, len(arr)), arr)"
           "at" -> "arr[index] (negative indices not supported)"
-          "flatMap" -> "arr |> map(fn) |> flat()"
           else -> null
         }
         "string" -> when (method) {
@@ -1678,4 +1720,14 @@ private val JS_NAMESPACE_ALIASES: Map<String, Map<String, String>> = mapOf(
   "console" to mapOf(
     "log" to "print",
   ),
+  "Array" to mapOf(
+    "isArray" to "isArray",
+    "from" to "toArray",
+  ),
+)
+
+/** JS constructor-style calls → tshell command names */
+private val JS_CONSTRUCTOR_ALIASES: Map<String, String> = mapOf(
+  "String" to "str",
+  "Number" to "num",
 )

@@ -155,19 +155,20 @@ class TShellErrorQualityTest {
     assertTrue(msg.contains("objects and functions"), msg)
   }
 
-  @Test fun `throw suggests fail`() {
-    val msg = errorMessage("""throw "error"""")
-    assertTrue(msg.contains("fail"), msg)
+  @Test fun `throw works`() {
+    val sh = shell()
+    val msg = errorMessage("""throw "something broke"""")
+    assertTrue(msg.contains("something broke"), msg)
   }
 
-  @Test fun `String constructor suggests str`() {
-    val msg = errorMessage("String(42)")
-    assertTrue(msg.contains("str()"), msg)
+  @Test fun `String constructor resolves to str`() {
+    val sh = shell()
+    assertEquals(TShellValue.TString("42"), sh.eval("String(42)"))
   }
 
-  @Test fun `Number constructor suggests num`() {
-    val msg = errorMessage("""Number("42")""")
-    assertTrue(msg.contains("num()"), msg)
+  @Test fun `Number constructor resolves to num`() {
+    val sh = shell()
+    assertEquals(TShellValue.TNumber(42.0), sh.eval("""Number("42")"""))
   }
 
   // --- Method syntax now auto-resolves to commands ---
@@ -257,9 +258,27 @@ class TShellErrorQualityTest {
     assertTrue(msg.contains("import"), msg)
   }
 
-  @Test fun `try-catch explains no support`() {
-    val msg = errorMessage("try {} catch(e) {}")
-    assertTrue(msg.contains("try/catch"), msg)
+  @Test fun `try-catch works`() {
+    val sh = shell()
+    assertEquals(TShellValue.TString("caught: boom"), sh.eval("""
+      try { throw "boom" } catch(e) { "caught: " + e }
+    """))
+  }
+
+  @Test fun `try-catch with fail`() {
+    val sh = shell()
+    assertEquals(TShellValue.TString("ok"), sh.eval("""
+      try { fail("nope") } catch(e) { "ok" }
+    """))
+  }
+
+  @Test fun `try-finally runs finally`() {
+    val sh = shell()
+    assertEquals(TShellValue.TNumber(1.0), sh.eval("""
+      let x = 0
+      try { x = 1 } finally { x = x }
+      x
+    """))
   }
 
   @Test fun `delete explains immutability`() {

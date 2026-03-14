@@ -68,6 +68,26 @@ public interface TShellParserListener extends ParseTreeListener {
 	 */
 	void exitFnDecl(TShellParser.FnDeclContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link TShellParser#tryCatchStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterTryCatchStatement(TShellParser.TryCatchStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TShellParser#tryCatchStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitTryCatchStatement(TShellParser.TryCatchStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link TShellParser#throwStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterThrowStatement(TShellParser.ThrowStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TShellParser#throwStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitThrowStatement(TShellParser.ThrowStatementContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link TShellParser#returnStatement}.
 	 * @param ctx the parse tree
 	 */
