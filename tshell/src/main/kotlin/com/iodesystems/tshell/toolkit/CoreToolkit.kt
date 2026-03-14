@@ -116,9 +116,9 @@ IMPORTANT — ALGORITHM COMPLEXITY:
     }
 
     shell.register("sort", "input: array, keyOrComparator?: string | (a, b) => number",
-      "sorts; string key for objects, or comparator fn returning negative/zero/positive",
+      "sorts; string key for objects, comparator fn, or \"desc\"/\"asc\" for direction",
       listOf("""[3, 1, 2] |> sort()""", """sort([3, 1, 2])""", """users |> sort("name")""",
-        """[3, 1, 2] |> sort((a, b) => b - a)""")
+        """[3, 1, 2] |> sort((a, b) => b - a)""", """[3, 1, 2] |> sort("desc")""")
     ) { args ->
       val arr = requireArray("sort", args[0])
       val second = args.getOrNull(1)
@@ -135,10 +135,14 @@ IMPORTANT — ALGORITHM COMPLEXITY:
         }
         else -> {
           val key = (second as? TString)?.value
+          val desc = key != null && key.lowercase().let { it == "desc" || it == "descending" }
+          val asc = key != null && key.lowercase().let { it == "asc" || it == "ascending" }
+          val sortKey = if (desc || asc) null else key
           TArray(arr.elements.sortedWith(Comparator { a, b ->
-            val va = if (key != null && a is TObject) a.fields[key] ?: TNull else a
-            val vb = if (key != null && b is TObject) b.fields[key] ?: TNull else b
-            compareShellValues(va, vb)
+            val va = if (sortKey != null && a is TObject) a.fields[sortKey] ?: TNull else a
+            val vb = if (sortKey != null && b is TObject) b.fields[sortKey] ?: TNull else b
+            val cmp = compareShellValues(va, vb)
+            if (desc) -cmp else cmp
           }))
         }
       }

@@ -1,7 +1,7 @@
 # linked_list
 
 **Status:** PASS
-**Duration:** 10225ms
+**Duration:** 9396ms
 **Tool calls:** 1
 
 ## Prompt
@@ -11,15 +11,7 @@
 ## Final Answer
 
 ```
-I've implemented a singly linked list in tshell using nested objects with `{value, next}` structure. The list contains `[10, 20, 30]`, and I've written a `listToArray` function that traverses the linked list and converts it to an array.
-
-The function works by:
-1. Starting with an empty result array
-2. Iterating through each node while it's not null
-3. Pushing each node's value to the array
-4. Moving to the next node
-
-The final result is `[10, 20, 30]`.
+[10, 20, 30]
 ```
 
 ## Attempts
@@ -27,18 +19,29 @@ The final result is `[10, 20, 30]`.
 ### Attempt 1 (OK)
 
 ```javascript
-export let linkedList = { value: 10, next: { value: 20, next: { value: 30, next: null } } };
+export function toList(arr) {
+  if (arr.length === 0) return null;
+  let head = { value: arr[0], next: null };
+  let current = head;
+  for (let i = 1; i < arr.length; i++) {
+    current.next = { value: arr[i], next: null };
+    current = current.next;
+  }
+  return head;
+}
 
-function listToArray(node) {
+export function listToArray(list) {
   let result = [];
-  while (node != null) {
-    result.push(node.value);
-    node = node.next;
+  let current = list;
+  while (current !== null) {
+    result.push(current.value);
+    current = current.next;
   }
   return result;
 }
 
-listToArray(linkedList);
+let list = toList([10, 20, 30]);
+listToArray(list);
 ```
 
 **Result:**

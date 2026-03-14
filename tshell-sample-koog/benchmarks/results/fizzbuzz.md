@@ -1,7 +1,7 @@
 # fizzbuzz
 
 **Status:** PASS
-**Duration:** 8387ms
+**Duration:** 7184ms
 **Tool calls:** 1
 
 ## Prompt
@@ -11,27 +11,7 @@
 ## Final Answer
 
 ```
-Here's the FizzBuzz result for 1-15:
-
-```javascript
-[
-  "1",
-  "2",
-  "Fizz",
-  "4",
-  "Buzz",
-  "Fizz",
-  "7",
-  "8",
-  "Fizz",
-  "Buzz",
-  "11",
-  "Fizz",
-  "13",
-  "14",
-  "FizzBuzz"
-]
-```
+["1", "2", "Fizz", "4", "Buzz", "Fizz", "7", "8", "Fizz", "Buzz", "11", "Fizz", "13", "14", "FizzBuzz"]
 ```
 
 ## Attempts
@@ -39,7 +19,12 @@ Here's the FizzBuzz result for 1-15:
 ### Attempt 1 (OK)
 
 ```javascript
-range(1, 16) |> map(n => (n % 15 === 0) ? "FizzBuzz" : (n % 3 === 0) ? "Fizz" : (n % 5 === 0) ? "Buzz" : str(n))
+range(1, 16) |> map(n => {
+  if (n % 15 === 0) return "FizzBuzz";
+  if (n % 3 === 0) return "Fizz";
+  if (n % 5 === 0) return "Buzz";
+  return str(n);
+})
 ```
 
 **Result:**

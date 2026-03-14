@@ -146,6 +146,8 @@ them via `help()`. Common commands:
         Example("""[1, 2, 3] |> filter(x => x > 1) |> reduce((sum, x) => sum + x, 0)""", "5"),
         Example("""[3, 1, 2] |> sort((a, b) => b - a)""", "[3, 2, 1]",
           "Comparator sort"),
+        Example("""[3, 1, 2] |> sort("desc")""", "[3, 2, 1]",
+          "Descending sort"),
         Example("""{a: 1, b: 2} |> entries()""", """[["a", 1], ["b", 2]]"""),
         Example("""range(1, 5)""", "[1, 2, 3, 4]"),
         Example("""typeof(help())""", "string", "help() returns all available commands"),

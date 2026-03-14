@@ -1,8 +1,8 @@
 # longest_common_subsequence
 
 **Status:** PASS
-**Duration:** 12390ms
-**Tool calls:** 1
+**Duration:** 21252ms
+**Tool calls:** 2
 
 ## Prompt
 
@@ -11,9 +11,7 @@
 ## Final Answer
 
 ```
-The length of the longest common subsequence of 'ABCBDAB' and 'BDCAB' is **4**.
-
-One such longest common subsequence is "BCAB" (or "BDAB", "BCAB", etc.).
+4
 ```
 
 ## Attempts
@@ -21,33 +19,66 @@ One such longest common subsequence is "BCAB" (or "BDAB", "BCAB", etc.).
 ### Attempt 1 (OK)
 
 ```javascript
+function lcsLength(s1, s2) {
+  let m = s1.length;
+  let n = s2.length;
+  let dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+  
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (s1[i-1] === s2[j-1]) {
+        dp[i][j] = dp[i-1][j-1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+      }
+    }
+  }
+  return dp[m][n];
+}
+
 let s1 = 'ABCBDAB';
 let s2 = 'BDCAB';
-let m = s1.length;
-let n = s2.length;
+lcsLength(s1, s2);
+```
 
-// Initialize DP table
-let dp = [];
-for (let i = 0; i <= m; i++) {
+**Result:**
+```
+"ERROR: Type mismatch in call\n\n  Expected: function\n  Got:      object ({isArray: function isArray(), from: function toArray()})\n\n  at line 4:16"
+```
+
+### Attempt 2 (OK)
+
+```javascript
+function lcsLength(s1, s2) {
+  let m = s1.length;
+  let n = s2.length;
+  let dp = [];
+  for (let i = 0; i <= m; i++) {
     dp[i] = [];
     for (let j = 0; j <= n; j++) {
-        dp[i][j] = 0;
+      dp[i][j] = 0;
     }
-}
-
-// Fill DP table
-for (let i = 1; i <= m; i++) {
+  }
+  
+  for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
-        if (s1[i-1] === s2[j-1]) {
-            dp[i][j] = dp[i-1][j-1] + 1;
+      if (s1[i-1] === s2[j-1]) {
+        dp[i][j] = dp[i-1][j-1] + 1;
+      } else {
+        if (dp[i-1][j] > dp[i][j-1]) {
+          dp[i][j] = dp[i-1][j];
         } else {
-            dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+          dp[i][j] = dp[i][j-1];
         }
+      }
     }
+  }
+  return dp[m][n];
 }
 
-// The answer is in dp[m][n]
-dp[m][n];
+let s1 = 'ABCBDAB';
+let s2 = 'BDCAB';
+lcsLength(s1, s2);
 ```
 
 **Result:**

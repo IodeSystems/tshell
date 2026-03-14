@@ -164,11 +164,14 @@ class LocalLlmChat : SuspendingCliktCommand(
 
     // Benchmark mode
     if (benchmark) {
+      val benchmarkPrompt = systemPrompt + "\n\n" +
+        "IMPORTANT: When answering benchmark questions, return ONLY the raw result from the tool — " +
+        "no explanation, no markdown, no wrapping text. Just the value."
       try {
         runBenchmarks(
           executor = executor,
           model = model,
-          systemPrompt = systemPrompt,
+          systemPrompt = benchmarkPrompt,
           shellFactory = {
             val s = TShell()
             CoreToolkit.install(s)

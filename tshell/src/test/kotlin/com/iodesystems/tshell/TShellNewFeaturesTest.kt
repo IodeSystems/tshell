@@ -1092,4 +1092,24 @@ class TShellNewFeaturesTest {
     assertEquals(5, result.elements.size)
     assertEquals(TArray(listOf(TNumber(1.0), TNumber(2.0), TNumber(3.0), TNumber(4.0), TNumber(5.0))), result)
   }
+
+  // --- Sort direction ---
+
+  @Test fun `sort desc reverses numeric array`() {
+    val sh = shell()
+    val result = sh.eval("""[3, 1, 2] |> sort("desc")""") as TArray
+    assertEquals(TArray(listOf(TNumber(3.0), TNumber(2.0), TNumber(1.0))), result)
+  }
+
+  @Test fun `sort asc is same as default sort`() {
+    val sh = shell()
+    val result = sh.eval("""[3, 1, 2] |> sort("asc")""") as TArray
+    assertEquals(TArray(listOf(TNumber(1.0), TNumber(2.0), TNumber(3.0))), result)
+  }
+
+  @Test fun `sort descending on strings`() {
+    val sh = shell()
+    val result = sh.eval("""["banana", "apple", "cherry"] |> sort("desc")""") as TArray
+    assertEquals(TArray(listOf(TString("cherry"), TString("banana"), TString("apple"))), result)
+  }
 }

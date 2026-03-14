@@ -146,6 +146,13 @@ Comparator sort:
 // → [3, 2, 1]
 ```
 
+Descending sort:
+
+```javascript
+[3, 1, 2] |> sort("desc")
+// → [3, 2, 1]
+```
+
 ```javascript
 {a: 1, b: 2} |> entries()
 // → [["a", 1], ["b", 2]]

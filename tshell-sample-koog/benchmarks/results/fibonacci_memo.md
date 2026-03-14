@@ -1,8 +1,8 @@
 # fibonacci_memo
 
 **Status:** PASS
-**Duration:** 13533ms
-**Tool calls:** 2
+**Duration:** 12800ms
+**Tool calls:** 3
 
 ## Prompt
 
@@ -11,9 +11,7 @@
 ## Final Answer
 
 ```
-The result is **6765**.
-
-The implementation uses an object `cache` to memoize Fibonacci results. Since tshell object keys must be strings, I converted the number `n` to a string using `str(n)` when accessing and storing values in the cache. The function recursively computes `fib(20)` with memoization, returning 6765.
+6765
 ```
 
 ## Attempts
@@ -22,12 +20,11 @@ The implementation uses an object `cache` to memoize Fibonacci results. Since ts
 
 ```javascript
 export let cache = {}
-export function fib(n) {
+function fib(n) {
   if (n <= 1) return n
-  if (cache[n] != null) return cache[n]
-  let result = fib(n - 1) + fib(n - 2)
-  cache[n] = result
-  return result
+  if (cache[n] !== undefined) return cache[n]
+  cache[n] = fib(n-1) + fib(n-2)
+  return cache[n]
 }
 fib(20)
 ```
@@ -41,12 +38,29 @@ fib(20)
 
 ```javascript
 export let cache = {}
-export function fib(n) {
+function fib(n) {
+  if (n <= 1) return n
+  if (cache[str(n)] !== undefined) return cache[str(n)]
+  cache[str(n)] = fib(n-1) + fib(n-2)
+  return cache[str(n)]
+}
+fib(20)
+```
+
+**Result:**
+```
+"ERROR: tshell does not have 'undefined' — use null instead\n\n  at line 8:3"
+```
+
+### Attempt 3 (OK)
+
+```javascript
+export let cache = {}
+function fib(n) {
   if (n <= 1) return n
   if (cache[str(n)] != null) return cache[str(n)]
-  let result = fib(n - 1) + fib(n - 2)
-  cache[str(n)] = result
-  return result
+  cache[str(n)] = fib(n-1) + fib(n-2)
+  return cache[str(n)]
 }
 fib(20)
 ```

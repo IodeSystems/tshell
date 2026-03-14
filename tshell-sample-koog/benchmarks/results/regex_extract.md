@@ -1,8 +1,8 @@
 # regex_extract
 
 **Status:** PASS
-**Duration:** 9915ms
-**Tool calls:** 2
+**Duration:** 17091ms
+**Tool calls:** 4
 
 ## Prompt
 
@@ -11,9 +11,7 @@
 ## Final Answer
 
 ```
-The array of email matches is:
-
-`["alice@example.com", "bob@test.org"]`
+["alice@example.com", "bob@test.org"]
 ```
 
 ## Attempts
@@ -21,18 +19,42 @@ The array of email matches is:
 ### Attempt 1 (OK)
 
 ```javascript
-"contact alice@example.com or bob@test.org for info" |> match(/[\w.+-]+@[\w.-]+\.[\w]+/g)
+"contact alice@example.com or bob@test.org for info" |> match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
 ```
 
 **Result:**
 ```
-"[{match: \"alice@example.com\", groups: [], index: 8}, {match: \"bob@test.org\", groups: [], index: 29}]"
+"[{match: \"alice@example.com\", groups: [\"alice@example.com\"], index: 8}]"
 ```
 
 ### Attempt 2 (OK)
 
 ```javascript
-"contact alice@example.com or bob@test.org for info" |> match(/[\w.+-]+@[\w.-]+\.[\w]+/g) |> map(m => m.match)
+let matches = "contact alice@example.com or bob@test.org for info" |> match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+matches |> map(m => m.match)
+```
+
+**Result:**
+```
+"[\"alice@example.com\"]"
+```
+
+### Attempt 3 (OK)
+
+```javascript
+"contact alice@example.com or bob@test.org for info" |> match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g)
+```
+
+**Result:**
+```
+"[{match: \"alice@example.com\", groups: [\"alice@example.com\"], index: 8}, {match: \"bob@test.org\", groups: [\"bob@test.org\"], index: 29}]"
+```
+
+### Attempt 4 (OK)
+
+```javascript
+let matches = "contact alice@example.com or bob@test.org for info" |> match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g);
+matches |> map(m => m.match)
 ```
 
 **Result:**

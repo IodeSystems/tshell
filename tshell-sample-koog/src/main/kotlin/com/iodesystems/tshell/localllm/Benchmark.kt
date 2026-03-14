@@ -204,8 +204,8 @@ val BENCHMARK_SUITE = listOf(
   ),
   BenchmarkTeaser(
     name = "event_emitter",
-    prompt = "In tshell, implement a simple event emitter with on(event, handler) and emit(event, data) methods. Register two handlers for 'data' event, emit it with value 42, collect all handler results into an array. Return the array.",
-    validator = { it.contains("42") },
+    prompt = "In tshell, implement a simple event emitter with on(event, handler) and emit(event, data) methods. Register two handlers for 'data' event: one that returns data as-is, one that returns data * 2. Emit with value 42, collect all handler results into an array. Return the array.",
+    validator = { it.contains("42") && it.contains("84") },
     timeoutMs = 60_000
   ),
   BenchmarkTeaser(
@@ -348,7 +348,7 @@ suspend fun runBenchmarks(
   }
 
   // Write index
-  val indexFile = outputDir.resolve("index.md")
+  val indexFile = outputDir.resolve("README.md")
   indexFile.writeText(renderIndexMarkdown(results, model.id))
 
   println()

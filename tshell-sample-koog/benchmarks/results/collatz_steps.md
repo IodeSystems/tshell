@@ -1,7 +1,7 @@
 # collatz_steps
 
 **Status:** PASS
-**Duration:** 6102ms
+**Duration:** 5781ms
 **Tool calls:** 1
 
 ## Prompt
@@ -11,7 +11,7 @@
 ## Final Answer
 
 ```
-The Collatz sequence starting from 27 takes **111 steps** to reach 1.
+111
 ```
 
 ## Attempts
@@ -19,17 +19,17 @@ The Collatz sequence starting from 27 takes **111 steps** to reach 1.
 ### Attempt 1 (OK)
 
 ```javascript
-let count = 0;
 let n = 27;
+let steps = 0;
 while (n !== 1) {
   if (n % 2 === 0) {
     n = n / 2;
   } else {
     n = 3 * n + 1;
   }
-  count += 1;
+  steps++;
 }
-count
+steps;
 ```
 
 **Result:**

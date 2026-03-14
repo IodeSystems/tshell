@@ -1,7 +1,7 @@
 # factorial
 
 **Status:** PASS
-**Duration:** 20039ms
+**Duration:** 20120ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,11 +19,7 @@
 ### Attempt 1 (OK)
 
 ```javascript
-function factorial(n) {
-  if (n <= 1) return 1;
-  return n * factorial(n - 1);
-}
-
+let factorial = n => n <= 1 ? 1 : n * factorial(n - 1);
 factorial(7)
 ```
 
