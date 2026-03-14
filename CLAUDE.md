@@ -9,8 +9,11 @@ tshell/                          # Core language module
   src/main/antlr4/               # ANTLR4 grammar (TShellLexer.g4, TShellParser.g4)
   src/main/java-generated/       # Generated parser (git-ignored, regenerated on build)
   src/main/kotlin/.../runtime/   # Interpreter, Environment, TShellValue, TShellError
-  src/main/kotlin/.../toolkit/   # CoreToolkit, FileToolkit, GraphToolkit, etc.
+  src/main/kotlin/.../toolkit/   # CoreToolkit, FileToolkit, etc.
   src/test/kotlin/               # Tests (TestNG)
+tshell-graph/                    # Graph database toolkit (nodes, edges, traversal, schema)
+tshell-mcp/                      # MCP server + client toolkit
+tshell-cli/                      # Standalone MCP server binary
 tshell-playwright/               # Browser automation toolkit
 tshell-sql/                      # SQL toolkit
 tshell-sample-koog/              # Sample LLM integration

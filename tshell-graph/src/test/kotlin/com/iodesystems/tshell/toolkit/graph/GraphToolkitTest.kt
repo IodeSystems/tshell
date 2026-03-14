@@ -4,9 +4,21 @@ import com.iodesystems.tshell.TShell
 import com.iodesystems.tshell.runtime.TShellError
 import com.iodesystems.tshell.runtime.TShellValue.*
 import com.iodesystems.tshell.toolkit.CoreToolkit
-import com.iodesystems.tshell.*
+import org.testng.Assert
 import org.testng.annotations.Test
-import com.iodesystems.tshell.assertThrows
+
+// Local test helpers (JUnit arg order: expected, actual)
+private fun assertEquals(expected: Any?, actual: Any?) = Assert.assertEquals(actual, expected)
+private fun assertEquals(expected: Int, actual: Int) = Assert.assertEquals(actual, expected)
+private fun assertNotNull(obj: Any?) = Assert.assertNotNull(obj)
+private fun assertTrue(condition: Boolean) = Assert.assertTrue(condition)
+private inline fun <reified T : Throwable> assertThrows(block: () -> Unit): T {
+  try { block() } catch (e: Throwable) {
+    if (e is T) return e
+    throw AssertionError("Expected ${T::class.java.name} but got ${e::class.java.name}: ${e.message}", e)
+  }
+  throw AssertionError("Expected ${T::class.java.name} to be thrown")
+}
 
 class GraphToolkitTest {
 

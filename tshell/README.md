@@ -312,7 +312,8 @@ All published to Maven Central under `com.iodesystems.tshell`.
 
 | Module | Artifact | Provides |
 | --- | --- | --- |
-| **Core** | `tshell` | Language runtime, `CoreToolkit` (pipes, arrays, strings, math, JSON, composition), `MathToolkit`, `WebToolkit`, `FileToolkit`, `GraphToolkit`. See [Graph docs](README-graph.md) |
+| **Core** | `tshell` | Language runtime, `CoreToolkit` (pipes, arrays, strings, math, JSON, composition), `MathToolkit`, `WebToolkit`, `FileToolkit` |
+| **Graph** | `tshell-graph` | Graph database toolkit: nodes, edges, traversal, schema validation. See [`tshell-graph/README.md`](../tshell-graph/README.md) |
 | **MCP** | `tshell-mcp` | MCP server (expose tshell as a tool) + MCP client toolkit (connect to external MCP servers). See [`tshell-mcp/README.md`](../tshell-mcp/README.md) |
 | **CLI** | `tshell-cli` | Standalone MCP server with `--connect` for polyglot tool composition |
 | **Browser** | `tshell-playwright` | Lean Playwright automation (12 commands, ~800 chars context vs ~8KB for `@playwright/mcp`). See [`tshell-playwright/README.md`](../tshell-playwright/README.md) |

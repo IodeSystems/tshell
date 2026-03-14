@@ -3,8 +3,6 @@ package com.iodesystems.tshell
 import com.iodesystems.tshell.runtime.TShellError
 import com.iodesystems.tshell.runtime.TShellValue.*
 import com.iodesystems.tshell.toolkit.CoreToolkit
-import com.iodesystems.tshell.toolkit.graph.GraphToolkit
-import com.iodesystems.tshell.toolkit.graph.InMemoryGraphStore
 import org.testng.annotations.Test
 import java.nio.file.Path
 import kotlin.io.path.*
@@ -43,13 +41,6 @@ class TShellLiterateTest {
   private fun shell(): TShell {
     val sh = TShell()
     CoreToolkit.install(sh)
-    return sh
-  }
-
-  private fun graphShell(): TShell {
-    val sh = TShell()
-    CoreToolkit.install(sh)
-    GraphToolkit(InMemoryGraphStore()).install(sh)
     return sh
   }
 
@@ -189,7 +180,7 @@ accepted but ignored. Use `help()` to discover what's available.
 
     for (section in sections) {
       for (example in section.examples) {
-        val sh = if (section.title.contains("Graph")) graphShell() else shell()
+        val sh = shell()
         try {
           val result = sh.eval(example.code)
           val actual = result.toDisplayString()
@@ -363,7 +354,8 @@ accepted but ignored. Use `help()` to discover what's available.
       appendLine()
       appendLine("| Module | Artifact | Provides |")
       appendLine("| --- | --- | --- |")
-      appendLine("| **Core** | `tshell` | Language runtime, `CoreToolkit` (pipes, arrays, strings, math, JSON, composition), `MathToolkit`, `WebToolkit`, `FileToolkit`, `GraphToolkit`. See [Graph docs](README-graph.md) |")
+      appendLine("| **Core** | `tshell` | Language runtime, `CoreToolkit` (pipes, arrays, strings, math, JSON, composition), `MathToolkit`, `WebToolkit`, `FileToolkit` |")
+      appendLine("| **Graph** | `tshell-graph` | Graph database toolkit: nodes, edges, traversal, schema validation. See [`tshell-graph/README.md`](../tshell-graph/README.md) |")
       appendLine("| **MCP** | `tshell-mcp` | MCP server (expose tshell as a tool) + MCP client toolkit (connect to external MCP servers). See [`tshell-mcp/README.md`](../tshell-mcp/README.md) |")
       appendLine("| **CLI** | `tshell-cli` | Standalone MCP server with `--connect` for polyglot tool composition |")
       appendLine("| **Browser** | `tshell-playwright` | Lean Playwright automation (12 commands, ~800 chars context vs ~8KB for `@playwright/mcp`). See [`tshell-playwright/README.md`](../tshell-playwright/README.md) |")

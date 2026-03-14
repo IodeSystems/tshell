@@ -1,8 +1,15 @@
 package com.iodesystems.tshell.toolkit.graph
 
 import com.iodesystems.tshell.runtime.TShellValue.*
-import com.iodesystems.tshell.*
+import org.testng.Assert
 import org.testng.annotations.Test
+
+// Local test helpers (JUnit arg order: expected, actual)
+private fun assertEquals(expected: Any?, actual: Any?) = Assert.assertEquals(actual, expected)
+private fun assertEquals(expected: Int, actual: Int) = Assert.assertEquals(actual, expected)
+private fun assertNotNull(obj: Any?) = Assert.assertNotNull(obj)
+private fun assertNull(obj: Any?) = Assert.assertNull(obj)
+private fun assertNotEquals(a: Any?, b: Any?) = Assert.assertNotEquals(a, b)
 
 class InMemoryGraphStoreTest {
 
