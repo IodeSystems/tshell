@@ -198,7 +198,9 @@ class Interpreter(
       is IncrDecrStatementContext -> visitIncrDecrStatement(ctx)
       is ExpressionStatementContext -> visitExpressionStatement(ctx)
       is IfStatementContext -> visitIfStatement(ctx)
+      is SwitchStatementContext -> visitSwitchStatement(ctx)
       is WhileStatementContext -> visitWhileStatement(ctx)
+      is DoWhileStatementContext -> visitDoWhileStatement(ctx)
       is ForOfStatementContext -> visitForOfStatement(ctx)
       is ForStatementContext -> visitForStatement(ctx)
       is BlockContext -> visitBlock(ctx)
@@ -272,7 +274,7 @@ class Interpreter(
       }
       // Record the names that were defined
       when {
-        ctx.letDecl() != null -> collectDestructureNames(ctx.letDecl().destructure(), exportedNames)
+        ctx.letDecl() != null -> ctx.letDecl().letBinding().forEach { collectDestructureNames(it.destructure(), exportedNames) }
         ctx.fnDecl() != null -> exportedNames.add(ctx.fnDecl().IDENTIFIER().text)
         ctx.assignStatement() != null -> exportedNames.add(ctx.assignStatement().assignTarget().IDENTIFIER().text)
       }
@@ -301,8 +303,10 @@ class Interpreter(
     }
 
     suspend fun visitLetDecl(ctx: LetDeclContext): TShellValue {
-      val value = eval(ctx.expression())
-      bindDestructure(ctx.destructure(), value)
+      for (binding in ctx.letBinding()) {
+        val value = if (binding.expression() != null) eval(binding.expression()) else TShellValue.TNull
+        bindDestructure(binding.destructure(), value)
+      }
       return TShellValue.TNull
     }
 
@@ -429,6 +433,49 @@ class Interpreter(
       } else {
         TShellValue.TNull
       }
+    }
+
+    suspend fun visitSwitchStatement(ctx: SwitchStatementContext): TShellValue {
+      val subject = eval(ctx.expression())
+      var result: TShellValue = TShellValue.TNull
+      var falling = false // true once a case matches (enables fall-through)
+      try {
+        for (case in ctx.switchCase()) {
+          if (!falling) {
+            val caseVal = eval(case.expression())
+            if (!valueEquals(subject, caseVal)) continue
+            falling = true
+          }
+          for (stmt in case.statement()) {
+            result = eval(stmt)
+          }
+        }
+        // Default: runs if no case matched, or if we fell through without break
+        val default = ctx.switchDefault()
+        if (default != null) {
+          for (stmt in default.statement()) {
+            result = eval(stmt)
+          }
+        }
+      } catch (_: BreakSignal) {
+        // break exits the switch
+      }
+      return result
+    }
+
+    suspend fun visitDoWhileStatement(ctx: DoWhileStatementContext): TShellValue {
+      var result: TShellValue = TShellValue.TNull
+      do {
+        step(ctx)
+        try {
+          result = visitBlock(ctx.block())
+        } catch (_: BreakSignal) {
+          break
+        } catch (_: ContinueSignal) {
+          // fall through to condition check
+        }
+      } while (eval(ctx.expression()).isTruthy())
+      return result
     }
 
     suspend fun visitWhileStatement(ctx: WhileStatementContext): TShellValue {
@@ -934,7 +981,28 @@ class Interpreter(
           body = TShellValue.FunctionBody.Native(cmd.fn)
         )
       }
+      // JS namespace aliases — resolve e.g. JSON.parse → parseJson, Math.floor → floor
+      jsNamespaceOf(name)?.let { return it }
       throw TShellError.unknownCommand(name, env.allBindings().keys + commands.names())
+    }
+
+    /**
+     * Returns a synthetic TObject for JS global namespaces (JSON, Math, Object, console, etc.)
+     * whose fields resolve to tshell commands. Returns null if the name isn't a known namespace.
+     */
+    private fun jsNamespaceOf(name: String): TShellValue? {
+      val mapping = JS_NAMESPACE_ALIASES[name] ?: return null
+      val fields = mutableMapOf<String, TShellValue>()
+      for ((jsMethod, tshellCmd) in mapping) {
+        val cmd = commands.get(tshellCmd) ?: continue
+        fields[jsMethod] = TShellValue.TFunction(
+          name = tshellCmd,
+          params = emptyList(),
+          body = TShellValue.FunctionBody.Native(cmd.fn)
+        )
+      }
+      if (fields.isEmpty()) return null
+      return TShellValue.TObject(fields)
     }
 
     @Suppress("unused")
@@ -1583,5 +1651,31 @@ class Interpreter(
       }
       return sb.toString()
     }
+
   }
 }
+
+/** JS global namespace → { jsMethod → tshellCommand } */
+private val JS_NAMESPACE_ALIASES: Map<String, Map<String, String>> = mapOf(
+  "JSON" to mapOf(
+    "parse" to "parseJson",
+    "stringify" to "toJson",
+  ),
+  "Math" to mapOf(
+    "floor" to "floor",
+    "ceil" to "ceil",
+    "round" to "round",
+    "abs" to "abs",
+    "min" to "min",
+    "max" to "max",
+    "pow" to "pow",
+  ),
+  "Object" to mapOf(
+    "keys" to "keys",
+    "values" to "values",
+    "entries" to "entries",
+  ),
+  "console" to mapOf(
+    "log" to "print",
+  ),
+)

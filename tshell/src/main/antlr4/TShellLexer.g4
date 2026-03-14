@@ -3,7 +3,7 @@ lexer grammar TShellLexer;
 options { superClass=TShellLexerBase; }
 
 // Keywords
-LET     : 'let' | 'const';
+LET     : 'let' | 'const' | 'var';
 FUNCTION: 'function';
 IF      : 'if';
 ELSE    : 'else';
@@ -15,6 +15,10 @@ RETURN  : 'return';
 BREAK   : 'break';
 CONTINUE: 'continue';
 EXPORT  : 'export';
+SWITCH  : 'switch';
+CASE    : 'case';
+DEFAULT : 'default';
+DO      : 'do';
 TRUE    : 'true';
 FALSE   : 'false';
 NULL    : 'null';

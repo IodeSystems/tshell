@@ -65,6 +65,18 @@ public class TShellParserBaseListener implements TShellParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterLetBinding(TShellParser.LetBindingContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitLetBinding(TShellParser.LetBindingContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterFnDecl(TShellParser.FnDeclContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -185,6 +197,42 @@ public class TShellParserBaseListener implements TShellParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSwitchStatement(TShellParser.SwitchStatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSwitchStatement(TShellParser.SwitchStatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSwitchCase(TShellParser.SwitchCaseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSwitchCase(TShellParser.SwitchCaseContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterSwitchDefault(TShellParser.SwitchDefaultContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSwitchDefault(TShellParser.SwitchDefaultContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterWhileStatement(TShellParser.WhileStatementContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -192,6 +240,18 @@ public class TShellParserBaseListener implements TShellParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitWhileStatement(TShellParser.WhileStatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterDoWhileStatement(TShellParser.DoWhileStatementContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitDoWhileStatement(TShellParser.DoWhileStatementContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

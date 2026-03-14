@@ -86,12 +86,26 @@ safe
   }
 
   @Test
-  fun `toPrompt is compact`() {
+  fun `toPrompt full mode is compact`() {
     val sh = stdlib()
     val prompt = sh.toPrompt()
     assertTrue(prompt.contains("help"))
     assertTrue(prompt.contains("map"))
-    assertTrue(prompt.length < 5500, "Prompt is ${prompt.length} chars, should be < 5500")
+    assertTrue(prompt.length < 5600, "Full prompt is ${prompt.length} chars, should be < 5600")
+  }
+
+  @Test
+  fun `toPrompt compact mode is significantly smaller`() {
+    val sh = stdlib()
+    val full = sh.toPrompt()
+    val compact = sh.toPrompt(compact = true)
+    assertTrue(compact.contains("help"))
+    assertTrue(compact.contains("map"))
+    assertTrue(compact.contains("help(\"name\")"), "Compact prompt must point to help() for discovery")
+    assertTrue(compact.contains("help(\"core\")"), "Compact prompt must reference guides")
+    assertTrue(compact.length < full.length * 0.75,
+      "Compact (${compact.length}) should be at least 25% smaller than full (${full.length})")
+    assertTrue(compact.length < 3500, "Compact prompt is ${compact.length} chars, should be < 3500")
   }
 
   /**

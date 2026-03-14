@@ -1,6 +1,7 @@
 package com.iodesystems.tshell
 
 import com.iodesystems.tshell.runtime.TShellError
+import com.iodesystems.tshell.runtime.TShellValue
 import com.iodesystems.tshell.runtime.TShellValue.*
 import com.iodesystems.tshell.toolkit.CoreToolkit
 import org.testng.annotations.Test
@@ -114,29 +115,34 @@ class TShellErrorQualityTest {
 
   // --- JS compatibility guidance ---
 
-  @Test fun `var suggests let`() {
-    val msg = errorMessage("var x = 5")
-    assertTrue(msg.contains("let"), msg)
+  @Test fun `var works as let alias`() {
+    val sh = shell()
+    assertEquals(TShellValue.TNumber(5.0), sh.eval("var x = 5; x"))
   }
 
-  @Test fun `console dot log suggests print`() {
-    val msg = errorMessage("""console.log("hi")""")
-    assertTrue(msg.contains("print"), msg)
+  @Test fun `console dot log resolves to print`() {
+    val sh = shell()
+    assertEquals(TShellValue.TString("hi"), sh.eval("""console.log("hi")"""))
   }
 
-  @Test fun `JSON dot parse suggests parseJson`() {
-    val msg = errorMessage("""JSON.parse("{}")""")
-    assertTrue(msg.contains("parseJson"), msg)
+  @Test fun `JSON dot parse resolves to parseJson`() {
+    val sh = shell()
+    assertEquals(TShellValue.TObject(mapOf("a" to TShellValue.TNumber(1.0))), sh.eval("""JSON.parse('{"a":1}')"""))
   }
 
-  @Test fun `Math dot floor suggests top-level`() {
-    val msg = errorMessage("Math.floor(3.5)")
-    assertTrue(msg.contains("floor(3.7)"), msg)
+  @Test fun `JSON dot stringify resolves to toJson`() {
+    val sh = shell()
+    assertEquals(TShellValue.TString("""{"a":1}"""), sh.eval("""JSON.stringify({a: 1})"""))
   }
 
-  @Test fun `Object dot keys suggests keys`() {
-    val msg = errorMessage("Object.keys({a: 1})")
-    assertTrue(msg.contains("keys()"), msg)
+  @Test fun `Math dot floor resolves to floor`() {
+    val sh = shell()
+    assertEquals(TShellValue.TNumber(3.0), sh.eval("Math.floor(3.5)"))
+  }
+
+  @Test fun `Object dot keys resolves to keys`() {
+    val sh = shell()
+    assertEquals(TShellValue.TArray(listOf(TShellValue.TString("a"))), sh.eval("Object.keys({a: 1})"))
   }
 
   @Test fun `new suggests no classes`() {
@@ -224,9 +230,16 @@ class TShellErrorQualityTest {
     assertTrue(msg.contains("immutable"), msg)
   }
 
-  @Test fun `switch suggests if-else`() {
-    val msg = errorMessage("let x = 1; switch(x) {}")
-    assertTrue(msg.contains("if/else"), msg)
+  @Test fun `switch works`() {
+    val sh = shell()
+    assertEquals(TShellValue.TString("one"), sh.eval("""
+      let x = 1
+      switch (x) {
+        case 1: "one"; break;
+        case 2: "two"; break;
+        default: "other"
+      }
+    """.trimIndent()))
   }
 
   @Test fun `async suggests all`() {

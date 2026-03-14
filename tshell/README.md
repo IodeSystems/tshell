@@ -49,6 +49,18 @@ let obj = {name: "alice", age: 30}; obj.age
 // → 30
 ```
 
+Multi-binding — uninitialized vars are null:
+
+```javascript
+let a, b = 1, c = "two"; a
+// → null
+```
+
+```javascript
+let a, b = 1, c = "two"; c
+// → two
+```
+
 ### Functions
 
 Named functions use `function`. Arrow functions work inline. Both capture their enclosing scope.

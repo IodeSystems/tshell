@@ -622,4 +622,38 @@ class TShellNewFeaturesTest {
       else "yes"
     """))
   }
+
+  // --- Multi-binding let ---
+
+  @Test fun `let multi-binding with initializers`() {
+    val sh = shell()
+    assertEquals(TNumber(3.0), sh.eval("let a = 1, b = 2; a + b"))
+  }
+
+  @Test fun `let multi-binding uninitialized defaults to null`() {
+    val sh = shell()
+    assertEquals(TNull, sh.eval("let a, b = 2; a"))
+  }
+
+  @Test fun `let multi-binding mixed initialized and uninitialized`() {
+    val sh = shell()
+    assertEquals(TNumber(2.0), sh.eval("let a, b, c = 2; c"))
+  }
+
+  @Test fun `let multi-binding different types`() {
+    val sh = shell()
+    assertEquals(TString("one"), sh.eval("""let a, b, c = 0, d = "one"; d"""))
+  }
+
+  @Test fun `let multi-binding all uninitialized`() {
+    val sh = shell()
+    assertEquals(TNull, sh.eval("let x, y, z; z"))
+  }
+
+  @Test fun `export let multi-binding`() {
+    val sh = shell()
+    sh.eval("export let a = 1, b = 2")
+    assertEquals(TNumber(1.0), sh.eval("a"))
+    assertEquals(TNumber(2.0), sh.eval("b"))
+  }
 }

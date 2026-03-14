@@ -35,6 +35,12 @@ public interface TShellParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitLetDecl(TShellParser.LetDeclContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link TShellParser#letBinding}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLetBinding(TShellParser.LetBindingContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link TShellParser#fnDecl}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -95,11 +101,35 @@ public interface TShellParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitIfStatement(TShellParser.IfStatementContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link TShellParser#switchStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSwitchStatement(TShellParser.SwitchStatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link TShellParser#switchCase}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSwitchCase(TShellParser.SwitchCaseContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link TShellParser#switchDefault}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSwitchDefault(TShellParser.SwitchDefaultContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link TShellParser#whileStatement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitWhileStatement(TShellParser.WhileStatementContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link TShellParser#doWhileStatement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDoWhileStatement(TShellParser.DoWhileStatementContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link TShellParser#forOfStatement}.
 	 * @param ctx the parse tree

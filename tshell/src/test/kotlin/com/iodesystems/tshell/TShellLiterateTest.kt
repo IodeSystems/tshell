@@ -74,6 +74,8 @@ variables are reassignable but there is no mutation of values themselves.
         Example("""let nothing = null; nothing""", "null"),
         Example("""let items = [1, 2, 3]; items""", "[1, 2, 3]"),
         Example("""let obj = {name: "alice", age: 30}; obj.age""", "30"),
+        Example("""let a, b = 1, c = "two"; a""", "null", "Multi-binding — uninitialized vars are null"),
+        Example("""let a, b = 1, c = "two"; c""", "two"),
       )),
 
       Section("Functions", """

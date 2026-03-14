@@ -28,14 +28,12 @@ class TShellError(message: String) : RuntimeException(message) {
 
     private fun jsGlobalHint(name: String): String? = when (name) {
       // JS keywords not in tshell
-      "var" -> "tshell does not support 'var' — use 'let' instead\n\n  Example: let x = 5"
       "class" -> "tshell does not support classes — use objects and functions\n\n  Example: let obj = {name: \"Alice\", greet: () => \"hi\"}"
       "new" -> "tshell does not support 'new' — there are no constructors or classes"
       "import", "require" -> "tshell does not support imports — all commands are built-in or registered via toolkits"
       "async", "await" -> "tshell does not support async/await — use all() for parallel execution\n\n  Example: all(() => fetchA(), () => fetchB())"
       "try", "catch", "finally" -> "tshell does not support try/catch — errors propagate immediately; use fail() to throw"
       "throw" -> "tshell does not support 'throw' — use fail(message) instead\n\n  Example: fail(\"something went wrong\")"
-      "switch" -> "tshell does not support 'switch' — use if/else chains or ternary\n\n  Example: x == 1 ? \"one\" : x == 2 ? \"two\" : \"other\""
       "delete" -> "tshell does not support 'delete' — objects are immutable; build a new object without the key\n\n  Example: obj |> entries() |> filter(e => e.key != \"unwanted\") |> reduce((o, e) => ({...o, [e.key]: e.value}), {})"
       "void" -> "tshell does not support 'void' — use null instead"
       "instanceof" -> "tshell does not support 'instanceof' — use typeof(value) to check types\n\n  Example: typeof(x) == \"array\""
@@ -44,7 +42,6 @@ class TShellError(message: String) : RuntimeException(message) {
       "super" -> "tshell does not support 'super' — there is no inheritance"
       "yield" -> "tshell does not support generators — use arrays and pipes for data transformation"
       "with" -> "tshell does not support 'with'"
-      "do" -> "tshell does not support 'do...while' — use while() instead"
       "enum" -> "tshell does not support enums — use objects as constants\n\n  Example: let Status = {OK: 0, ERR: 1}"
 
       // JS global objects → tshell equivalents

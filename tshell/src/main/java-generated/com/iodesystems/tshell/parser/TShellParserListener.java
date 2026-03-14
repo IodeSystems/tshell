@@ -48,6 +48,16 @@ public interface TShellParserListener extends ParseTreeListener {
 	 */
 	void exitLetDecl(TShellParser.LetDeclContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link TShellParser#letBinding}.
+	 * @param ctx the parse tree
+	 */
+	void enterLetBinding(TShellParser.LetBindingContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TShellParser#letBinding}.
+	 * @param ctx the parse tree
+	 */
+	void exitLetBinding(TShellParser.LetBindingContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link TShellParser#fnDecl}.
 	 * @param ctx the parse tree
 	 */
@@ -148,6 +158,36 @@ public interface TShellParserListener extends ParseTreeListener {
 	 */
 	void exitIfStatement(TShellParser.IfStatementContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link TShellParser#switchStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterSwitchStatement(TShellParser.SwitchStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TShellParser#switchStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitSwitchStatement(TShellParser.SwitchStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link TShellParser#switchCase}.
+	 * @param ctx the parse tree
+	 */
+	void enterSwitchCase(TShellParser.SwitchCaseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TShellParser#switchCase}.
+	 * @param ctx the parse tree
+	 */
+	void exitSwitchCase(TShellParser.SwitchCaseContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link TShellParser#switchDefault}.
+	 * @param ctx the parse tree
+	 */
+	void enterSwitchDefault(TShellParser.SwitchDefaultContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TShellParser#switchDefault}.
+	 * @param ctx the parse tree
+	 */
+	void exitSwitchDefault(TShellParser.SwitchDefaultContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link TShellParser#whileStatement}.
 	 * @param ctx the parse tree
 	 */
@@ -157,6 +197,16 @@ public interface TShellParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitWhileStatement(TShellParser.WhileStatementContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link TShellParser#doWhileStatement}.
+	 * @param ctx the parse tree
+	 */
+	void enterDoWhileStatement(TShellParser.DoWhileStatementContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TShellParser#doWhileStatement}.
+	 * @param ctx the parse tree
+	 */
+	void exitDoWhileStatement(TShellParser.DoWhileStatementContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link TShellParser#forOfStatement}.
 	 * @param ctx the parse tree

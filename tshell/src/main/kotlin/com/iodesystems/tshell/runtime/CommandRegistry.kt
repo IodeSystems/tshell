@@ -176,6 +176,39 @@ class CommandRegistry {
     }
   }
 
+  /**
+   * Minimal listing: command names grouped by namespace + guide pointers.
+   * Designed for prompt-weight-sensitive use cases where help() provides details.
+   */
+  fun toCompactPrompt(): String {
+    val visible = commands.values.filter { !it.hidden }
+    if (visible.isEmpty()) return "No commands available."
+    val sb = StringBuilder()
+
+    // Global commands as comma-separated names
+    val globals = visible.filter { it.namespace == null }.sortedBy { it.name }
+    if (globals.isNotEmpty()) {
+      sb.appendLine(globals.joinToString(", ") { it.name })
+    }
+
+    // Namespaced commands grouped
+    val nsByName = visible.filter { it.namespace != null }.groupBy { it.namespace!! }
+    for ((ns, cmds) in nsByName.entries.sortedBy { it.key }) {
+      sb.appendLine("$ns: ${cmds.sortedBy { it.name }.joinToString(", ") { it.name }}")
+    }
+
+    // Guide references
+    if (guides.isNotEmpty()) {
+      sb.appendLine()
+      sb.appendLine("Guides: ${guides.keys.sorted().joinToString(", ") { "help(\"$it\")" }}")
+    }
+
+    sb.appendLine()
+    sb.append("help(\"name\") for signatures and examples. help() lists all.")
+
+    return sb.toString().trimEnd()
+  }
+
   private fun levenshtein(a: String, b: String): Int {
     val dp = Array(a.length + 1) { IntArray(b.length + 1) }
     for (i in 0..a.length) dp[i][0] = i

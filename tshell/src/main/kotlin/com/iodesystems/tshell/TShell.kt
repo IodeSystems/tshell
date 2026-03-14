@@ -171,14 +171,27 @@ class TShell(
     globals.remove(names)
   }
 
-  fun toPrompt(): String = buildString {
+  /**
+   * Generates a system prompt describing tshell syntax and available commands.
+   *
+   * @param compact if true, lists command names only (no signatures) and points
+   *   to help() for details. Reduces prompt weight by ~50% while relying on
+   *   runtime discovery (help, guides, error messages) for specifics.
+   *   Default false preserves the full listing for maximum first-try accuracy.
+   */
+  fun toPrompt(compact: Boolean = false): String = buildString {
     appendLine("# tshell — language reference")
     appendLine("Not JS/TS. Similar tokens, different grammar. Only commands listed below exist.")
     appendLine()
     appendLine(PROMPT_SYNTAX)
     appendLine()
-    appendLine("## Commands (first arg is pipe input unless noted)")
-    appendLine(commands.toPrompt())
+    if (compact) {
+      appendLine("## Commands")
+      appendLine(commands.toCompactPrompt())
+    } else {
+      appendLine("## Commands (first arg is pipe input unless noted)")
+      appendLine(commands.toPrompt())
+    }
   }
 
   companion object {
@@ -187,7 +200,8 @@ class TShell(
      * that every example line is valid tshell.
      */
     const val PROMPT_SYNTAX = """## Variables
-let x = 42              // declare (required — no bare assignment)
+let x = 42              // declare (required — no bare assignment); var/const also accepted
+let a, b = 1, c = "two" // multi-bind: uninitialized → null
 x = 99; x += 1          // reassign, compound: +=, -=, *=, /=, %=
 export let y = 10       // export persists across eval calls; without export, discarded
 export function add(a, b) { return a + b }
@@ -197,10 +211,9 @@ function fib(n) { if (n <= 1) { return n } else { return fib(n-1) + fib(n-2) } }
 let double = x => x * 2            // arrow lambda
 let add = (a, b) => a + b          // NO 'fn' keyword — use function or let
 
-## Control flow
-if (cond) { a } else { b }         // statement (not a function); ternary: cond ? a : b
-while (cond) { body }
-for (let x of items) { body }
+## Control flow — same as JS
+if/else, while, do...while, for(;;), for..of, switch/case/default, break, continue
+// No: try/catch (use fail()), yield, async/await (use all()/race())
 
 ## Pipes
 [1,2,3] |> filter(n => n > 1) |> map(n => n * 10)  // |> passes left as first arg
@@ -232,7 +245,11 @@ obj.field, arr[0], obj?.field                 // access, optional chaining
 let {name, age} = obj; let [a, b] = arr      // destructuring
 fn(name: "Alice", age: 30)                   // named args (matched to param names)
 
-## Not supported: const, var, fn, class, new, this, import"""
+## Output
+The last expression's value is printed as the program result. `let` returns null.
+let x = [1, 2, 3]; x |> map(n => n * 10)  // output: [10, 20, 30]
+
+## Not supported: class, new, this, import, try/catch, yield, async/await"""
 
     /**
      * Executable examples from the prompt syntax section.
@@ -244,6 +261,7 @@ fn(name: "Alice", age: 30)                   // named args (matched to param nam
      */
     const val TOOL_DESCRIPTION =
       "Execute tshell code. NOT JavaScript or Kotlin. " +
+      "The last expression's value is the output (let returns null — end with the value you want). " +
       "Variables: let x = 5. Named functions: function name(x) { return x * 2 }. " +
       "Lambdas: let f = x => x + 1. Pipes: [1,2,3] |> map(n => n * 10). " +
       "Regex: /pattern/flags with match, replace, split, test. " +
@@ -251,9 +269,11 @@ fn(name: "Alice", age: 30)                   // named args (matched to param nam
       "Parallel: all(() => a(), () => b()), race(), |* scatter. " +
       "Use 'export' to persist values across calls: export let x = 5, export function f(n) { ... }. " +
       "Without export, all state is discarded after this call. " +
+      "Use help() to discover commands, help(\"name\") for signatures. " +
       "Output is limited — use limit(), filter(), or read(path, start, lines) to reduce large results."
 
     const val PROMPT_EXAMPLES = """let x = 42
+let a, b = 1, c = "two"
 x = 99
 x += 1
 function fib(n) { if (n <= 1) { return n } else { return fib(n-1) + fib(n-2) } }
@@ -265,7 +285,11 @@ export let shared = 42
 export function double(n) { return n * 2 }
 let i = 0
 while (i < 5) { i += 1 }
+do { i += 1 } while (i < 10)
 for (let x of [1,2,3]) { x }
+for (let i = 0; i < 3; i++) { i }
+let v = "b"
+switch (v) { case "a": "first"; break; case "b": "second"; break; default: "other" }
 [1,2,3] |> filter(n => n > 1) |> map(n => n * 10)
 [3,1,2] |> sort
 [3,1,2] |> sort("name")

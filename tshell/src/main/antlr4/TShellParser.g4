@@ -8,7 +8,9 @@ statement
   | letDecl
   | fnDecl
   | ifStatement
+  | switchStatement
   | whileStatement
+  | doWhileStatement
   | forOfStatement
   | forStatement
   | returnStatement
@@ -22,7 +24,8 @@ statement
 
 exportStatement   : EXPORT (letDecl | fnDecl | assignStatement);
 
-letDecl           : LET destructure ASSIGN expression SEMI?;
+letDecl           : LET letBinding (COMMA letBinding)* SEMI?;
+letBinding        : destructure (ASSIGN expression)?;
 fnDecl            : FUNCTION IDENTIFIER LPAREN paramList? RPAREN (COLON typeAnnotation)? block;
 returnStatement   : RETURN expression? SEMI?;
 breakStatement    : BREAK SEMI?;
@@ -35,7 +38,11 @@ assignTarget      : IDENTIFIER (DOT fieldName | LBRACKET expression RBRACKET)*;
 assignOp          : ASSIGN | PLUS_ASSIGN | MINUS_ASSIGN | STAR_ASSIGN | SLASH_ASSIGN | PERCENT_ASSIGN;
 
 ifStatement       : IF LPAREN expression RPAREN blockOrStatement (ELSE ifStatement | ELSE blockOrStatement)?;
+switchStatement   : SWITCH LPAREN expression RPAREN LBRACE switchCase* switchDefault? RBRACE;
+switchCase        : CASE expression COLON statement*;
+switchDefault     : DEFAULT COLON statement*;
 whileStatement    : WHILE LPAREN expression RPAREN block;
+doWhileStatement  : DO block WHILE LPAREN expression RPAREN SEMI?;
 forOfStatement    : FOR LPAREN LET destructure OF expression RPAREN block;
 forStatement      : FOR LPAREN (forInitLet | forInitAssign)? SEMI expression? SEMI (forUpdateAssign | forUpdateIncrDecr)? RPAREN block;
 forInitLet        : LET IDENTIFIER ASSIGN expression;
@@ -135,8 +142,8 @@ objectField
   ;
 
 fieldName
-  : IDENTIFIER | LET | FUNCTION | IF | ELSE | WHILE | FOR | OF | IN | RETURN
-  | BREAK | CONTINUE | EXPORT | TRUE | FALSE | NULL | CHAIN | ALL | RACE | ANY
+  : IDENTIFIER | LET | FUNCTION | IF | ELSE | WHILE | DO | FOR | OF | IN | RETURN
+  | BREAK | CONTINUE | EXPORT | SWITCH | CASE | DEFAULT | TRUE | FALSE | NULL | CHAIN | ALL | RACE | ANY
   ;
 
 spreadOrExpr      : SPREAD? expression;
