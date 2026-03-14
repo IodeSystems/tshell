@@ -1,7 +1,7 @@
 # reverse_words_order
 
 **Status:** PASS
-**Duration:** 5481ms
+**Duration:** 5497ms
 **Tool calls:** 1
 
 ## Prompt
@@ -11,13 +11,12 @@
 ## Final Answer
 
 ```
-The number of words that contain the letter 'o' is **4**.
+The sentence "the quick brown fox jumps over the lazy dog" contains **4** words that have the letter 'o':
 
-The words containing 'o' are:
-- brown
-- fox
-- over
-- dog
+1. brown
+2. fox
+3. over
+4. dog
 ```
 
 ## Attempts
@@ -27,7 +26,7 @@ The words containing 'o' are:
 ```javascript
 let sentence = 'the quick brown fox jumps over the lazy dog';
 let words = sentence.split(' ');
-let count = words.filter(word => word.includes('o')).length;
+let count = words |> filter(word => word.includes('o')) |> len();
 count
 ```
 

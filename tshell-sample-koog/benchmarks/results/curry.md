@@ -1,8 +1,8 @@
 # curry
 
 **Status:** PASS
-**Duration:** 9085ms
-**Tool calls:** 1
+**Duration:** 9354ms
+**Tool calls:** 2
 
 ## Prompt
 
@@ -11,20 +11,13 @@
 ## Final Answer
 
 ```
-The function works correctly! Here's what I created:
+The function works correctly. The result is `8`.
 
-```tshell
-export function curriedAdd(a) {
-  return function(b) {
-    return a + b;
-  };
-}
+Here's what happened:
+1. `curriedAdd(5)` returns a new function that remembers `a = 5`
+2. Calling that returned function with `3` adds `5 + 3 = 8`
 
-let add5 = curriedAdd(5);
-add5(3)
-```
-
-The result is `8`, as expected. The `curriedAdd` function takes the first argument `a` and returns a new function that takes the second argument `b`, allowing you to partially apply the addition function. When you call `curriedAdd(5)`, it returns a function that adds 5 to its argument. Then `add5(3)` adds 5 + 3 = 8.
+The curried add function successfully returns `8`.
 ```
 
 ## Attempts
@@ -32,14 +25,32 @@ The result is `8`, as expected. The `curriedAdd` function takes the first argume
 ### Attempt 1 (OK)
 
 ```javascript
-export function curriedAdd(a) {
+function curriedAdd(a) {
   return function(b) {
     return a + b;
   };
 }
 
 let add5 = curriedAdd(5);
-add5(3)
+return add5(3);
+```
+
+**Result:**
+```
+"ERROR: null"
+```
+
+### Attempt 2 (OK)
+
+```javascript
+function curriedAdd(a) {
+  return function(b) {
+    return a + b;
+  };
+}
+
+let add5 = curriedAdd(5);
+add5(3);
 ```
 
 **Result:**

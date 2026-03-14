@@ -1,8 +1,8 @@
 # pipe_csv_parse
 
 **Status:** PASS
-**Duration:** 16872ms
-**Tool calls:** 2
+**Duration:** 22720ms
+**Tool calls:** 3
 
 ## Prompt
 
@@ -21,7 +21,7 @@ The CSV string has been parsed into an array of objects:
 ]
 ```
 
-Each row from the CSV (after the header row) is converted to an object where the keys are the column headers and the values are the corresponding cell values from each row.
+Each row from the CSV (after the header row) has been converted to an object where the keys come from the first row (name, age, city) and the values are the corresponding cell values.
 ```
 
 ## Attempts
@@ -29,40 +29,63 @@ Each row from the CSV (after the header row) is converted to an object where the
 ### Attempt 1 (OK)
 
 ```javascript
-let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
-let lines = csv.split("\n");
-let headers = lines[0].split(",");
-let rows = lines.slice(1).map(line => {
-  let values = line.split(",");
-  let obj = {};
-  headers.forEach((header, i) => {
-    obj[header] = values[i];
-  });
-  return obj;
-});
-rows
+let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la"
+let lines = csv.split('\n')
+let headers = lines[0].split(',')
+let rows = lines.slice(1)
+let result = rows.map(row => {
+  let values = row.split(',')
+  let obj = {}
+  headers.forEach((h, i) => { obj[h] = values[i] })
+  return obj
+})
+result
 ```
 
 **Result:**
 ```
-"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 8:24"
+"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 8:45"
 ```
 
 ### Attempt 2 (OK)
 
 ```javascript
-let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
-let lines = csv.split("\n");
-let headers = lines[0].split(",");
-let rows = lines.slice(1).map(line => {
-  let values = line.split(",");
-  let obj = {};
-  for (let i = 0; i < headers.length; i++) {
-    obj[headers[i]] = values[i];
+let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la"
+let lines = csv.split('\n')
+let headers = lines[0].split(',')
+let rows = lines.slice(1)
+let result = rows.map(row => {
+  let values = row.split(',')
+  let obj = {}
+  headers.forEach((h, i) => { obj[h] = values[i] })
+  return obj
+})
+result
+```
+
+**Result:**
+```
+"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 8:45"
+```
+
+### Attempt 3 (OK)
+
+```javascript
+let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la"
+let lines = csv.split('\n')
+let headers = lines[0].split(',')
+let rows = lines.slice(1)
+let result = []
+for (let i = 0; i < rows.length; i++) {
+  let row = rows[i]
+  let values = row.split(',')
+  let obj = {}
+  for (let j = 0; j < headers.length; j++) {
+    obj[headers[j]] = values[j]
   }
-  return obj;
-});
-rows
+  result.push(obj)
+}
+result
 ```
 
 **Result:**

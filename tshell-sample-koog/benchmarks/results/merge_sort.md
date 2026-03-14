@@ -1,7 +1,7 @@
 # merge_sort
 
 **Status:** PASS
-**Duration:** 19025ms
+**Duration:** 14522ms
 **Tool calls:** 1
 
 ## Prompt
@@ -11,15 +11,7 @@
 ## Final Answer
 
 ```
-The merge sort implementation is complete. The sorted array is:
-
-`[3, 9, 10, 27, 38, 43, 82]`
-
-The implementation includes:
-1. **`mergeSort` function**: Recursively divides the array in half until each subarray has one element, then merges them back together.
-2. **`merge` function**: Combines two sorted arrays by comparing elements from each and building a new sorted array.
-
-The algorithm correctly sorts the input array `[38, 27, 43, 3, 9, 82, 10]` into ascending order.
+The merge sort implementation successfully sorted the array `[38, 27, 43, 3, 9, 82, 10]` to `[3, 9, 10, 27, 38, 43, 82]`.
 ```
 
 ## Attempts
@@ -28,11 +20,9 @@ The algorithm correctly sorts the input array `[38, 27, 43, 3, 9, 82, 10]` into 
 
 ```javascript
 function mergeSort(arr) {
-  if (arr.len() <= 1) {
-    return arr;
-  }
+  if (arr.length <= 1) return arr;
   
-  let mid = Math.floor(arr.len() / 2);
+  let mid = Math.floor(arr.length / 2);
   let left = arr.slice(0, mid);
   let right = arr.slice(mid);
   
@@ -47,32 +37,31 @@ function merge(left, right) {
   let i = 0;
   let j = 0;
   
-  while (i < left.len() && j < right.len()) {
+  while (i < left.length && j < right.length) {
     if (left[i] <= right[j]) {
-      result = result.concat([left[i]]);
-      i = i + 1;
+      result.push(left[i]);
+      i++;
     } else {
-      result = result.concat([right[j]]);
-      j = j + 1;
+      result.push(right[j]);
+      j++;
     }
   }
   
-  while (i < left.len()) {
-    result = result.concat([left[i]]);
-    i = i + 1;
+  while (i < left.length) {
+    result.push(left[i]);
+    i++;
   }
   
-  while (j < right.len()) {
-    result = result.concat([right[j]]);
-    j = j + 1;
+  while (j < right.length) {
+    result.push(right[j]);
+    j++;
   }
   
   return result;
 }
 
 let arr = [38, 27, 43, 3, 9, 82, 10];
-let sorted = mergeSort(arr);
-sorted
+mergeSort(arr);
 ```
 
 **Result:**

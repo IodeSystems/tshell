@@ -1,8 +1,8 @@
 # regex_extract
 
 **Status:** PASS
-**Duration:** 17756ms
-**Tool calls:** 3
+**Duration:** 9915ms
+**Tool calls:** 2
 
 ## Prompt
 
@@ -11,13 +11,9 @@
 ## Final Answer
 
 ```
-The array of email-like patterns extracted from the string is:
+The array of email matches is:
 
-```
-["alice@example.com", "bob@test.org"]
-```
-
-I used the `match()` function with a global regex flag `/g` to find all email patterns, then mapped over the results to extract just the `match` field from each match object, giving us a clean array of email addresses.
+`["alice@example.com", "bob@test.org"]`
 ```
 
 ## Attempts
@@ -25,29 +21,18 @@ I used the `match()` function with a global regex flag `/g` to find all email pa
 ### Attempt 1 (OK)
 
 ```javascript
-"contact alice@example.com or bob@test.org for info" |> match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
+"contact alice@example.com or bob@test.org for info" |> match(/[\w.+-]+@[\w.-]+\.[\w]+/g)
 ```
 
 **Result:**
 ```
-"[{match: \"alice@example.com\", groups: [\"alice@example.com\"], index: 8}]"
+"[{match: \"alice@example.com\", groups: [], index: 8}, {match: \"bob@test.org\", groups: [], index: 29}]"
 ```
 
 ### Attempt 2 (OK)
 
 ```javascript
-"contact alice@example.com or bob@test.org for info" |> match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g)
-```
-
-**Result:**
-```
-"[{match: \"alice@example.com\", groups: [\"alice@example.com\"], index: 8}, {match: \"bob@test.org\", groups: [\"bob@test.org\"], index: 29}]"
-```
-
-### Attempt 3 (OK)
-
-```javascript
-"contact alice@example.com or bob@test.org for info" |> match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g) |> map(m => m.match)
+"contact alice@example.com or bob@test.org for info" |> match(/[\w.+-]+@[\w.-]+\.[\w]+/g) |> map(m => m.match)
 ```
 
 **Result:**

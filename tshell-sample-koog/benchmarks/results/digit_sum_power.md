@@ -1,8 +1,8 @@
 # digit_sum_power
 
 **Status:** PASS
-**Duration:** 7454ms
-**Tool calls:** 1
+**Duration:** 11507ms
+**Tool calls:** 2
 
 ## Prompt
 
@@ -13,10 +13,9 @@
 ```
 The result is 26.
 
-Here's what happened:
-1. 2^15 = 32768
-2. The digits are: 3, 2, 7, 6, 8
-3. Sum: 3 + 2 + 7 + 6 + 8 = 26
+Here's the breakdown:
+- 2^15 = 32768
+- Sum of digits: 3 + 2 + 7 + 6 + 8 = 26
 ```
 
 ## Attempts
@@ -24,10 +23,26 @@ Here's what happened:
 ### Attempt 1 (OK)
 
 ```javascript
-let pow2_15 = pow(2, 15);
-let str = str(pow2_15);
-let digits = str.split('').map(c => num(c));
-let sum = reduce(digits, (acc, d) => acc + d, 0);
+let pow15 = pow(2, 15);
+let str = str(pow15);
+let digits = str.map(c => num(c));
+let sum = reduce(digits, (acc, n) => acc + n, 0);
+sum
+```
+
+**Result:**
+```
+"ERROR: Type mismatch in pipe into map\n\n  Expected: array\n  Got:      string (\"32768\")\n\n  at line 3:20"
+```
+
+### Attempt 2 (OK)
+
+```javascript
+let pow15 = pow(2, 15);
+let str = str(pow15);
+let chars = str.split("");
+let digits = map(chars, c => num(c));
+let sum = reduce(digits, (acc, n) => acc + n, 0);
 sum
 ```
 

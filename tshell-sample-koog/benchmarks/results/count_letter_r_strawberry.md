@@ -1,7 +1,7 @@
 # count_letter_r_strawberry
 
 **Status:** PASS
-**Duration:** 5309ms
+**Duration:** 4985ms
 **Tool calls:** 1
 
 ## Prompt
@@ -11,7 +11,7 @@
 ## Final Answer
 
 ```
-The letter 'r' appears 3 times in the word 'strawberry'.
+The letter 'r' appears 3 times in the word "strawberry".
 ```
 
 ## Attempts
@@ -21,12 +21,12 @@ The letter 'r' appears 3 times in the word 'strawberry'.
 ```javascript
 let word = "strawberry";
 let count = 0;
-for (let i = 0; i < word.length; i++) {
-  if (word[i] === 'r') {
-    count++;
+for (let char of word) {
+  if (char === 'r') {
+    count += 1;
   }
 }
-count
+count;
 ```
 
 **Result:**

@@ -1,7 +1,7 @@
 # tower_of_hanoi
 
 **Status:** PASS
-**Duration:** 5671ms
+**Duration:** 6945ms
 **Tool calls:** 1
 
 ## Prompt
@@ -12,6 +12,8 @@
 
 ```
 The minimum number of moves to solve the Tower of Hanoi with 10 disks is **1023**.
+
+This follows the formula $2^n - 1$, where $n$ is the number of disks. For 10 disks: $2^{10} - 1 = 1024 - 1 = 1023$.
 ```
 
 ## Attempts
@@ -20,13 +22,11 @@ The minimum number of moves to solve the Tower of Hanoi with 10 disks is **1023*
 
 ```javascript
 export function hanoi(n) {
-  if (n === 0) return 0;
+  if (n <= 0) return 0;
   return 2 * hanoi(n - 1) + 1;
 }
 
-let n = 10;
-let result = hanoi(n);
-result
+hanoi(10)
 ```
 
 **Result:**

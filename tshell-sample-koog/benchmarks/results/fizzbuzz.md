@@ -1,7 +1,7 @@
 # fizzbuzz
 
 **Status:** PASS
-**Duration:** 8061ms
+**Duration:** 8387ms
 **Tool calls:** 1
 
 ## Prompt
@@ -13,8 +13,24 @@
 ```
 Here's the FizzBuzz result for 1-15:
 
-```json
-["1", "2", "Fizz", "4", "Buzz", "Fizz", "7", "8", "Fizz", "Buzz", "11", "Fizz", "13", "14", "FizzBuzz"]
+```javascript
+[
+  "1",
+  "2",
+  "Fizz",
+  "4",
+  "Buzz",
+  "Fizz",
+  "7",
+  "8",
+  "Fizz",
+  "Buzz",
+  "11",
+  "Fizz",
+  "13",
+  "14",
+  "FizzBuzz"
+]
 ```
 ```
 
@@ -23,14 +39,7 @@ Here's the FizzBuzz result for 1-15:
 ### Attempt 1 (OK)
 
 ```javascript
-export function fizzBuzz(n) {
-  let out = "";
-  if (n % 3 === 0) out += "Fizz";
-  if (n % 5 === 0) out += "Buzz";
-  return out === "" ? str(n) : out;
-}
-
-range(1, 16) |> map(fizzBuzz)
+range(1, 16) |> map(n => (n % 15 === 0) ? "FizzBuzz" : (n % 3 === 0) ? "Fizz" : (n % 5 === 0) ? "Buzz" : str(n))
 ```
 
 **Result:**

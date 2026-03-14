@@ -1,7 +1,7 @@
 # scatter_parallel
 
 **Status:** PASS
-**Duration:** 5973ms
+**Duration:** 7263ms
 **Tool calls:** 1
 
 ## Prompt
@@ -13,9 +13,10 @@
 ```
 The sum is 55.
 
-Here's the breakdown:
-- Square each element: [1, 4, 9, 16, 25]
-- Sum them: 1 + 4 + 9 + 16 + 25 = 55
+Here's what happened:
+1. The scatter pipe `|*` applied the squaring function `(x => x * x)` to each element in parallel
+2. This produced `[1, 4, 9, 16, 25]`
+3. Then `reduce` summed them up: 1 + 4 + 9 + 16 + 25 = 55
 ```
 
 ## Attempts
@@ -23,7 +24,7 @@ Here's the breakdown:
 ### Attempt 1 (OK)
 
 ```javascript
-[1,2,3,4,5] |* (x => x * x) |> reduce((acc, x) => acc + x, 0)
+[1, 2, 3, 4, 5] |* (x => x * x) |> reduce((acc, x) => acc + x, 0)
 ```
 
 **Result:**

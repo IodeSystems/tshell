@@ -1,7 +1,7 @@
 # object_transform
 
-**Status:** PASS
-**Duration:** 9233ms
+**Status:** FAIL
+**Duration:** 8068ms
 **Tool calls:** 1
 
 ## Prompt
@@ -11,15 +11,13 @@
 ## Final Answer
 
 ```
-The result is `"alice, bob"`.
+The result is `"alice, bob"`. 
 
-Here's the breakdown:
-1. **Filter**: Kept only entries with `score > 80` → `[{name:"alice",score:85},{name:"bob",score:92}]`
-2. **Map**: Extracted names → `["alice", "bob"]`
-3. **Sort**: Sorted alphabetically by name → `["alice", "bob"]`
-4. **Join**: Joined with ", " → `"alice, bob"`
-
-Carol was filtered out because her score (78) is not greater than 80.
+The pipeline:
+1. `filter(p => p.score > 80)` - kept alice (85) and bob (92), excluded carol (78)
+2. `map(p => p.name)` - extracted the names
+3. `sort("name")` - sorted alphabetically (alice before bob)
+4. `join(", ")` - joined with commas and space
 ```
 
 ## Attempts
@@ -28,7 +26,7 @@ Carol was filtered out because her score (78) is not greater than 80.
 
 ```javascript
 [{name:"alice",score:85},{name:"bob",score:92},{name:"carol",score:78}]
- |> filter(s => s.score > 80)
+ |> filter(p => p.score > 80)
  |> map(p => p.name)
  |> sort("name")
  |> join(", ")

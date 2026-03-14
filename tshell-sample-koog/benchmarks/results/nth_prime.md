@@ -1,7 +1,7 @@
 # nth_prime
 
 **Status:** PASS
-**Duration:** 8000ms
+**Duration:** 7867ms
 **Tool calls:** 1
 
 ## Prompt
@@ -23,22 +23,22 @@ function isPrime(n) {
   if (n < 2) return false;
   if (n === 2) return true;
   if (n % 2 === 0) return false;
-  let limit = Math.floor(Math.sqrt(n));
-  for (let i = 3; i <= limit; i += 2) {
+  for (let i = 3; i * i <= n; i += 2) {
     if (n % i === 0) return false;
   }
   return true;
 }
 
-let count = 0;
-let num = 1;
-while (count < 50) {
-  num++;
+let primes = [];
+let num = 2;
+while (primes.length < 50) {
   if (isPrime(num)) {
-    count++;
+    primes.push(num);
   }
+  num++;
 }
-num
+
+primes[49];
 ```
 
 **Result:**

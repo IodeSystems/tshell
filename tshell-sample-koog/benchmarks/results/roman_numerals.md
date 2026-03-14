@@ -1,7 +1,7 @@
 # roman_numerals
 
 **Status:** PASS
-**Duration:** 15072ms
+**Duration:** 15630ms
 **Tool calls:** 1
 
 ## Prompt
@@ -11,15 +11,14 @@
 ## Final Answer
 
 ```
-The function successfully converts 1994 to "MCMXCIV". Here's how it works:
+The function successfully converts 1994 to the Roman numeral "MCMXCIV".
 
-1. **Mapping values to numerals**: Creates arrays of integer values and their corresponding Roman numeral representations, including subtractive combinations (like 900→"CM", 400→"CD", etc.)
+Here's how it works:
+- It uses an array of value-symbol pairs ordered from largest to smallest (including subtractive combinations like 900="CM", 400="CD", 90="XC", 40="XL", 9="IX", 4="IV")
+- For each value-symbol pair, it repeatedly appends the symbol and subtracts the value from the input number until the number is less than the current value
+- This continues until the number is reduced to 0
 
-2. **Iterative subtraction**: For each value in descending order, repeatedly subtract it from the input number and append the corresponding numeral until the value is no longer greater than or equal to the current number.
-
-3. **Result**: 1994 → MCMXCIV (1000 + 900 + 90 + 4)
-
-The function correctly handles all standard Roman numeral rules including the subtractive notation.
+The result for 1994 is correctly "MCMXCIV" (1000 + 900 + 90 + 4 = M + CM + XC + IV).
 ```
 
 ## Attempts
@@ -27,20 +26,34 @@ The function correctly handles all standard Roman numeral rules including the su
 ### Attempt 1 (OK)
 
 ```javascript
-function intToRoman(num) {
-  let values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
-  let numerals = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"];
-  let result = "";
-  for (let i = 0; i < values.length; i++) {
-    while (num >= values[i]) {
-      result += numerals[i];
-      num -= values[i];
+function toRoman(num) {
+  let val = [
+    [1000, 'M'],
+    [900, 'CM'],
+    [500, 'D'],
+    [400, 'CD'],
+    [100, 'C'],
+    [90, 'XC'],
+    [50, 'L'],
+    [40, 'XL'],
+    [10, 'X'],
+    [9, 'IX'],
+    [5, 'V'],
+    [4, 'IV'],
+    [1, 'I']
+  ];
+  
+  let result = '';
+  for (let [value, symbol] of val) {
+    while (num >= value) {
+      result += symbol;
+      num -= value;
     }
   }
   return result;
 }
 
-let result = intToRoman(1994);
+let result = toRoman(1994);
 result;
 ```
 

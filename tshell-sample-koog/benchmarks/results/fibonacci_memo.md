@@ -1,8 +1,8 @@
 # fibonacci_memo
 
 **Status:** PASS
-**Duration:** 16121ms
-**Tool calls:** 3
+**Duration:** 13533ms
+**Tool calls:** 2
 
 ## Prompt
 
@@ -11,9 +11,9 @@
 ## Final Answer
 
 ```
-The result of `fib(20)` is **6765**.
+The result is **6765**.
 
-The implementation uses an object `cache` to store previously computed Fibonacci values, with keys converted to strings (since object keys must be strings in tshell). Each time `fib(n)` is called, it first checks if the result is already in the cache. If not, it computes the value recursively and stores it before returning.
+The implementation uses an object `cache` to memoize Fibonacci results. Since tshell object keys must be strings, I converted the number `n` to a string using `str(n)` when accessing and storing values in the cache. The function recursively computes `fib(20)` with memoization, returning 6765.
 ```
 
 ## Attempts
@@ -21,14 +21,14 @@ The implementation uses an object `cache` to store previously computed Fibonacci
 ### Attempt 1 (OK)
 
 ```javascript
-let cache = {}
-function fib(n) {
+export let cache = {}
+export function fib(n) {
   if (n <= 1) return n
-  if (cache[n] !== undefined) return cache[n]
-  cache[n] = fib(n - 1) + fib(n - 2)
-  return cache[n]
+  if (cache[n] != null) return cache[n]
+  let result = fib(n - 1) + fib(n - 2)
+  cache[n] = result
+  return result
 }
-export fib = fib
 fib(20)
 ```
 
@@ -40,32 +40,13 @@ fib(20)
 ### Attempt 2 (OK)
 
 ```javascript
-let cache = {}
-function fib(n) {
+export let cache = {}
+export function fib(n) {
   if (n <= 1) return n
-  let key = str(n)
-  if (cache[key] !== undefined) return cache[key]
-  cache[key] = fib(n - 1) + fib(n - 2)
-  return cache[key]
-}
-fib(20)
-```
-
-**Result:**
-```
-"ERROR: tshell does not have 'undefined' — use null instead\n\n  at line 9:3"
-```
-
-### Attempt 3 (OK)
-
-```javascript
-let cache = {}
-function fib(n) {
-  if (n <= 1) return n
-  let key = str(n)
-  if (cache[key] !== null) return cache[key]
-  cache[key] = fib(n - 1) + fib(n - 2)
-  return cache[key]
+  if (cache[str(n)] != null) return cache[str(n)]
+  let result = fib(n - 1) + fib(n - 2)
+  cache[str(n)] = result
+  return result
 }
 fib(20)
 ```
