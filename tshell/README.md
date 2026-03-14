@@ -208,6 +208,40 @@ No `class`, `this`, `new`, `var`, `const`, `async`/`await`, `try`/`catch`,
 `import`/`require`, prototypes, generators, or `Symbol`. Type annotations are
 accepted but ignored. Use `help()` to discover what's available.
 
+## MCP Composition
+
+tshell connects to any MCP server and collapses its tools into the same
+`eval` call. Write your tools in Go, Python, TypeScript, Rust — whatever
+fits your stack. The LLM sees one tool; tshell handles the plumbing.
+
+```
+LLM
+ │
+ ▼
+tshell-cli (single MCP server)
+ ├── eval("app.users() |> filter(u => u.active) |> sort(\"name\")")
+ │    ├── tshell core (pipes, filter, sort, strings, math)
+ │    ├── app.* → Python MCP server (your app code)
+ │    └── data.* → Go MCP server (your data pipeline)
+ └── help() → all commands from all servers
+```
+
+**Why this matters:** each MCP tool you add inflates the LLM's context with
+schema, descriptions, and examples. A typical Playwright MCP server adds ~8KB
+of tool definitions. tshell replaces all of it with a single `eval` tool —
+commands are discovered via `help()` at runtime, not baked into the prompt.
+The LLM's KV cache survives when you add or remove servers.
+
+```bash
+# Standalone MCP server
+tshell-cli
+
+# Connect to external MCP servers — tools become namespaced commands
+tshell-cli --connect "app=python my_tools.py" --connect "data=npx data-server"
+```
+
+See [`tshell-mcp/README.md`](../tshell-mcp/README.md) for the full API.
+
 ## Integration
 
 ### Quick Start
