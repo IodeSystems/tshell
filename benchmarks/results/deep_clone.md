@@ -1,8 +1,8 @@
 # deep_clone
 
 **Status:** PASS
-**Duration:** 9784ms
-**Tool calls:** 1
+**Duration:** 17963ms
+**Tool calls:** 2
 
 ## Prompt
 
@@ -19,15 +19,16 @@
 ### Attempt 1 (OK)
 
 ```javascript
-export function deepClone(obj) {
-  if (obj === null || typeof obj !== 'object') {
+// Deep clone function
+function deepClone(obj) {
+  if (obj === null || typeof obj !== "object") {
     return obj;
   }
   if (Array.isArray(obj)) {
     return obj.map(item => deepClone(item));
   }
   const cloned = {};
-  for (const key in obj) {
+  for (let key in obj) {
     if (obj.hasOwnProperty(key)) {
       cloned[key] = deepClone(obj[key]);
     }
@@ -37,7 +38,43 @@ export function deepClone(obj) {
 
 const original = {a:1,b:{c:2,d:[3,4]}};
 const clone = deepClone(original);
+
+// Modify clone
 clone.b.c = 99;
+
+print(original, clone);
+```
+
+**Result:**
+```
+"{a: 1, b: {c: 99, d: [3, 4]}}"
+```
+
+### Attempt 2 (OK)
+
+```javascript
+function deepClone(obj) {
+  if (obj === null || typeof obj !== "object") {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(item => deepClone(item));
+  }
+  const cloned = {};
+  for (let key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      cloned[key] = deepClone(obj[key]);
+    }
+  }
+  return cloned;
+}
+
+const original = {a:1,b:{c:2,d:[3,4]}};
+const clone = deepClone(original);
+
+// Modify clone
+clone.b.c = 99;
+
 [original, clone];
 ```
 

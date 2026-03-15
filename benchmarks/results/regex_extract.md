@@ -1,7 +1,7 @@
 # regex_extract
 
 **Status:** PASS
-**Duration:** 16677ms
+**Duration:** 14835ms
 **Tool calls:** 3
 
 ## Prompt
@@ -11,7 +11,7 @@
 ## Final Answer
 
 ```
-["alice@example.com", "bob@test.org"]
+[{"match": "alice@example.com", "groups": [], "index": 8}, {"match": "bob@test.org", "groups": [], "index": 29}]
 ```
 
 ## Attempts
@@ -19,7 +19,7 @@
 ### Attempt 1 (OK)
 
 ```javascript
-r"contact alice@example.com or bob@test.org for info".match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)
+r"contact alice@example.com or bob@test.org for info".match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/)
 ```
 
 **Result:**
@@ -30,7 +30,7 @@ r"contact alice@example.com or bob@test.org for info".match(/[a-zA-Z0-9._%+-]+@[
 ### Attempt 2 (OK)
 
 ```javascript
-"contact alice@example.com or bob@test.org for info".match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)
+"contact alice@example.com or bob@test.org for info".match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/)
 ```
 
 **Result:**
@@ -41,11 +41,11 @@ r"contact alice@example.com or bob@test.org for info".match(/[a-zA-Z0-9._%+-]+@[
 ### Attempt 3 (OK)
 
 ```javascript
-"contact alice@example.com or bob@test.org for info".match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g)
+"contact alice@example.com or bob@test.org for info".match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g)
 ```
 
 **Result:**
 ```
-"[{match: \"alice@example.com\", groups: [\"alice@example.com\"], index: 8}, {match: \"bob@test.org\", groups: [\"bob@test.org\"], index: 29}]"
+"[{match: \"alice@example.com\", groups: [], index: 8}, {match: \"bob@test.org\", groups: [], index: 29}]"
 ```
 

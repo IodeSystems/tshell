@@ -1,7 +1,7 @@
 # factorial
 
 **Status:** PASS
-**Duration:** 19193ms
+**Duration:** 19320ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,11 +19,11 @@
 ### Attempt 1 (OK)
 
 ```javascript
-let result = 1;
-for (let i = 1; i <= 7; i++) {
-    result = result * i;
-}
-result
+let fact = (n) => {
+  if (n <= 1) return 1;
+  return n * fact(n - 1);
+};
+fact(7)
 ```
 
 **Result:**

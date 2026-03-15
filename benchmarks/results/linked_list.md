@@ -1,8 +1,8 @@
 # linked_list
 
 **Status:** PASS
-**Duration:** 6592ms
-**Tool calls:** 1
+**Duration:** 9936ms
+**Tool calls:** 2
 
 ## Prompt
 
@@ -21,17 +21,33 @@
 ```javascript
 let list = {value: 10, next: {value: 20, next: {value: 30, next: null}}};
 
-let toArr = (head) => {
-  let arr = [];
-  let current = head;
-  while (current != null) {
-    arr.push(current.value);
-    current = current.next;
-  }
-  return arr;
-};
+function toArray(node, acc = []) {
+  if (node === null) return acc;
+  acc.push(node.value);
+  return toArray(node.next, acc);
+}
 
-toArr(list);
+toArray(list);
+```
+
+**Result:**
+```
+"ERROR: Type mismatch in member access .push\n\n  Expected: object, array, or string\n  Got:      null (null)\n\n  at line 5:5"
+```
+
+### Attempt 2 (OK)
+
+```javascript
+let list = {value: 10, next: {value: 20, next: {value: 30, next: null}}};
+
+function toArray(node) {
+  if (node === null) return [];
+  let rest = toArray(node.next);
+  rest.unshift(node.value);
+  return rest;
+}
+
+toArray(list);
 ```
 
 **Result:**

@@ -1,7 +1,7 @@
 # nth_prime
 
 **Status:** PASS
-**Duration:** 7804ms
+**Duration:** 7875ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,7 +19,7 @@
 ### Attempt 1 (OK)
 
 ```javascript
-let isPrime = (n) => {
+let isPrime = n => {
   if (n < 2) return false;
   if (n === 2) return true;
   if (n % 2 === 0) return false;

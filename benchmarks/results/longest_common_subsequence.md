@@ -1,7 +1,7 @@
 # longest_common_subsequence
 
 **Status:** PASS
-**Duration:** 10915ms
+**Duration:** 9518ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,31 +19,25 @@
 ### Attempt 1 (OK)
 
 ```javascript
-function lcsLength(s1: string, s2: string): number {
-    let m = s1.len();
-    let n = s2.len();
-    let dp = [];
-    for (let i = 0; i <= m; i++) {
-        dp[i] = [];
-        for (let j = 0; j <= n; j++) {
-            dp[i][j] = 0;
-        }
+function lcsLength(s1, s2) {
+  const n = s1.length;
+  const m = s2.length;
+  const dp = Array(n + 1).fill(null).map(() => Array(m + 1).fill(0));
+  
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= m; j++) {
+      if (s1[i - 1] === s2[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+      }
     }
-    
-    for (let i = 1; i <= m; i++) {
-        for (let j = 1; j <= n; j++) {
-            if (s1[i - 1] === s2[j - 1]) {
-                dp[i][j] = 1 + dp[i - 1][j - 1];
-            } else {
-                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1]);
-            }
-        }
-    }
-    
-    return dp[m][n];
+  }
+  
+  return dp[n][m];
 }
 
-lcsLength("ABCBDAB", "BDCAB");
+lcsLength('ABCBDAB', 'BDCAB');
 ```
 
 **Result:**

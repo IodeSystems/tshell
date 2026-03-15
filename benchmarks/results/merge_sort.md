@@ -1,8 +1,8 @@
 # merge_sort
 
 **Status:** PASS
-**Duration:** 22380ms
-**Tool calls:** 2
+**Duration:** 12478ms
+**Tool calls:** 1
 
 ## Prompt
 
@@ -19,79 +19,37 @@
 ### Attempt 1 (OK)
 
 ```javascript
-export function merge(left, right) {
-  let result = [];
-  let i = 0, j = 0;
-  while (i < left.length && j < right.length) {
-    if (left[i] <= right[j]) {
-      result.push(left[i++]);
-    } else {
-      result.push(right[j++]);
+const mergeSort = (arr) => {
+  if (arr.len() <= 1) return arr;
+  const mid = Math.floor(arr.len() / 2);
+  const left = mergeSort(arr.slice(0, mid));
+  const right = mergeSort(arr.slice(mid));
+  
+  const merge = (a, b) => {
+    const result = [];
+    let i = 0, j = 0;
+    while (i < a.len() && j < b.len()) {
+      if (a[i] <= b[j]) {
+        result.push(a[i]);
+        i++;
+      } else {
+        result.push(b[j]);
+        j++;
+      }
     }
-  }
-  while (i < left.length) {
-    result.push(left[i++]);
-  }
-  while (j < right.length) {
-    result.push(right[j++]);
-  }
-  return result;
-}
-
-export function mergeSort(arr) {
-  if (arr.length <= 1) {
-    return arr;
-  }
-  let mid = Math.floor(arr.length / 2);
-  let left = mergeSort(arr.slice(0, mid));
-  let right = mergeSort(arr.slice(mid));
-  return merge(left, right);
-}
-
-mergeSort([38, 27, 43, 3, 9, 82, 10]);
-```
-
-**Result:**
-```
-"ERROR: Syntax error at line 6:22\n\n        result.push(left[i++]);\n                        ^\n\n  missing ')' at '['\n\n  Hint: check for missing operators, unclosed brackets, or typos"
-```
-
-### Attempt 2 (OK)
-
-```javascript
-export function merge(left, right) {
-  let result = [];
-  let i = 0;
-  let j = 0;
-  while (i < left.length && j < right.length) {
-    if (left[i] <= right[j]) {
-      result.push(left[i]);
-      i = i + 1;
-    } else {
-      result.push(right[j]);
-      j = j + 1;
+    while (i < a.len()) {
+      result.push(a[i]);
+      i++;
     }
-  }
-  while (i < left.length) {
-    result.push(left[i]);
-    i = i + 1;
-  }
-  while (j < right.length) {
-    result.push(right[j]);
-    j = j + 1;
-  }
-  return result;
-}
-
-export function mergeSort(arr) {
-  if (arr.length <= 1) {
-    return arr;
-  }
-  let mid = Math.floor(arr.length / 2);
-  let left = mergeSort(arr.slice(0, mid));
-  let right = mergeSort(arr.slice(mid));
+    while (j < b.len()) {
+      result.push(b[j]);
+      j++;
+    }
+    return result;
+  };
+  
   return merge(left, right);
-}
+};
 
 mergeSort([38, 27, 43, 3, 9, 82, 10]);
 ```
