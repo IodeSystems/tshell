@@ -1202,6 +1202,48 @@ class TShellNewFeaturesTest {
     assertEquals(listOf("carrot", "pea"), veg)
   }
 
+  // --- evalExported with vars ---
+
+  @Test fun `vars are available in code`() {
+    val sh = shell()
+    assertEquals(TString("hello world"), sh.evalExported("input", mapOf("input" to TString("hello world"))))
+  }
+
+  @Test fun `vars with different types`() {
+    val sh = shell()
+    assertEquals(TNumber(42.0), sh.evalExported("n * 2", mapOf("n" to TNumber(21.0))))
+  }
+
+  @Test fun `vars with arrays`() {
+    val sh = shell()
+    assertEquals(TNumber(3.0), sh.evalExported("len(items)", mapOf(
+      "items" to TArray(listOf(TString("a"), TString("b"), TString("c")))
+    )))
+  }
+
+  @Test fun `vars with objects`() {
+    val sh = shell()
+    assertEquals(TString("Alice"), sh.evalExported("user.name", mapOf(
+      "user" to TObject(mapOf("name" to TString("Alice"), "age" to TNumber(30.0)))
+    )))
+  }
+
+  @Test fun `vars do not leak to globals`() {
+    val sh = shell()
+    sh.evalExported("x + 1", mapOf("x" to TNumber(5.0)))
+    assertThrows<TShellError> { sh.eval("x") }
+  }
+
+  @Test fun `vars cannot be reassigned in code`() {
+    val sh = shell()
+    assertThrows<TShellError> { sh.evalExported("let x = 99", mapOf("x" to TNumber(5.0))) }
+  }
+
+  @Test fun `vars avoid double escaping for paths`() {
+    val sh = shell()
+    assertEquals(TString("C:\\Users\\foo"), sh.evalExported("path", mapOf("path" to TString("C:\\Users\\foo"))))
+  }
+
   // --- Array constructor and fill ---
 
   @Test fun `Array constructor creates array of n nulls`() {

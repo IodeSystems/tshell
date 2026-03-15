@@ -68,9 +68,12 @@ class TShell(
    * On error, nothing is promoted.
    * Designed for LLM agent use where each eval should be self-contained.
    */
-  fun evalExported(source: String): TShellValue {
+  fun evalExported(source: String, vars: Map<String, TShellValue> = emptyMap()): TShellValue {
     if (limits.resetOnEval) limits.reset()
     val childEnv = globals.child()
+    for ((name, value) in vars) {
+      childEnv.define(name, value)
+    }
     val result = Interpreter(commands, childEnv, limits).eval(source)
     for (name in result.exportedNames) {
       val value = childEnv.get(name) ?: continue
@@ -233,6 +236,7 @@ chain(() => getData(), d => transform(d)) // sequential"""
     const val TOOL_DESCRIPTION =
       "Execute tshell code (JS subset with pipes). " +
       "Use r`...` for strings with backslashes — they stay literal. " +
+      "Pass data via vars to avoid double-escaping: {\"code\": \"process(input)\", \"vars\": {\"input\": \"value\"}}. " +
       "export persists values across calls; without export, state is discarded. " +
       "help() lists commands. If code errors, read the message, fix, retry."
 

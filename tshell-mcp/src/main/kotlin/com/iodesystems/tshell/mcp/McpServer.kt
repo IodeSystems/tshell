@@ -1,6 +1,7 @@
 package com.iodesystems.tshell.mcp
 
 import com.iodesystems.tshell.TShell
+import com.iodesystems.tshell.runtime.TShellValue
 import io.modelcontextprotocol.kotlin.sdk.server.ClientConnection
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
@@ -16,6 +17,18 @@ import kotlinx.io.asSink
 import kotlinx.io.asSource
 import kotlinx.io.buffered
 import kotlinx.serialization.json.*
+
+private fun jsonToTShellValue(element: JsonElement): TShellValue = when (element) {
+  is JsonPrimitive -> when {
+    element.isString -> TShellValue.TString(element.content)
+    element.content == "true" -> TShellValue.TBoolean(true)
+    element.content == "false" -> TShellValue.TBoolean(false)
+    element.content == "null" -> TShellValue.TNull
+    else -> TShellValue.TNumber(element.content.toDouble())
+  }
+  is JsonArray -> TShellValue.TArray(element.map { jsonToTShellValue(it) })
+  is JsonObject -> TShellValue.TObject(element.mapValues { (_, v) -> jsonToTShellValue(v) })
+}
 
 class McpServer(
   private val shell: TShell,
@@ -41,7 +54,10 @@ class McpServer(
         )
       } else {
         try {
-          val raw = shell.evalExported(code).toDisplayString()
+          val vars = request.arguments?.get("vars")?.jsonObject?.let { jsonObj ->
+            jsonObj.mapValues { (_, v) -> jsonToTShellValue(v) }
+          } ?: emptyMap()
+          val raw = shell.evalExported(code, vars).toDisplayString()
           val output = if (raw.length > maxOutputBytes) {
             raw.substring(0, maxOutputBytes) +
               "\n\n... OUTPUT TRUNCATED (${raw.length} bytes, limit $maxOutputBytes). " +
@@ -66,7 +82,12 @@ class McpServer(
             "code" to JsonObject(mapOf(
               "type" to JsonPrimitive("string"),
               "description" to JsonPrimitive("tshell source code"),
-            ))
+            )),
+            "vars" to JsonObject(mapOf(
+              "type" to JsonPrimitive("object"),
+              "description" to JsonPrimitive("variables to bind before execution — avoids double-escaping data in code strings"),
+              "additionalProperties" to JsonPrimitive(true),
+            )),
           )),
           required = listOf("code"),
         ),
