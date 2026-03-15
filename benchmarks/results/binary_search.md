@@ -1,7 +1,7 @@
 # binary_search
 
 **Status:** PASS
-**Duration:** 13728ms
+**Duration:** 13248ms
 **Tool calls:** 2
 
 ## Prompt
@@ -19,7 +19,7 @@
 ### Attempt 1 (OK)
 
 ```javascript
-let arr = [1, 3, 5, 7, 9, 11, 13, 15];
+let arr = [1,3,5,7,9,11,13,15];
 let target = 7;
 let left = 0;
 let right = arr.len() - 1;
@@ -45,7 +45,7 @@ while (left <= right) {
 ### Attempt 2 (OK)
 
 ```javascript
-let arr = [1, 3, 5, 7, 9, 11, 13, 15];
+let arr = [1,3,5,7,9,11,13,15];
 let target = 7;
 let left = 0;
 let right = arr.len() - 1;
@@ -62,7 +62,6 @@ while (left <= right) {
     right = mid - 1;
   }
 }
-
 result
 ```
 

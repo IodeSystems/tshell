@@ -670,6 +670,20 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       TNull
     }
 
+    shell.register("fill", "input: array, value: any, start?: number, end?: number", "fills array with value, returns new array",
+      listOf("""[0, 0, 0] |> fill(1)""", """[0, 0, 0] |> fill(5, 1, 2)""")
+    ) { args ->
+      val arr = requireArray("fill", args[0])
+      val value = args.getOrElse(1) { TNull }
+      val start = (args.getOrElse(2) { TNumber(0.0) } as? TNumber)?.value?.toInt() ?: 0
+      val end = (args.getOrElse(3) { TNumber(arr.elements.size.toDouble()) } as? TNumber)?.value?.toInt() ?: arr.elements.size
+      val result = arr.elements.toMutableList()
+      for (i in start until end.coerceAtMost(result.size)) {
+        result[i] = value
+      }
+      TArray(result)
+    }
+
     shell.register("concat", "a: array, b: array", "concatenates two arrays",
       listOf("""[1, 2] |> concat([3, 4])""", """concat([1, 2], [3, 4])""")
     ) { args ->
@@ -838,14 +852,27 @@ IMPORTANT — ALGORITHM COMPLEXITY:
 
     // --- Type operations ---
 
-    shell.register("toArray", "value: any", "null→[], non-array→[value], array→identity",
+    shell.register("toArray", "value: any, mapFn?: (v, i) => T", "array-like→array; supports {length: n} and optional mapFn (Array.from semantics)",
       listOf("""toArray(null)""", """toArray(5)""", """[1, 2] |> toArray()""")
     ) { args ->
       val v = args.firstOrNull() ?: TNull
-      when (v) {
+      val mapFn = args.getOrNull(1) as? TShellValue.TFunction
+      val base = when (v) {
         is TNull -> TArray(emptyList())
         is TArray -> v
+        is TObject -> {
+          val len = (v.fields["length"] as? TNumber)?.value?.toInt()
+          if (len != null) TArray(List(len) { TNull })
+          else TArray(listOf(v))
+        }
         else -> TArray(listOf(v))
+      }
+      if (mapFn != null) {
+        TArray(base.elements.mapIndexed { i, el ->
+          mapFn.callAsync(listOf(el, TNumber(i.toDouble())))
+        })
+      } else {
+        base
       }
     }
 

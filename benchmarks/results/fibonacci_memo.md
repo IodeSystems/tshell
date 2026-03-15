@@ -1,8 +1,8 @@
 # fibonacci_memo
 
 **Status:** PASS
-**Duration:** 12996ms
-**Tool calls:** 3
+**Duration:** 18507ms
+**Tool calls:** 4
 
 ## Prompt
 
@@ -20,13 +20,15 @@
 
 ```javascript
 let cache = {};
-function fib(n) {
+let fib = n => {
   if (n <= 1) return n;
   if (cache[n] !== undefined) return cache[n];
   cache[n] = fib(n - 1) + fib(n - 2);
   return cache[n];
-}
-fib(20);
+};
+let result = fib(20);
+export let result = result;
+result
 ```
 
 **Result:**
@@ -38,33 +40,56 @@ fib(20);
 
 ```javascript
 let cache = {};
-function fib(n) {
+let fib = n => {
   if (n <= 1) return n;
   let key = str(n);
   if (cache[key] !== undefined) return cache[key];
   cache[key] = fib(n - 1) + fib(n - 2);
   return cache[key];
-}
-fib(20);
+};
+let result = fib(20);
+export let result = result;
+result
 ```
 
 **Result:**
 ```
-"ERROR: tshell does not have 'undefined' — use null instead\n\n  at line 9:3"
+"ERROR: tshell does not have 'undefined' — use null instead\n\n  at line 9:16"
 ```
 
 ### Attempt 3 (OK)
 
 ```javascript
 let cache = {};
-function fib(n) {
+let fib = n => {
   if (n <= 1) return n;
   let key = str(n);
-  if (cache[key] !== null) return cache[key];
+  if (cache[key] != null) return cache[key];
   cache[key] = fib(n - 1) + fib(n - 2);
   return cache[key];
-}
-fib(20);
+};
+let result = fib(20);
+export let result = result;
+result
+```
+
+**Result:**
+```
+"ERROR: 'result' is already declared in this scope"
+```
+
+### Attempt 4 (OK)
+
+```javascript
+let cache = {};
+let fib = n => {
+  if (n <= 1) return n;
+  let key = str(n);
+  if (cache[key] != null) return cache[key];
+  cache[key] = fib(n - 1) + fib(n - 2);
+  return cache[key];
+};
+fib(20)
 ```
 
 **Result:**

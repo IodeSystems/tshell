@@ -1,7 +1,7 @@
 # nth_prime
 
 **Status:** PASS
-**Duration:** 8042ms
+**Duration:** 7804ms
 **Tool calls:** 1
 
 ## Prompt
@@ -29,17 +29,16 @@ let isPrime = (n) => {
   return true;
 };
 
-let count = 0;
+let primes = [];
 let num = 2;
-while (count < 50) {
+while (primes.length < 50) {
   if (isPrime(num)) {
-    count++;
+    primes.push(num);
   }
-  if (count < 50) {
-    num++;
-  }
+  num++;
 }
-num
+
+primes[49];
 ```
 
 **Result:**

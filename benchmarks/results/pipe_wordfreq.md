@@ -1,7 +1,7 @@
 # pipe_wordfreq
 
 **Status:** PASS
-**Duration:** 5104ms
+**Duration:** 5052ms
 **Tool calls:** 1
 
 ## Prompt
@@ -20,8 +20,8 @@
 
 ```javascript
 "the cat sat on the mat the cat"
-  |> split(" ")
-  |> countBy(w => w)
+|> split(" ")
+|> countBy(w => w)
 ```
 
 **Result:**

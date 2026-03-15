@@ -1,8 +1,8 @@
 # pipe_csv_parse
 
 **Status:** PASS
-**Duration:** 14101ms
-**Tool calls:** 2
+**Duration:** 9691ms
+**Tool calls:** 1
 
 ## Prompt
 
@@ -19,38 +19,23 @@
 ### Attempt 1 (OK)
 
 ```javascript
-let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
-let lines = csv.lines();
-let headers = lines[0].split(",");
-let data = lines.slice(1).map(line => {
-  let values = line.split(",");
+let csv = r`name,age,city
+alice,30,nyc
+bob,25,sf
+carol,35,la`;
+
+let lines = csv.trim().split('\n');
+let headers = lines[0].split(',');
+let objects = [];
+for (let i = 1; i < lines.length; i++) {
+  let values = lines[i].split(',');
   let obj = {};
-  headers.forEach((h, i) => obj[h] = values[i]);
-  return obj;
-});
-data
-```
-
-**Result:**
-```
-"ERROR: Syntax error at line 7:35\n\n    headers.forEach((h, i) => obj[h] = values[i]);\n                                     ^\n\n  Unexpected syntax at '='\n\n  This doesn't look like a valid statement or expression"
-```
-
-### Attempt 2 (OK)
-
-```javascript
-let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
-let lines = csv.lines();
-let headers = lines[0].split(",");
-let data = lines.slice(1).map(line => {
-  let values = line.split(",");
-  let obj = {};
-  for (let i = 0; i < headers.length; i++) {
-    obj[headers[i]] = values[i];
+  for (let j = 0; j < headers.length; j++) {
+    obj[headers[j]] = values[j];
   }
-  return obj;
-});
-data
+  objects.push(obj);
+}
+objects
 ```
 
 **Result:**

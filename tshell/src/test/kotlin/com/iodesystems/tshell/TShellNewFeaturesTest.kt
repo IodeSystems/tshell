@@ -1201,4 +1201,129 @@ class TShellNewFeaturesTest {
     assertEquals(listOf("apple", "banana"), fruit)
     assertEquals(listOf("carrot", "pea"), veg)
   }
+
+  // --- Array constructor and fill ---
+
+  @Test fun `Array constructor creates array of n nulls`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNull, TNull, TNull)), sh.eval("Array(3)"))
+  }
+
+  @Test fun `Array constructor with fill`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(0.0), TNumber(0.0), TNumber(0.0))), sh.eval("Array(3).fill(0)"))
+  }
+
+  @Test fun `Array constructor preserves namespace methods`() {
+    val sh = shell()
+    assertEquals(TBoolean(true), sh.eval("Array.isArray([1, 2])"))
+  }
+
+  @Test fun `Array constructor with zero`() {
+    val sh = shell()
+    assertEquals(TArray(emptyList()), sh.eval("Array(0)"))
+  }
+
+  @Test fun `Array constructor with no args`() {
+    val sh = shell()
+    assertEquals(TArray(emptyList()), sh.eval("Array()"))
+  }
+
+  @Test fun `fill with start and end params`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(0.0), TNumber(9.0), TNumber(9.0), TNumber(0.0))),
+      sh.eval("[0, 0, 0, 0] |> fill(9, 1, 3)"))
+  }
+
+  @Test fun `fill with only start param`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(0.0), TNumber(7.0), TNumber(7.0))),
+      sh.eval("[0, 0, 0] |> fill(7, 1)"))
+  }
+
+  @Test fun `fill via pipe syntax`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(1.0), TNumber(1.0))),
+      sh.eval("[0, 0] |> fill(1)"))
+  }
+
+  @Test fun `calling a plain object without __call throws`() {
+    val sh = shell()
+    assertThrows<TShellError> { sh.eval("let obj = {a: 1}; obj()") }
+  }
+
+  @Test fun `object with __call is callable`() {
+    val sh = shell()
+    assertEquals(TNumber(42.0), sh.eval("""
+      let obj = { __call: (x) => x * 2, label: "doubler" };
+      obj(21)
+    """))
+  }
+
+  @Test fun `callable object in method chain`() {
+    val sh = shell()
+    assertEquals(TNumber(10.0), sh.eval("""
+      let ns = { create: { __call: (n) => n * 2 } };
+      ns.create(5)
+    """))
+  }
+
+  @Test fun `Array from with length object`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNull, TNull, TNull)), sh.eval("Array.from({ length: 3 })"))
+  }
+
+  @Test fun `Array from with length object and map function`() {
+    val sh = shell()
+    assertEquals(TArray(listOf(TNumber(0.0), TNumber(1.0), TNumber(2.0))),
+      sh.eval("Array.from({ length: 3 }, (_, i) => i)"))
+  }
+
+  @Test fun `Array from with length and fill pattern for 2D arrays`() {
+    val sh = shell()
+    assertEquals(TNumber(4.0), sh.eval("""
+      function lcsLength(s1, s2) {
+        let m = s1.length;
+        let n = s2.length;
+        let dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+        for (let i = 1; i <= m; i++) {
+          for (let j = 1; j <= n; j++) {
+            if (s1[i-1] === s2[j-1]) {
+              dp[i][j] = dp[i-1][j-1] + 1;
+            } else {
+              dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+            }
+          }
+        }
+        return dp[m][n];
+      }
+      let s1 = 'ABCBDAB';
+      let s2 = 'BDCAB';
+      lcsLength(s1, s2);
+    """))
+  }
+
+  @Test fun `Array fill map pattern for 2D arrays`() {
+    val sh = shell()
+    assertEquals(TNumber(4.0), sh.eval("""
+      function lcsLength(s1, s2) {
+        let m = s1.length;
+        let n = s2.length;
+        let dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+        for (let i = 1; i <= m; i++) {
+          for (let j = 1; j <= n; j++) {
+            if (s1[i-1] === s2[j-1]) {
+              dp[i][j] = dp[i-1][j-1] + 1;
+            } else {
+              dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+            }
+          }
+        }
+        return dp[m][n];
+      }
+      let s1 = 'ABCBDAB';
+      let s2 = 'BDCAB';
+      lcsLength(s1, s2);
+    """))
+  }
 }

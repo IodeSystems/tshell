@@ -1,7 +1,7 @@
 # object_transform
 
 **Status:** PASS
-**Duration:** 5269ms
+**Duration:** 5280ms
 **Tool calls:** 1
 
 ## Prompt
@@ -11,7 +11,7 @@
 ## Final Answer
 
 ```
-"alice, bob"
+alice, bob
 ```
 
 ## Attempts
@@ -20,8 +20,8 @@
 
 ```javascript
 [{name:"alice",score:85},{name:"bob",score:92},{name:"carol",score:78}]
-|> filter(s => s.score > 80)
-|> map(s => s.name)
+|> filter(x => x.score > 80)
+|> map(x => x.name)
 |> sort()
 |> join(", ")
 ```

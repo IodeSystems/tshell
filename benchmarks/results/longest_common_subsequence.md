@@ -1,8 +1,8 @@
 # longest_common_subsequence
 
 **Status:** PASS
-**Duration:** 18310ms
-**Tool calls:** 2
+**Duration:** 10915ms
+**Tool calls:** 1
 
 ## Prompt
 
@@ -19,59 +19,31 @@
 ### Attempt 1 (OK)
 
 ```javascript
-let s1 = 'ABCBDAB';
-let s2 = 'BDCAB';
-let m = s1.len();
-let n = s2.len();
-let dp = Array.range(m + 1).map(i => Array.range(n + 1).fill(0));
-
-for (let i = 1; i <= m; i++) {
-  for (let j = 1; j <= n; j++) {
-    if (s1.charAt(i - 1) === s2.charAt(j - 1)) {
-      dp[i][j] = 1 + dp[i - 1][j - 1];
-    } else {
-      dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+function lcsLength(s1: string, s2: string): number {
+    let m = s1.len();
+    let n = s2.len();
+    let dp = [];
+    for (let i = 0; i <= m; i++) {
+        dp[i] = [];
+        for (let j = 0; j <= n; j++) {
+            dp[i][j] = 0;
+        }
     }
-  }
-}
-
-dp[m][n];
-```
-
-**Result:**
-```
-"ERROR: Type mismatch in call\n\n  Expected: function\n  Got:      null (null)\n\n  at line 5:20"
-```
-
-### Attempt 2 (OK)
-
-```javascript
-let s1 = 'ABCBDAB';
-let s2 = 'BDCAB';
-let m = s1.len();
-let n = s2.len();
-let dp = [];
-for (let i = 0; i <= m; i++) {
-  let row = [];
-  for (let j = 0; j <= n; j++) {
-    row.push(0);
-  }
-  dp.push(row);
-}
-
-for (let i = 1; i <= m; i++) {
-  for (let j = 1; j <= n; j++) {
-    if (s1.charAt(i - 1) === s2.charAt(j - 1)) {
-      dp[i][j] = 1 + dp[i - 1][j - 1];
-    } else {
-      let a = dp[i - 1][j];
-      let b = dp[i][j - 1];
-      dp[i][j] = a > b ? a : b;
+    
+    for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+            if (s1[i - 1] === s2[j - 1]) {
+                dp[i][j] = 1 + dp[i - 1][j - 1];
+            } else {
+                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1]);
+            }
+        }
     }
-  }
+    
+    return dp[m][n];
 }
 
-dp[m][n];
+lcsLength("ABCBDAB", "BDCAB");
 ```
 
 **Result:**

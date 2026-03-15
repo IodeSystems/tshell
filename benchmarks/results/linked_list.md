@@ -1,7 +1,7 @@
 # linked_list
 
 **Status:** PASS
-**Duration:** 6194ms
+**Duration:** 6592ms
 **Tool calls:** 1
 
 ## Prompt
@@ -21,16 +21,17 @@
 ```javascript
 let list = {value: 10, next: {value: 20, next: {value: 30, next: null}}};
 
-let toArray = (node) => {
-    let arr = [];
-    while (node) {
-        arr.push(node.value);
-        node = node.next;
-    }
-    return arr;
+let toArr = (head) => {
+  let arr = [];
+  let current = head;
+  while (current != null) {
+    arr.push(current.value);
+    current = current.next;
+  }
+  return arr;
 };
 
-toArray(list)
+toArr(list);
 ```
 
 **Result:**

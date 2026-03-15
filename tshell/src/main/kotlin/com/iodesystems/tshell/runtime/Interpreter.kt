@@ -127,6 +127,19 @@ class Interpreter(
       }
     }
 
+    // Array namespace — callable: Array(n) creates array of n nulls
+    if (globals.get("Array") == null || globals.get("Array") is TShellValue.TObject) {
+      val arrayMethods = mutableMapOf<String, TShellValue>()
+      for ((jsMethod, tshellCmd) in JS_NAMESPACE_ALIASES["Array"].orEmpty()) {
+        commandFn(tshellCmd)?.let { arrayMethods[jsMethod] = it }
+      }
+      arrayMethods["__call"] = nativeFn("Array") { args ->
+        val n = (args.firstOrNull() as? TShellValue.TNumber)?.value?.toInt() ?: 0
+        TShellValue.TArray(List(n) { TShellValue.TNull })
+      }
+      globals.defineOrSet("Array", TShellValue.TObject(arrayMethods))
+    }
+
     // Promise namespace (always update — uses interpreter-level fns)
     registerNamespace("Promise", mapOf("all" to allFn, "race" to raceFn), globalFallback = false)
   }
@@ -998,7 +1011,7 @@ class Interpreter(
             op.LBRACKET() != null -> accessIndex(base, eval(op.expression()))
             op.LPAREN() != null -> {
               val callArgs = op.argumentList()?.let { evalCallArgs(it) } ?: CallArgs.EMPTY
-              val fn = base as? TShellValue.TFunction
+              val fn = asCallable(base)
                 ?: throw TShellError.typeMismatch("call", "function", base)
               val args = resolveNamedArgs(fn, callArgs, op)
               callFunction(fn, args, op)
@@ -1260,13 +1273,10 @@ class Interpreter(
             }
             op.LPAREN() != null -> {
               val callArgs = op.argumentList()?.let { evalCallArgs(it) } ?: CallArgs.EMPTY
-              when (current) {
-                is TShellValue.TFunction -> {
-                  val args = resolveNamedArgs(current, callArgs, op)
-                  callFunction(current, args, op)
-                }
-                else -> throw TShellError.typeMismatch("call", "function", current)
-              }
+              val fn = asCallable(current)
+                ?: throw TShellError.typeMismatch("call", "function", current)
+              val args = resolveNamedArgs(fn, callArgs, op)
+              callFunction(fn, args, op)
             }
             else -> current
           }
@@ -1723,6 +1733,13 @@ class Interpreter(
         ">>>=" -> intBitwiseOp(current, rhs, ">>>") { a, b -> a ushr (b and 0x1f) }
         else -> throw TShellError.runtime("Unknown assignment operator: $op")
       }
+    }
+
+    /** Extract a callable TFunction from a value — supports TFunction directly and TObject with __call */
+    private fun asCallable(value: TShellValue): TShellValue.TFunction? = when (value) {
+      is TShellValue.TFunction -> value
+      is TShellValue.TObject -> value.fields["__call"] as? TShellValue.TFunction
+      else -> null
     }
 
     private fun accessMember(obj: TShellValue, field: String): TShellValue {

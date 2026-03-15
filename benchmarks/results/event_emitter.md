@@ -1,7 +1,7 @@
 # event_emitter
 
 **Status:** PASS
-**Duration:** 8382ms
+**Duration:** 8721ms
 **Tool calls:** 1
 
 ## Prompt
@@ -11,7 +11,7 @@
 ## Final Answer
 
 ```
-"[42, 84]"
+[42, 84]
 ```
 
 ## Attempts
@@ -19,33 +19,34 @@
 ### Attempt 1 (OK)
 
 ```javascript
-let handlers = {};
-
-function on(event, handler) {
-  if (!handlers[event]) {
-    handlers[event] = [];
-  }
-  handlers[event].push(handler);
+let EventEmitter = (() => {
+  let handlers = {};
+  
+  let on = (event, handler) => {
+    if (!handlers[event]) {
+      handlers[event] = [];
+    }
+    handlers[event].push(handler);
+  };
+  
+  let emit = (event, data) => {
+    if (!handlers[event]) {
+      return [];
+    }
+    return handlers[event].map(handler => handler(data));
+  };
+  
   return { on, emit };
-}
+})();
 
-function emit(event, data) {
-  if (!handlers[event]) {
-    return [];
-  }
-  let results = [];
-  handlers[event].forEach(h => {
-    results.push(h(data));
-  });
-  return results;
-}
+let results = [];
 
-let emitter = { on, emit };
+EventEmitter.on('data', (d) => d);
+EventEmitter.on('data', (d) => d * 2);
 
-emitter.on('data', d => d);
-emitter.on('data', d => d * 2);
+results = EventEmitter.emit('data', 42);
 
-emitter.emit('data', 42);
+results
 ```
 
 **Result:**

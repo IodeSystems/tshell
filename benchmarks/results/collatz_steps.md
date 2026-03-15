@@ -1,7 +1,7 @@
 # collatz_steps
 
 **Status:** PASS
-**Duration:** 5741ms
+**Duration:** 5628ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,15 +19,15 @@
 ### Attempt 1 (OK)
 
 ```javascript
-let n = 27;
-let steps = 0;
+export let n = 27;
+export let steps = 0;
 while (n !== 1) {
   if (n % 2 === 0) {
     n = n / 2;
   } else {
     n = 3 * n + 1;
   }
-  steps = steps + 1;
+  steps++;
 }
 steps
 ```
