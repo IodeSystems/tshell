@@ -216,9 +216,14 @@ fn(name: "Alice", age: 30)  // named args
 [1,2,3] |* (x => x * 2) |> reduce((a, x) => a + x, 0)  // scatter then pipe
 "hello".toUpperCase()        // JS methods auto-resolve to commands
 
-## Raw template strings — use for edit(), write(), replace()
-// r`...` — backslashes literal, ${'$'}{expr} interpolation works
-r`C:\Users\${'$'}{name}`              // → C:\Users\Alice
+## Vars — pass complex strings without escaping
+// Use the vars tool parameter for paths, regex, user data:
+// {"code": "lines(content) |> len()", "vars": {"content": "line1\nline2"}}
+// vars are bound as constants — no double-escaping needed
+
+## Raw strings — backslashes stay literal
+r"C:\Users\admin\file.txt"           // r"..." or r'...' — no escapes, no interpolation
+r`C:\Users\${'$'}{name}`              // r`...` — no escapes, ${'$'}{} interpolation works
 edit("f.ini", r`C:\OldApp`, r`C:\NewApp`)
 
 ## Composition
@@ -235,10 +240,13 @@ chain(() => getData(), d => transform(d)) // sequential"""
      */
     const val TOOL_DESCRIPTION =
       "Execute tshell code (JS subset with pipes). " +
-      "Use r`...` for strings with backslashes — they stay literal. " +
-      "Pass data via vars to avoid double-escaping: {\"code\": \"process(input)\", \"vars\": {\"input\": \"value\"}}. " +
+      "IMPORTANT: LLMs are bad at double-escaping. Never embed complex strings (paths, regex, user data) " +
+      "as literals in code. Instead pass them via vars: " +
+      "{\"code\": \"process(input)\", \"vars\": {\"input\": \"C:\\\\Users\\\\file.txt\"}}. " +
+      "vars are bound as constants before execution. " +
+      "For inline strings with backslashes use r\"...\" or r`...` (raw strings). " +
       "export persists values across calls; without export, state is discarded. " +
-      "help() lists commands. If code errors, read the message, fix, retry."
+      "help() lists commands."
 
     const val PROMPT_EXAMPLES = """let x = 42
 let a, b = 1, c = "two"

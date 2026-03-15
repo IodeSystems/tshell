@@ -1,7 +1,7 @@
 # reduce_groupby
 
 **Status:** PASS
-**Duration:** 6426ms
+**Duration:** 6627ms
 **Tool calls:** 1
 
 ## Prompt
@@ -20,13 +20,7 @@
 
 ```javascript
 let data = [{type:"fruit",name:"apple"},{type:"veg",name:"carrot"},{type:"fruit",name:"banana"},{type:"veg",name:"pea"}];
-
-data.reduce((acc, item) => {
-  let key = item.type;
-  if (!acc[key]) acc[key] = [];
-  acc[key].push(item.name);
-  return acc;
-}, {});
+data |> reduce((acc, item) => { let t = item.type; if (!acc[t]) acc[t] = []; acc[t].push(item.name); return acc; }, {})
 ```
 
 **Result:**

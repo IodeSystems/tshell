@@ -1,8 +1,8 @@
 # tower_of_hanoi
 
 **Status:** PASS
-**Duration:** 5285ms
-**Tool calls:** 2
+**Duration:** 3711ms
+**Tool calls:** 1
 
 ## Prompt
 
@@ -19,20 +19,9 @@
 ### Attempt 1 (OK)
 
 ```javascript
-const n = 10;
-2 ** n - 1
-```
-
-**Result:**
-```
-"ERROR: Syntax error at line 2:3\n\n  2 ** n - 1\n     ^\n\n  Expected an expression, got '*'"
-```
-
-### Attempt 2 (OK)
-
-```javascript
-const n = 10;
-Math.pow(2, n) - 1
+let n = 10;
+let result = pow(2, n) - 1;
+result
 ```
 
 **Result:**

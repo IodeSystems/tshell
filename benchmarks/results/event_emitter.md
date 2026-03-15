@@ -1,7 +1,7 @@
 # event_emitter
 
 **Status:** PASS
-**Duration:** 13484ms
+**Duration:** 8704ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,32 +19,31 @@
 ### Attempt 1 (OK)
 
 ```javascript
-function EventEmitter() {
-  let handlers = {};
-  
-  function on(event, handler) {
-    if (!handlers[event]) {
-      handlers[event] = [];
-    }
-    handlers[event].push(handler);
+let handlers = {};
+
+function on(event, handler) {
+  if (!handlers[event]) {
+    handlers[event] = [];
   }
-  
-  function emit(event, data) {
-    let results = [];
-    if (handlers[event]) {
-      handlers[event].forEach(h => {
-        results.push(h(data));
-      });
-    }
-    return results;
-  }
-  
+  handlers[event].push(handler);
   return { on, emit };
 }
 
-let emitter = EventEmitter();
+function emit(event, data) {
+  let results = [];
+  if (handlers[event]) {
+    for (let handler of handlers[event]) {
+      results.push(handler(data));
+    }
+  }
+  return results;
+}
+
+let emitter = { on, emit };
+
 emitter.on("data", d => d);
 emitter.on("data", d => d * 2);
+
 emitter.emit("data", 42);
 ```
 

@@ -1,8 +1,8 @@
 # curry
 
 **Status:** PASS
-**Duration:** 8419ms
-**Tool calls:** 2
+**Duration:** 8841ms
+**Tool calls:** 1
 
 ## Prompt
 
@@ -19,26 +19,9 @@
 ### Attempt 1 (OK)
 
 ```javascript
-export let curriedAdd = (f) => (a) => (b) => f(a, b);
-export let add = (a, b) => a + b;
-export let curriedAdd2 = curriedAdd(add);
-export let add5 = curriedAdd2(5);
-return add5(3);
-```
-
-**Result:**
-```
-"ERROR: null"
-```
-
-### Attempt 2 (OK)
-
-```javascript
-let curriedAdd = (f) => (a) => (b) => f(a, b);
-let add = (a, b) => a + b;
-let curriedAdd2 = curriedAdd(add);
-let add5 = curriedAdd2(5);
-add5(3);
+let curriedAdd = (a) => (b) => a + b;
+let add5 = curriedAdd(5);
+add5(3)
 ```
 
 **Result:**

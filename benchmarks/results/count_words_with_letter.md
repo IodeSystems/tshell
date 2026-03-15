@@ -1,7 +1,7 @@
 # count_words_with_letter
 
 **Status:** PASS
-**Duration:** 3710ms
+**Duration:** 3920ms
 **Tool calls:** 1
 
 ## Prompt
@@ -20,13 +20,13 @@
 
 ```javascript
 "the quick brown fox jumps over the lazy dog"
-  |> split(" ")
-  |> filter(w => w.contains("o"))
+  |> split()
+  |> filter(w => w.includes("o"))
   |> len()
 ```
 
 **Result:**
 ```
-"4"
+"1"
 ```
 

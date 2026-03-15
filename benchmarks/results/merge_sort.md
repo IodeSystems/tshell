@@ -1,9 +1,8 @@
 # merge_sort
 
-**Status:** FAIL
-**Duration:** 30004ms
-**Tool calls:** 3
-**Error:** TIMEOUT (30s)
+**Status:** PASS
+**Duration:** 14227ms
+**Tool calls:** 1
 
 ## Prompt
 
@@ -12,7 +11,7 @@
 ## Final Answer
 
 ```
-
+[3, 9, 10, 27, 38, 43, 82]
 ```
 
 ## Attempts
@@ -21,104 +20,43 @@
 
 ```javascript
 let mergeSort = (arr) => {
-  if (arr.len() <= 1) {
-    return arr;
-  }
-  let mid = Math.floor(arr.len() / 2);
-  let left = arr.slice(0, mid);
-  let right = arr.slice(mid);
-  let leftSorted = mergeSort(left);
-  let rightSorted = mergeSort(right);
-  return merge(leftSorted, rightSorted);
+  if (len(arr) <= 1) return arr;
+  let mid = floor(len(arr) / 2);
+  let left = mergeSort(slice(arr, 0, mid));
+  let right = mergeSort(slice(arr, mid));
+  return merge(left, right);
 };
 
 let merge = (left, right) => {
   let result = [];
-  while (left.len() > 0 && right.len() > 0) {
-    if (left[0] <= right[0]) {
-      result.push(left.shift());
+  let i = 0;
+  let j = 0;
+  while (i < len(left) && j < len(right)) {
+    if (left[i] <= right[j]) {
+      result = concat(result, [left[i]]);
+      i = i + 1;
     } else {
-      result.push(right.shift());
+      result = concat(result, [right[j]]);
+      j = j + 1;
     }
   }
-  return concat(result, left).concat(right);
+  while (i < len(left)) {
+    result = concat(result, [left[i]]);
+    i = i + 1;
+  }
+  while (j < len(right)) {
+    result = concat(result, [right[j]]);
+    j = j + 1;
+  }
+  return result;
 };
 
-mergeSort([38, 27, 43, 3, 9, 82, 10]);
+let arr = [38, 27, 43, 3, 9, 82, 10];
+mergeSort(arr);
 ```
 
 **Result:**
 ```
-"ERROR: null"
-```
-
-### Attempt 2 (OK)
-
-```javascript
-let mergeSort = (arr) => {
-  if (arr.len() <= 1) {
-    return arr;
-  }
-  let mid = Math.floor(arr.len() / 2);
-  let left = arr.slice(0, mid);
-  let right = arr.slice(mid);
-  let leftSorted = mergeSort(left);
-  let rightSorted = mergeSort(right);
-  return merge(leftSorted, rightSorted);
-};
-
-let merge = (left, right) => {
-  let result = [];
-  while (left.len() > 0 && right.len() > 0) {
-    if (left[0] <= right[0]) {
-      result.push(left.shift());
-    } else {
-      result.push(right.shift());
-    }
-  }
-  return concat(result, left).concat(right);
-};
-
-mergeSort([38, 27, 43, 3, 9, 82, 10]);
-```
-
-**Result:**
-```
-"ERROR: null"
-```
-
-### Attempt 3 (OK)
-
-```javascript
-let mergeSort = (arr) => {
-  if (arr.len() <= 1) {
-    return arr;
-  }
-  let mid = Math.floor(arr.len() / 2);
-  let left = arr.slice(0, mid);
-  let right = arr.slice(mid);
-  let leftSorted = mergeSort(left);
-  let rightSorted = mergeSort(right);
-  return merge(leftSorted, rightSorted);
-};
-
-let merge = (left, right) => {
-  let result = [];
-  while (left.len() > 0 && right.len() > 0) {
-    if (left[0] <= right[0]) {
-      result.push(left.shift());
-    } else {
-      result.push(right.shift());
-    }
-  }
-  return concat(result, left).concat(right);
-};
-
-mergeSort([38, 27, 43, 3, 9, 82, 10]);
-```
-
-**Result:**
-```
-"ERROR: null"
+"[3, 9, 10, 27, 38, 43, 82]"
 ```
 

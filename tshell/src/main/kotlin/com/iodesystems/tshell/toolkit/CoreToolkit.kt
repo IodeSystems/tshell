@@ -84,6 +84,14 @@ ADVANCED: Chained operations with variables
     |> sort("sq")
     |> limit(5)
 
+IMPORTANT — STRINGS WITH BACKSLASHES:
+  LLMs are bad at double-escaping. Do NOT embed file paths, regex, or user data as string
+  literals in code. Use the vars parameter instead:
+    {"code": "lines(content) |> len()", "vars": {"content": "line1\nline2"}}
+    {"code": "split(path, sep)", "vars": {"path": "C:\\Users\\file.txt", "sep": "\\"}}
+  vars are bound as constants — the code references them by name.
+  For simple inline cases, use raw strings: r"C:\Users\file.txt" or r`C:\Users\${'$'}{name}`
+
 IMPORTANT — ALGORITHM COMPLEXITY:
   tshell has no memoization. Naive recursion like fib(n-1)+fib(n-2) is O(2^n) and will hit limits.
   Always prefer iterative solutions with loops for repeated computation:

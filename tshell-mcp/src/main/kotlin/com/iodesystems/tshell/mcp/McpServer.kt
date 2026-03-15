@@ -85,7 +85,7 @@ class McpServer(
             )),
             "vars" to JsonObject(mapOf(
               "type" to JsonPrimitive("object"),
-              "description" to JsonPrimitive("variables to bind before execution — avoids double-escaping data in code strings"),
+              "description" to JsonPrimitive("RECOMMENDED for file paths, regex patterns, and user data. Bound as constants before execution — avoids double-escaping errors that LLMs commonly make."),
               "additionalProperties" to JsonPrimitive(true),
             )),
           )),

@@ -1,8 +1,8 @@
 # matrix_multiply
 
 **Status:** PASS
-**Duration:** 20405ms
-**Tool calls:** 4
+**Duration:** 7713ms
+**Tool calls:** 1
 
 ## Prompt
 
@@ -21,71 +21,17 @@
 ```javascript
 let A = [[1,2],[3,4]];
 let B = [[5,6],[7,8]];
+let result = [[0,0],[0,0]];
 
-let result = A.map((row, i) => 
-  row.map((val, j) => 
-    row.reduce((sum, valK, k) => sum + valK * B[k][j], 0)
-  )
-);
-
-result
-```
-
-**Result:**
-```
-"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 6:47"
-```
-
-### Attempt 2 (OK)
-
-```javascript
-let A = [[1,2],[3,4]];
-let B = [[5,6],[7,8]];
-
-let result = A.map((row, i) => 
-  row.map((val, j) => 
-    row.reduce((sum, valK, k) => sum + valK * B[k][j], 0)
-  )
-);
+for (let i = 0; i < 2; i++) {
+    for (let j = 0; j < 2; j++) {
+        for (let k = 0; k < 2; k++) {
+            result[i][j] += A[i][k] * B[k][j];
+        }
+    }
+}
 
 result
-```
-
-**Result:**
-```
-"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 6:47"
-```
-
-### Attempt 3 (OK)
-
-```javascript
-let A = [[1,2],[3,4]];
-let B = [[5,6],[7,8]];
-
-let result = A.map((row, i) => 
-  row.map((val, j) => 
-    row.reduce((sum, valK, k) => sum + valK * B[k][j], 0)
-  )
-);
-
-result
-```
-
-**Result:**
-```
-"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 6:47"
-```
-
-### Attempt 4 (OK)
-
-```javascript
-let A = [[1,2],[3,4]];
-let B = [[5,6],[7,8]];
-
-let row0 = [A[0][0] * B[0][0] + A[0][1] * B[1][0], A[0][0] * B[0][1] + A[0][1] * B[1][1]];
-let row1 = [A[1][0] * B[0][0] + A[1][1] * B[1][0], A[1][0] * B[0][1] + A[1][1] * B[1][1]];
-
-[row0, row1]
 ```
 
 **Result:**

@@ -273,11 +273,16 @@ class Interpreter(
       val sourceLine = if (line <= lines.size) lines[line - 1] else ""
       val pointer = " ".repeat(col) + "^"
       val friendly = translateError(msg, sourceLine, col, offendingSymbol)
+      val escapeHint = if (sourceLine.contains("\\\\") || sourceLine.contains("\\\"") || sourceLine.contains("\\'"))
+        "\n\n  Hint: strings with backslashes are error-prone in code. " +
+        "Use the vars parameter to pass complex strings directly, " +
+        "or use r\"...\" / r'...' / r`...` for raw strings where backslashes stay literal."
+      else ""
       throw TShellError(
         "Syntax error at line $line:$col\n\n" +
           "  $sourceLine\n" +
           "  $pointer\n\n" +
-          "  $friendly"
+          "  $friendly$escapeHint"
       )
     }
 
