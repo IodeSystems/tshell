@@ -1,7 +1,12 @@
 # tshell-cli
 
-Standalone MCP server binary. Wraps tshell core + optional toolkits behind a single
-`eval` tool for LLMs.
+One MCP server that replaces many. Connect MCP servers written in any language —
+Python, Go, TypeScript, whatever — and expose them all through a single `eval` tool.
+
+- **Programmatic reasoning** — your LLM computes instead of guessing. Pipes, filters, math, string ops in one call
+- **Context reduction** — 20 tools × ~200 tokens each = 4KB of prompt. tshell replaces them with one `eval` tool (~1.5KB total). Tools are discovered via `help()` at runtime
+- **Polyglot composition** — chain calls across servers in a single expression: `app.users() |> filter(u => u.active) |> browser.screenshot(u.url)`
+- **Built-in toolkits** — file system, SQL, web fetch/search, Playwright — all wired up via CLI flags
 
 ## Build & Verify
 
