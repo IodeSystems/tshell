@@ -3,11 +3,37 @@
 Standalone MCP server binary. Wraps tshell core + optional toolkits behind a single
 `eval` tool for LLMs.
 
-## Build
+## Build & Verify
 
 ```bash
 ./gradlew :tshell-cli:installDist
+./tshell-cli/build/install/tshell-cli/bin/tshell-cli --help
 ```
+
+```
+Usage: tshell-cli [<options>]
+
+Options:
+  --files-dir=<text>  Enable file toolkit rooted at this directory.
+  --files-read-only   File toolkit is read-only (default: writable).
+  --sql-url=<text>    JDBC URL to connect to (e.g. jdbc:sqlite:app.db,
+                      jdbc:postgresql://localhost/mydb). Registers as 'db'
+                      namespace. Can be specified multiple times as name=url.
+  --sql-read-only / --sql-writable
+                      SQL connections are read-only (default: read-only).
+  --web               Enable web toolkit (Web.fetch, Web.search, Html.*).
+  --connect=<text>    External MCP server: 'command args...' or
+                      'namespace=command args...'.
+  --mcp=<text>        MCP server config: file path, inline JSON, or
+                      'name:command args...'. JSON expects {"mcpServers":
+                      {"name": {"command": "...", "args": [...]}}}.
+  --timeout=<int>     Execution timeout in milliseconds (default: 30000)
+  --max-steps=<int>   Maximum execution steps (default: 1000000)
+  --max-output=<int>  Maximum output bytes (default: 16000)
+  -h, --help          Show this message and exit
+```
+
+The binary is at `./tshell-cli/build/install/tshell-cli/bin/tshell-cli`. Run it with no args to start as a stdio MCP server.
 
 ## Claude Desktop Example
 
@@ -34,21 +60,6 @@ Wire up tshell with file access, a Postgres database, and Playwright — all beh
 
 JDBC drivers (Postgres, MySQL, etc.) aren't bundled. Set `TSHELL_CLASSPATH` to include them.
 SQLite works out of the box — just use `--sql-url jdbc:sqlite:app.db`.
-
-## CLI Flags
-
-| Flag | Purpose |
-| --- | --- |
-| `--files-dir PATH` | Enable file toolkit rooted at PATH |
-| `--files-read-only` | File toolkit is read-only (default: writable) |
-| `--sql-url URL` | JDBC URL (repeatable, `name=jdbc:...` for named). Default: read-only |
-| `--sql-writable` | Allow SQL writes |
-| `--web` | Enable Web.fetch, Web.search, Html.* |
-| `--mcp SPEC` | MCP server: file path, inline JSON, or `name:command args...` |
-| `--connect SPEC` | Shorthand: `command args...` or `namespace=command args...` |
-| `--timeout MS` | Execution timeout (default: 30000) |
-| `--max-steps N` | Max execution steps (default: 1000000) |
-| `--max-output N` | Max output bytes (default: 16000) |
 
 ## `--mcp` vs `--connect`
 
