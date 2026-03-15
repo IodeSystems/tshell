@@ -200,40 +200,27 @@ class TShell(
      * that every example line is valid tshell.
      */
     const val PROMPT_SYNTAX = """## Syntax: JS subset
-let/const/var, function, =>, if/else, while, do..while, for/for..of/for..in, switch/case,
+let/const/var, function, =>, if/else, while, for/for..of/for..in, switch/case,
 try/catch/finally, throw, break, continue, destructuring, spread, ?., ??, ternary,
-template strings, regex, typeof, ===. All work as expected.
-Bitwise: &, |, ^, ~, <<, >>, >>>, and compound &=, |=, ^=, <<=, >>=, >>>=.
+template strings, regex, typeof, ===, bitwise. All work as expected.
 Not supported: class, new, this, import, yield, async/await, generators.
+Last expression is the output. `let` returns null — end with the value you want.
 
 ## Key differences from JS
-export let x = 10          // export persists across eval calls; without export, discarded
-export function f(a) { return a }
-fn(name: "Alice", age: 30) // named args (matched to param names)
-The last expression is the output. `let` returns null — end with the value you want.
+export let x = 10            // persists across eval calls; without export, discarded
+fn(name: "Alice", age: 30)  // named args
+[1,2,3] |> map(n => n * 10) // pipe: passes left as first arg
+[1,2,3] |* (x => x * 2) |> reduce((a, x) => a + x, 0)  // scatter then pipe
+"hello".toUpperCase()        // JS methods auto-resolve to commands
 
-## Pipes (not in JS)
-[1,2,3] |> filter(n => n > 1) |> map(n => n * 10)  // |> passes left as first arg
-[3,1,2] |> sort("name")       // sort([3,1,2], "name") — extra args in parens
-3 |> add <| 4                 // <| adds right-side args: add(3, 4)
-[10, 20, 30] |> [a, b, c]    // pipe destructure: a=10, b=20, c=30
+## Raw template strings — use for edit(), write(), replace()
+// r`...` — backslashes literal, ${'$'}{expr} interpolation works
+r`C:\Users\${'$'}{name}`              // → C:\Users\Alice
+edit("f.ini", r`C:\OldApp`, r`C:\NewApp`)
 
-## Scatter pipe (not in JS)
-// |* normalizes to array (null→[], non-array→[x]), parallel maps each element
-[1,2,3] |* (x => x * 2)     // → [2, 4, 6] (parallel)
-[1,2,3] |* double |> reduce((acc, x) => acc + x)  // scatter then reduce
-
-## Method syntax → command resolution
-[1,2,3].map(x => x * 2)     // resolves to map([1,2,3], x => x * 2)
-"hello".toUpperCase()        // resolves to upper("hello")
-[1,2,3].includes(2)         // resolves to contains([1,2,3], 2)
-// JS method names auto-resolve to tshell commands. Use help() to discover all commands.
-
-## Composition (not in JS)
-all(() => getA(), () => getB())    // parallel, returns [resultA, resultB]
-race(() => tryA(), () => tryB())   // parallel, first success wins
-any(() => tryA(), () => tryB())    // sequential, first truthy result
-chain(() => getData(), d => transform(d))  // sequential pipeline"""
+## Composition
+all(() => a(), () => b()) // parallel   race() // first success
+chain(() => getData(), d => transform(d)) // sequential"""
 
     /**
      * Executable examples from the prompt syntax section.
@@ -244,18 +231,10 @@ chain(() => getData(), d => transform(d))  // sequential pipeline"""
      * Kept here so it stays in sync with the language and can be verified by tests.
      */
     const val TOOL_DESCRIPTION =
-      "Execute tshell code (JS subset with pipes, not full JS). " +
-      "The last expression's value is the output (let returns null — end with the value you want). " +
-      "Variables: let x = 5. Named functions: function name(x) { return x * 2 }. " +
-      "Lambdas: let f = x => x + 1. Pipes: [1,2,3] |> map(n => n * 10). " +
-      "Regex: /pattern/flags with match, replace, split, test. " +
-      "Method syntax: arr.map(fn), str.toUpperCase() — auto-resolves to commands. " +
-      "Parallel: all(() => a(), () => b()), race(), |* scatter. " +
-      "Use 'export' to persist values across tool calls: export let x = 5, export function f(n) { ... }. " +
-      "Without export, all state is discarded after the tool call returns (not during — code within a single call shares scope normally). " +
-      "Use help() to discover commands, help(\"name\") for signatures. " +
-      "Iterate freely — if code errors, read the message, fix, and retry. Multiple calls are fine. " +
-      "Output is limited — use limit(), filter(), or read(path, start, lines) to reduce large results."
+      "Execute tshell code (JS subset with pipes). " +
+      "Use r`...` for strings with backslashes — they stay literal. " +
+      "export persists values across calls; without export, state is discarded. " +
+      "help() lists commands. If code errors, read the message, fix, retry."
 
     const val PROMPT_EXAMPLES = """let x = 42
 let a, b = 1, c = "two"

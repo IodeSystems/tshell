@@ -4,7 +4,7 @@ options { superClass=TShellLexerBase; }
 
 // Keywords
 LET     : 'let' | 'const' | 'var';
-FUNCTION: 'function';
+FUNCTION: 'function' | 'fn';
 IF      : 'if';
 ELSE    : 'else';
 WHILE   : 'while';
@@ -104,7 +104,8 @@ STRING
   | '\'' (~['\\\r\n] | '\\' .)* '\''
   ;
 
-TEMPLATE_START : '`' -> pushMode(TEMPLATE_MODE);
+TEMPLATE_START     : '`' -> pushMode(TEMPLATE_MODE);
+RAW_TEMPLATE_START : 'r`' -> pushMode(TEMPLATE_MODE);
 
 // Identifiers
 IDENTIFIER : [a-zA-Z_$] [a-zA-Z0-9_$]*;

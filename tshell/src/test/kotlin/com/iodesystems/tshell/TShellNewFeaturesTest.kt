@@ -1112,4 +1112,69 @@ class TShellNewFeaturesTest {
     val result = sh.eval("""["banana", "apple", "cherry"] |> sort("desc")""") as TArray
     assertEquals(TArray(listOf(TString("cherry"), TString("banana"), TString("apple"))), result)
   }
+
+  // --- Raw template strings ---
+
+  @Test fun `raw template string preserves backslashes`() {
+    val sh = shell()
+    assertEquals(TString("C:\\Users\\foo"), sh.eval("""r`C:\Users\foo`"""))
+  }
+
+  @Test fun `raw template string with interpolation`() {
+    val sh = shell()
+    assertEquals(TString("Hello world, path=C:\\Users"), sh.eval("""let name = "world"; r`Hello ${'$'}{name}, path=C:\Users`"""))
+  }
+
+  @Test fun `raw template string preserves backslash n literally`() {
+    val sh = shell()
+    assertEquals(TString("line1\\nline2"), sh.eval("""r`line1\nline2`"""))
+  }
+
+  @Test fun `regular template string still unescapes`() {
+    val sh = shell()
+    assertEquals(TString("line1\nline2"), sh.eval("""`line1\nline2`"""))
+  }
+
+  @Test fun `raw template string multiline`() {
+    val sh = shell()
+    val result = sh.eval("r`first\nsecond`")
+    assertEquals(TString("first\nsecond"), result)
+  }
+
+  // --- r as identifier (no regression) ---
+
+  @Test fun `r as variable name`() {
+    val sh = shell()
+    assertEquals(TNumber(42.0), sh.eval("let r = 42; r"))
+  }
+
+  @Test fun `r as function name`() {
+    val sh = shell()
+    assertEquals(TNumber(10.0), sh.eval("function r(x) { return x * 2 }; r(5)"))
+  }
+
+  @Test fun `r as parameter name`() {
+    val sh = shell()
+    assertEquals(TNumber(7.0), sh.eval("let f = (r) => r + 1; f(6)"))
+  }
+
+  @Test fun `r as object key`() {
+    val sh = shell()
+    assertEquals(TNumber(1.0), sh.eval("let o = {r: 1}; o.r"))
+  }
+
+  @Test fun `r as named argument`() {
+    val sh = shell()
+    assertEquals(TNumber(3.0), sh.eval("function f(r) { return r }; f(r: 3)"))
+  }
+
+  @Test fun `r called then raw template on next line`() {
+    val sh = shell()
+    assertEquals(TString("hello"), sh.eval("let r = (x) => x; r(r`hello`)"))
+  }
+
+  @Test fun `r assigned then used in expression`() {
+    val sh = shell()
+    assertEquals(TNumber(15.0), sh.eval("let r = 5; r * 3"))
+  }
 }

@@ -414,6 +414,7 @@ class Interpreter(
       is NumberLiteralContext -> visitNumberLiteral(ctx)
       is StringLiteralContext -> visitStringLiteral(ctx)
       is TemplateLiteralContext -> visitTemplateLiteral(ctx)
+      is RawTemplateLiteralContext -> visitRawTemplateLiteral(ctx)
       is TrueLiteralContext -> visitTrueLiteral(ctx)
       is FalseLiteralContext -> visitFalseLiteral(ctx)
       is NullLiteralContext -> visitNullLiteral(ctx)
@@ -433,6 +434,7 @@ class Interpreter(
       is ArrayLiteralContext -> visitArrayLiteral(ctx)
       is ObjectLiteralContext -> visitObjectLiteral(ctx)
       is TemplateStringContext -> visitTemplateString(ctx)
+      is RawTemplateStringContext -> visitRawTemplateString(ctx)
       // Statement wrapper (grammar's statement rule dispatches to sub-rules)
       is StatementContext -> {
         val child = ctx.getChild(0) ?: throw TShellError.runtime("Empty statement")
@@ -464,8 +466,11 @@ class Interpreter(
       // Record the names that were defined
       when {
         ctx.letDecl() != null -> ctx.letDecl().letBinding().forEach { collectDestructureNames(it.destructure(), exportedNames) }
-        ctx.fnDecl() != null -> exportedNames.add(ctx.fnDecl().IDENTIFIER().text)
-        ctx.assignStatement() != null -> exportedNames.add(ctx.assignStatement().assignTarget().IDENTIFIER().text)
+        ctx.fnDecl() != null -> exportedNames.add(ctx.fnDecl().IDENTIFIER()?.text ?: ctx.fnDecl().FUNCTION(1)?.text ?: "")
+        ctx.assignStatement() != null -> {
+          val at = ctx.assignStatement().assignTarget()
+          exportedNames.add(identOrFunctionText(at.IDENTIFIER(), at.FUNCTION()))
+        }
       }
       return result
     }
@@ -473,13 +478,14 @@ class Interpreter(
     private fun collectDestructureNames(ctx: DestructureContext, names: MutableSet<String>) {
       when {
         ctx.IDENTIFIER() != null -> names.add(ctx.IDENTIFIER().text)
+        ctx.FUNCTION() != null -> names.add(ctx.FUNCTION().text)
         ctx.objectDestructure() != null -> {
           for (field in ctx.objectDestructure().destructureField()) {
             val targetDestructure = field.destructure()
             if (targetDestructure != null) {
               collectDestructureNames(targetDestructure, names)
             } else {
-              names.add(field.IDENTIFIER().text)
+              names.add(identOrFunctionText(field.IDENTIFIER(), field.FUNCTION()))
             }
           }
         }
@@ -501,8 +507,8 @@ class Interpreter(
     }
 
     suspend fun visitFnDecl(ctx: FnDeclContext): TShellValue {
-      val name = ctx.IDENTIFIER().text
-      val params = ctx.paramList()?.param()?.map { it.IDENTIFIER().text } ?: emptyList()
+      val name = ctx.IDENTIFIER()?.text ?: ctx.FUNCTION(1)?.text ?: throw TShellError.runtime("Expected function name")
+      val params = ctx.paramList()?.param()?.map { paramName(it) } ?: emptyList()
       val capturedEnv = env
       val fn = TShellValue.TFunction(
         name = name,
@@ -515,8 +521,8 @@ class Interpreter(
 
     suspend fun visitFuncExpr(ctx: FuncExprContext): TShellValue {
       val fCtx = ctx.functionExpr()
-      val name = fCtx.IDENTIFIER()?.text
-      val params = fCtx.paramList()?.param()?.map { it.IDENTIFIER().text } ?: emptyList()
+      val name = fCtx.IDENTIFIER()?.text ?: fCtx.FUNCTION(1)?.text
+      val params = fCtx.paramList()?.param()?.map { paramName(it) } ?: emptyList()
       // Named function expressions get a child env with self-reference for recursion
       val closureEnv = if (name != null) env.child() else env
       val fn = TShellValue.TFunction(
@@ -541,7 +547,7 @@ class Interpreter(
         val catchBlock = if (ctx.CATCH() != null) ctx.block(1) else null
         if (catchBlock != null) {
           val catchEnv = env.child()
-          catchEnv.define(ctx.IDENTIFIER().text, TShellValue.TString(e.message ?: "unknown error"))
+          catchEnv.define(ctx.IDENTIFIER()?.text ?: ctx.FUNCTION()?.text ?: "e", TShellValue.TString(e.message ?: "unknown error"))
           val outerEnv = env
           env = catchEnv
           try {
@@ -579,7 +585,7 @@ class Interpreter(
     }
 
     private suspend fun performAssign(target: AssignTargetContext, op: String, rhs: TShellValue) {
-      val rootName = target.IDENTIFIER().text
+      val rootName = identOrFunctionText(target.IDENTIFIER(), target.FUNCTION())
       val steps = buildAccessorSteps(target)
 
       if (steps.isEmpty()) {
@@ -773,7 +779,7 @@ class Interpreter(
         is TShellValue.TArray -> (0 until obj.elements.size).map { TShellValue.TNumber(it.toDouble()) }
         else -> throw TShellError.typeMismatch("for..in", "object or array", obj)
       }
-      val varName = ctx.IDENTIFIER().text
+      val varName = ctx.IDENTIFIER()?.text ?: ctx.FUNCTION()?.text ?: throw TShellError.runtime("Expected variable name in for..in")
       var result: TShellValue = TShellValue.TNull
       for (key in keys) {
         step(ctx)
@@ -803,7 +809,7 @@ class Interpreter(
       val assignInit = ctx.forInitAssign()
       if (letInit != null) {
         val value = eval(letInit.expression())
-        env.define(letInit.IDENTIFIER().text, value)
+        env.define(letInit.IDENTIFIER()?.text ?: letInit.FUNCTION()?.text ?: throw TShellError.runtime("Expected variable name in for init"), value)
       } else if (assignInit != null) {
         performAssign(assignInit.assignTarget(), assignInit.assignOp().text, eval(assignInit.expression()))
       }
@@ -1217,7 +1223,7 @@ class Interpreter(
       var result = eval(ctx.primaryExpr())
       // Track lvalue path for mutating method writeback (e.g. arr.push(x) → reassign arr)
       val lvaluePath = mutableListOf<String>()
-      val primaryIdent = (ctx.primaryExpr() as? IdentifierExprContext)?.IDENTIFIER()?.text
+      val primaryIdent = (ctx.primaryExpr() as? IdentifierExprContext)?.let { it.IDENTIFIER()?.text ?: it.FUNCTION()?.text }
       if (primaryIdent != null) lvaluePath.add(primaryIdent)
 
       for ((opIdx, op) in ctx.postfixOp().withIndex()) {
@@ -1355,6 +1361,27 @@ class Interpreter(
     }
 
     @Suppress("unused")
+    suspend fun visitRawTemplateLiteral(ctx: RawTemplateLiteralContext): TShellValue =
+      eval(ctx.rawTemplateString())
+
+    suspend fun visitRawTemplateString(ctx: RawTemplateStringContext): TShellValue {
+      val sb = StringBuilder()
+      for (part in ctx.templatePart()) {
+        sb.append(
+          when {
+            part is TemplateTextContext -> part.TEMPLATE_TEXT().text
+            part is TemplateInterpContext -> {
+              val v = eval(part.expression())
+              v.toDisplayString()
+            }
+            else -> ""
+          }
+        )
+      }
+      return TShellValue.TString(sb.toString())
+    }
+
+    @Suppress("unused")
     suspend fun visitTrueLiteral(ctx: TrueLiteralContext): TShellValue = TShellValue.TBoolean(true)
     @Suppress("unused")
     suspend fun visitFalseLiteral(ctx: FalseLiteralContext): TShellValue = TShellValue.TBoolean(false)
@@ -1363,7 +1390,8 @@ class Interpreter(
 
     @Suppress("unused")
     suspend fun visitIdentifierExpr(ctx: IdentifierExprContext): TShellValue {
-      val name = ctx.IDENTIFIER().text
+      val name = ctx.IDENTIFIER()?.text ?: ctx.FUNCTION()?.text
+        ?: throw TShellError.runtime("Expected identifier")
       env.get(name)?.let { return it }
       resolveCommand(name)?.let { return it }
       throw TShellError.unknownCommand(name, env.allBindings().keys + commands.names())
@@ -1413,7 +1441,8 @@ class Interpreter(
             fields[field.fieldName().text] = eval(field.expression())
           }
           is ShorthandFieldContext -> {
-            val name = field.IDENTIFIER().text
+            val name = field.IDENTIFIER()?.text ?: field.FUNCTION()?.text
+              ?: throw TShellError.runtime("Expected identifier in shorthand field")
             fields[name] = env.get(name)
               ?: throw TShellError.runtime("'$name' is not defined (used as shorthand in object literal)")
           }
@@ -1445,7 +1474,7 @@ class Interpreter(
 
     @Suppress("unused")
     suspend fun visitSingleParamArrow(ctx: SingleParamArrowContext): TShellValue {
-      val paramName = ctx.IDENTIFIER().text
+      val paramName = ctx.IDENTIFIER()?.text ?: ctx.FUNCTION()?.text ?: throw TShellError.runtime("Expected parameter name")
       return TShellValue.TFunction(
         name = null,
         params = listOf(paramName),
@@ -1455,7 +1484,7 @@ class Interpreter(
 
     @Suppress("unused")
     suspend fun visitMultiParamArrow(ctx: MultiParamArrowContext): TShellValue {
-      val params = ctx.paramList()?.param()?.map { it.IDENTIFIER().text } ?: emptyList()
+      val params = ctx.paramList()?.param()?.map { paramName(it) } ?: emptyList()
       return TShellValue.TFunction(
         name = null,
         params = params,
@@ -1465,7 +1494,7 @@ class Interpreter(
 
     @Suppress("unused")
     suspend fun visitSingleParamArrowBlock(ctx: SingleParamArrowBlockContext): TShellValue {
-      val paramName = ctx.IDENTIFIER().text
+      val paramName = ctx.IDENTIFIER()?.text ?: ctx.FUNCTION()?.text ?: throw TShellError.runtime("Expected parameter name")
       return TShellValue.TFunction(
         name = null,
         params = listOf(paramName),
@@ -1475,7 +1504,7 @@ class Interpreter(
 
     @Suppress("unused")
     suspend fun visitMultiParamArrowBlock(ctx: MultiParamArrowBlockContext): TShellValue {
-      val params = ctx.paramList()?.param()?.map { it.IDENTIFIER().text } ?: emptyList()
+      val params = ctx.paramList()?.param()?.map { paramName(it) } ?: emptyList()
       return TShellValue.TFunction(
         name = null,
         params = params,
@@ -1491,7 +1520,8 @@ class Interpreter(
       for (arg in ctx.callArg()) {
         when (arg) {
           is NamedCallArgContext -> {
-            val name = arg.IDENTIFIER().text
+            val name = arg.IDENTIFIER()?.text ?: arg.FUNCTION()?.text
+              ?: throw TShellError.runtime("Expected identifier in named argument")
             val value = eval(arg.expression())
             if (named.containsKey(name)) {
               throw TShellError.runtime("Duplicate named argument: $name")
@@ -1603,11 +1633,12 @@ class Interpreter(
     private suspend fun bindDestructure(ctx: DestructureContext, value: TShellValue) {
       when {
         ctx.IDENTIFIER() != null -> env.define(ctx.IDENTIFIER().text, value)
+        ctx.FUNCTION() != null -> env.define(ctx.FUNCTION().text, value)
         ctx.objectDestructure() != null -> {
           val obj = value as? TShellValue.TObject
             ?: throw TShellError.typeMismatch("destructure", "object", value)
           for (field in ctx.objectDestructure().destructureField()) {
-            val fieldName = field.IDENTIFIER().text
+            val fieldName = identOrFunctionText(field.IDENTIFIER(), field.FUNCTION())
             val targetDestructure = field.destructure()
             val fieldValue = obj.fields[fieldName]
               ?: field.expression()?.let { eval(it) }
@@ -1628,6 +1659,12 @@ class Interpreter(
         }
       }
     }
+
+    /** Extract name from a token that can be IDENTIFIER or FUNCTION (fn alias). */
+    private fun identOrFunctionText(ident: org.antlr.v4.runtime.tree.TerminalNode?, func: org.antlr.v4.runtime.tree.TerminalNode?): String =
+      ident?.text ?: func?.text ?: throw TShellError.runtime("Expected identifier")
+
+    private fun paramName(p: ParamContext): String = identOrFunctionText(p.IDENTIFIER(), p.FUNCTION())
 
     // FieldStep/IndexStep defined at file level
 

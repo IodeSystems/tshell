@@ -3,6 +3,8 @@ package com.iodesystems.tshell
 import com.iodesystems.tshell.runtime.TShellError
 import com.iodesystems.tshell.runtime.TShellValue.*
 import com.iodesystems.tshell.toolkit.CoreToolkit
+import com.knuddels.jtokkit.Encodings
+import com.knuddels.jtokkit.api.EncodingType
 import org.testng.annotations.Test
 import java.nio.file.Path
 import kotlin.io.path.*
@@ -161,6 +163,24 @@ persist values across tool calls in multi-turn LLM conversations.
         Example("""race(() => fail("down"), () => "fallback")""", "fallback"),
       )),
 
+      Section("Raw Template Strings", """
+What about double-encoding corruption? LLM writes `\\n`, transport eats the backslash,
+interpreter gets a newline. Or the LLM spirals through `\\\\`, `\\\\\\\\`, never landing on the
+right number of backslashes. Raw template strings fix this: prefix any template literal
+with `r` to disable backslash escape processing. What you type is what you get.
+`${'$'}{expr}` interpolation still works — Kotlin-style: raw content, live substitutions.
+      """.trim(), listOf(
+        Example("""r`C:\Users\foo`""", """C:\Users\foo""",
+          "Backslashes are literal"),
+        Example("""r`line1\nline2`""", """line1\nline2""",
+          "No escape processing — \\n stays as two characters"),
+        Example("""let name = "world"; r`Hello ${'$'}{name}, path=C:\Users`""",
+          """Hello world, path=C:\Users""",
+          "Interpolation still works"),
+        Example("""`tab\there`""", "tab\there",
+          "Regular template for comparison — \\t becomes a tab"),
+      )),
+
       Section("What's Missing", """
 No `class`, `this`, `new`, `var`, `const`, `async`/`await`, `try`/`catch`,
 `import`/`require`, prototypes, generators, or `Symbol`. Type annotations are
@@ -217,6 +237,18 @@ accepted but ignored. Use `help()` to discover what's available.
       appendLine("- **~95% less tool context** — one `eval` tool replaces dozens of MCP tool schemas; the LLM prompt stays constant as you add capabilities")
       appendLine("- **Polyglot composition** — chain tools from Python, Go, TypeScript MCP servers with pipes in a single `eval` call")
       appendLine("- **KV cache friendly** — system prompt doesn't change when tools change; `help()` discovers capabilities at runtime")
+      appendLine("- **No double-encoding corruption** — raw template strings (`r\\`...\\``) let LLMs write backslashes, quotes, and code exactly as-is. No more `\\\\\\\\` spirals when editing files with Windows paths or regex patterns")
+      appendLine()
+      // Context size info — computed from actual stdlib prompt, tokenized with cl100k_base
+      val sh = shell()
+      val fullPrompt = sh.toPrompt()
+      val toolDesc = TShell.TOOL_DESCRIPTION
+      val totalText = toolDesc + "\n" + fullPrompt
+      val totalKb = "%.1f".format(totalText.length / 1024.0)
+      val registry = Encodings.newDefaultEncodingRegistry()
+      val enc = registry.getEncoding(EncodingType.CL100K_BASE)
+      val tokens = enc.countTokens(totalText)
+      appendLine("**Total stdlib context cost: ${totalKb}KB / ${tokens} tokens** (cl100k_base — tool description + syntax reference + command signatures)")
       appendLine()
 
       // ── Quick Start ──
@@ -370,6 +402,30 @@ accepted but ignored. Use `help()` to discover what's available.
       appendLine("| **Browser** | `tshell-playwright` | Lean Playwright automation (12 commands, ~800 chars context vs ~8KB for `@playwright/mcp`). See [`tshell-playwright/README.md`](tshell-playwright/README.md) |")
       appendLine("| **SQL** | `tshell-sql` | JDBC toolkit: `db.query`, `db.tables`, `db.schema`. Read-only by default |")
       appendLine("| **Sample** | `tshell-sample-koog` | CLI chat agent + benchmarks (96% on 32 challenges). See [`tshell-sample-koog/README.md`](tshell-sample-koog/README.md) |")
+      appendLine()
+
+      // ── Context Budget ──
+      appendLine("## Context Budget")
+      appendLine()
+      appendLine("How much prompt space does tshell cost? Measured with cl100k_base (GPT-4 tokenizer),")
+      appendLine("computed at build time from actual prompt content.")
+      appendLine()
+      val syntaxTokens = enc.countTokens(TShell.PROMPT_SYNTAX)
+      val descTokens = enc.countTokens(toolDesc)
+      val cmdSection = fullPrompt.substringAfter("## Commands")
+      val cmdTokens = enc.countTokens(cmdSection)
+      appendLine("| Component | Tokens | What it contains |")
+      appendLine("| --- | ---: | --- |")
+      appendLine("| Tool description | $descTokens | One-line summary in the tool schema |")
+      appendLine("| Syntax reference | $syntaxTokens | JS subset, pipes, raw templates, composition |")
+      appendLine("| Command signatures | $cmdTokens | All stdlib commands with types and descriptions |")
+      appendLine("| **Total** | **$tokens** | **${totalKb}KB** |")
+      appendLine()
+      appendLine("For comparison: a typical MCP tool server exposes 10-20 tools at ~200 tokens each (2000-4000 tokens).")
+      appendLine("tshell replaces them all with one `eval` tool. Additional commands added via toolkits")
+      appendLine("(FileToolkit, SqlToolkit, etc.) grow only the command signatures section.")
+      appendLine()
+      appendLine("See [benchmark results](tshell-sample-koog/benchmarks/results/README.md) for how this prompt performs across 32 challenges.")
       appendLine()
 
       appendLine("---")

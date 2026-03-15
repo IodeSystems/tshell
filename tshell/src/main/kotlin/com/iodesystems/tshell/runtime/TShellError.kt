@@ -36,7 +36,6 @@ class TShellError(message: String) : RuntimeException(message) {
       "delete" -> "tshell does not support 'delete' — objects are immutable; build a new object without the key\n\n  Example: obj |> entries() |> filter(e => e.key != \"unwanted\") |> reduce((o, e) => ({...o, [e.key]: e.value}), {})"
       "void" -> "tshell does not support 'void' — use null instead"
       "instanceof" -> "tshell does not support 'instanceof' — use typeof to check types\n\n  Example: typeof x == \"array\""
-      "fn" -> "tshell does not have 'fn' — use 'function' for declarations or '=>' for arrows\n\n  Example: function add(a, b) { return a + b }\n  Example: let add = (a, b) => a + b"
       "this" -> "tshell does not support 'this' — there are no classes or methods"
       "super" -> "tshell does not support 'super' — there is no inheritance"
       "yield" -> "tshell does not support generators — use arrays and pipes for data transformation"

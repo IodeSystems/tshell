@@ -362,6 +362,13 @@ public interface TShellParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitTemplateLiteral(TShellParser.TemplateLiteralContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code rawTemplateLiteral}
+	 * labeled alternative in {@link TShellParser#primaryExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitRawTemplateLiteral(TShellParser.RawTemplateLiteralContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code trueLiteral}
 	 * labeled alternative in {@link TShellParser#primaryExpr}.
 	 * @param ctx the parse tree
@@ -523,6 +530,12 @@ public interface TShellParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitTemplateString(TShellParser.TemplateStringContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link TShellParser#rawTemplateString}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitRawTemplateString(TShellParser.RawTemplateStringContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code templateText}
 	 * labeled alternative in {@link TShellParser#templatePart}.

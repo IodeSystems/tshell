@@ -571,6 +571,34 @@ class FileToolkitTest {
     val result = shell.eval("""read("out/result.txt")""") as TString
     assertTrue(result.value.contains("done"))
   }
+
+  // --- raw template strings for file editing ---
+
+  @Test fun `edit with raw template avoids double escaping`() {
+    // Setup: file with Windows paths
+    shell.eval("""write("setup.bat", "set PATH=C:\\OldDir\\bin\necho done")""")
+    // LLM uses raw template — no escape gymnastics needed
+    val code = "edit(\"setup.bat\", r`C:\\OldDir\\bin`, r`C:\\Program Files\\NewApp\\bin`)"
+    shell.eval(code)
+    val result = shell.eval("""read("setup.bat")""") as TString
+    assertTrue(result.value.contains("C:\\Program Files\\NewApp\\bin"))
+  }
+
+  @Test fun `write config with raw template preserves backslashes`() {
+    val code = "write(\"config.ini\", r`[paths]\ndata=C:\\Users\\app\\data\npattern=\\d+\\.\\d+`)"
+    shell.eval(code)
+    val content = (shell.eval("""read("config.ini")""") as TString).value
+    assertTrue(content.contains("C:\\Users\\app\\data"))
+    assertTrue(content.contains("\\d+\\.\\d+"))
+  }
+
+  @Test fun `edit with raw template and interpolation`() {
+    shell.eval("""write("app.js", "console.log('old')")""")
+    val code = "let msg = \"updated\"; edit(\"app.js\", r`console.log('old')`, r`console.log(${'$'}{msg})`)"
+    shell.eval(code)
+    val result = shell.eval("""read("app.js")""") as TString
+    assertTrue(result.value.contains("console.log(updated)"))
+  }
 }
 
 class FileToolkitReadOnlyTest {

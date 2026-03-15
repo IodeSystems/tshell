@@ -443,8 +443,8 @@ ADVANCED: Search and replace across files
       "edit", "path: string, old: string, new: string, opts?: {all?: boolean}",
       "replaces exact string match in file. Fails if not found. Fails if ambiguous unless all=true",
       listOf(
-        """edit("app.ts", "const x = 1", "const x = 42")""",
-        """edit("app.ts", "var ", "const ", {all: true})""",
+        """edit("app.ts", r`const x = 1`, r`const x = 42`)""",
+        """edit("app.ts", r`var `, r`const `, {all: true})""",
       )
     ) { args ->
       val path = requireString("edit", args, 0)

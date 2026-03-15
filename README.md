@@ -6,6 +6,9 @@ One `eval` tool instead of twenty. Sandboxed JS syntax your LLM already knows.
 - **~95% less tool context** — one `eval` tool replaces dozens of MCP tool schemas; the LLM prompt stays constant as you add capabilities
 - **Polyglot composition** — chain tools from Python, Go, TypeScript MCP servers with pipes in a single `eval` call
 - **KV cache friendly** — system prompt doesn't change when tools change; `help()` discovers capabilities at runtime
+- **No double-encoding corruption** — raw template strings (`r\`...\``) let LLMs write backslashes, quotes, and code exactly as-is. No more `\\\\` spirals when editing files with Windows paths or regex patterns
+
+**Total stdlib context cost: 5.1KB / 1459 tokens** (cl100k_base — tool description + syntax reference + command signatures)
 
 ## Quick Start
 
@@ -258,6 +261,42 @@ race(() => fail("down"), () => "fallback")
 // → fallback
 ```
 
+### Raw Template Strings
+
+What about double-encoding corruption? LLM writes `\\n`, transport eats the backslash,
+interpreter gets a newline. Or the LLM spirals through `\\\\`, `\\\\\\\\`, never landing on the
+right number of backslashes. Raw template strings fix this: prefix any template literal
+with `r` to disable backslash escape processing. What you type is what you get.
+`${expr}` interpolation still works — Kotlin-style: raw content, live substitutions.
+
+Backslashes are literal:
+
+```javascript
+r`C:\Users\foo`
+// → C:\Users\foo
+```
+
+No escape processing — \n stays as two characters:
+
+```javascript
+r`line1\nline2`
+// → line1\nline2
+```
+
+Interpolation still works:
+
+```javascript
+let name = "world"; r`Hello ${name}, path=C:\Users`
+// → Hello world, path=C:\Users
+```
+
+Regular template for comparison — \t becomes a tab:
+
+```javascript
+`tab\there`
+// → tab	here
+```
+
 ### What's Missing
 
 No `class`, `this`, `new`, `var`, `const`, `async`/`await`, `try`/`catch`,
@@ -320,6 +359,24 @@ val shell = TShell(
 | **Browser** | `tshell-playwright` | Lean Playwright automation (12 commands, ~800 chars context vs ~8KB for `@playwright/mcp`). See [`tshell-playwright/README.md`](tshell-playwright/README.md) |
 | **SQL** | `tshell-sql` | JDBC toolkit: `db.query`, `db.tables`, `db.schema`. Read-only by default |
 | **Sample** | `tshell-sample-koog` | CLI chat agent + benchmarks (96% on 32 challenges). See [`tshell-sample-koog/README.md`](tshell-sample-koog/README.md) |
+
+## Context Budget
+
+How much prompt space does tshell cost? Measured with cl100k_base (GPT-4 tokenizer),
+computed at build time from actual prompt content.
+
+| Component | Tokens | What it contains |
+| --- | ---: | --- |
+| Tool description | 55 | One-line summary in the tool schema |
+| Syntax reference | 331 | JS subset, pipes, raw templates, composition |
+| Command signatures | 1045 | All stdlib commands with types and descriptions |
+| **Total** | **1459** | **5.1KB** |
+
+For comparison: a typical MCP tool server exposes 10-20 tools at ~200 tokens each (2000-4000 tokens).
+tshell replaces them all with one `eval` tool. Additional commands added via toolkits
+(FileToolkit, SqlToolkit, etc.) grow only the command signatures section.
+
+See [benchmark results](tshell-sample-koog/benchmarks/results/README.md) for how this prompt performs across 32 challenges.
 
 ---
 

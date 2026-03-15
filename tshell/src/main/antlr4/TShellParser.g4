@@ -29,8 +29,8 @@ exportStatement   : EXPORT (letDecl | fnDecl | assignStatement);
 
 letDecl           : LET letBinding (COMMA letBinding)* SEMI?;
 letBinding        : destructure (ASSIGN expression)?;
-fnDecl            : FUNCTION IDENTIFIER LPAREN paramList? RPAREN (COLON typeAnnotation)? block;
-tryCatchStatement : TRY block (CATCH LPAREN IDENTIFIER RPAREN block)? (FINALLY block)?;
+fnDecl            : FUNCTION (IDENTIFIER | FUNCTION) LPAREN paramList? RPAREN (COLON typeAnnotation)? block;
+tryCatchStatement : TRY block (CATCH LPAREN (IDENTIFIER | FUNCTION) RPAREN block)? (FINALLY block)?;
 throwStatement    : THROW expression SEMI?;
 returnStatement   : RETURN expression? SEMI?;
 breakStatement    : BREAK SEMI?;
@@ -39,7 +39,7 @@ assignStatement   : assignTarget assignOp expression SEMI?;
 incrDecrStatement : assignTarget (INCREMENT | DECREMENT) SEMI?;
 expressionStatement : expression SEMI?;
 
-assignTarget      : IDENTIFIER (DOT fieldName | LBRACKET expression RBRACKET)*;
+assignTarget      : (IDENTIFIER | FUNCTION) (DOT fieldName | LBRACKET expression RBRACKET)*;
 assignOp          : ASSIGN | PLUS_ASSIGN | MINUS_ASSIGN | STAR_ASSIGN | SLASH_ASSIGN | PERCENT_ASSIGN
                    | AMP_ASSIGN | PIPE_ASSIGN | CARET_ASSIGN | LSHIFT_ASSIGN | RSHIFT_ASSIGN | URSHIFT_ASSIGN;
 
@@ -50,9 +50,9 @@ switchDefault     : DEFAULT COLON statement*;
 whileStatement    : WHILE LPAREN expression RPAREN block;
 doWhileStatement  : DO block WHILE LPAREN expression RPAREN SEMI?;
 forOfStatement    : FOR LPAREN LET destructure OF expression RPAREN block;
-forInStatement    : FOR LPAREN LET IDENTIFIER IN expression RPAREN block;
+forInStatement    : FOR LPAREN LET (IDENTIFIER | FUNCTION) IN expression RPAREN block;
 forStatement      : FOR LPAREN (forInitLet | forInitAssign)? SEMI expression? SEMI (forUpdateAssign | forUpdateIncrDecr)? RPAREN block;
-forInitLet        : LET IDENTIFIER ASSIGN expression;
+forInitLet        : LET (IDENTIFIER | FUNCTION) ASSIGN expression;
 forInitAssign     : assignTarget assignOp expression;
 forUpdateAssign   : assignTarget assignOp expression;
 forUpdateIncrDecr : assignTarget (INCREMENT | DECREMENT);
@@ -63,17 +63,18 @@ blockOrStatement  : block | statement;
 // Destructuring
 destructure
   : IDENTIFIER
+  | FUNCTION
   | objectDestructure
   | arrayDestructure
   ;
 
 objectDestructure : LBRACE destructureField (COMMA destructureField)* COMMA? RBRACE;
-destructureField  : IDENTIFIER (COLON destructure)? (ASSIGN expression)?;
+destructureField  : (IDENTIFIER | FUNCTION) (COLON destructure)? (ASSIGN expression)?;
 arrayDestructure  : LBRACKET destructure (COMMA destructure)* COMMA? RBRACKET;
 
 // Parameters
 paramList         : param (COMMA param)*;
-param             : SPREAD? IDENTIFIER (COLON typeAnnotation)? (ASSIGN expression)?;
+param             : SPREAD? (IDENTIFIER | FUNCTION) (COLON typeAnnotation)? (ASSIGN expression)?;
 
 // Type annotations (lightweight, for documentation & errors)
 typeAnnotation    : IDENTIFIER (LBRACKET RBRACKET)* (PIPE typeAnnotation)?;
@@ -121,6 +122,7 @@ primaryExpr
   : NUMBER                                              # numberLiteral
   | STRING                                              # stringLiteral
   | templateString                                      # templateLiteral
+  | rawTemplateString                                   # rawTemplateLiteral
   | TRUE                                                # trueLiteral
   | FALSE                                               # falseLiteral
   | NULL                                                # nullLiteral
@@ -129,17 +131,20 @@ primaryExpr
   | objectLiteral                                       # objectExpr
   | arrowFunction                                       # arrowExpr
   | functionExpr                                        # funcExpr
+  | FUNCTION                                            # identifierExpr
   | REGEX                                                # regexExpr
   | LPAREN expression RPAREN                            # parenExpr
   ;
 
-functionExpr  : FUNCTION IDENTIFIER? LPAREN paramList? RPAREN (COLON typeAnnotation)? block;
+functionExpr  : FUNCTION (IDENTIFIER | FUNCTION)? LPAREN paramList? RPAREN (COLON typeAnnotation)? block;
 
 // Arrow functions
 arrowFunction
   : IDENTIFIER ARROW expression                         # singleParamArrow
+  | FUNCTION ARROW expression                           # singleParamArrow
   | LPAREN paramList? RPAREN (COLON typeAnnotation)? ARROW expression  # multiParamArrow
   | IDENTIFIER ARROW block                              # singleParamArrowBlock
+  | FUNCTION ARROW block                                # singleParamArrowBlock
   | LPAREN paramList? RPAREN (COLON typeAnnotation)? ARROW block       # multiParamArrowBlock
   ;
 
@@ -149,6 +154,7 @@ objectLiteral     : LBRACE (objectField (COMMA objectField)* COMMA?)? RBRACE;
 objectField
   : fieldName COLON expression                          # namedField
   | IDENTIFIER                                          # shorthandField
+  | FUNCTION                                            # shorthandField
   | SPREAD expression                                   # spreadField
   | LBRACKET expression RBRACKET COLON expression       # computedField
   ;
@@ -162,6 +168,7 @@ fieldName
 spreadOrExpr      : SPREAD? expression;
 
 templateString    : TEMPLATE_START templatePart* TEMPLATE_END;
+rawTemplateString : RAW_TEMPLATE_START templatePart* TEMPLATE_END;
 templatePart
   : TEMPLATE_TEXT                                       # templateText
   | TEMPLATE_EXPR expression RBRACE                     # templateInterp
@@ -169,6 +176,6 @@ templatePart
 
 argumentList      : callArg (COMMA callArg)*;
 callArg
-  : IDENTIFIER COLON expression                          # namedCallArg
+  : (IDENTIFIER | FUNCTION) COLON expression              # namedCallArg
   | spreadOrExpr                                         # positionalCallArg
   ;

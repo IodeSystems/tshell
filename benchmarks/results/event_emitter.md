@@ -1,0 +1,59 @@
+# event_emitter
+
+**Status:** PASS
+**Duration:** 9135ms
+**Tool calls:** 1
+
+## Prompt
+
+> In tshell, implement a simple event emitter with on(event, handler) and emit(event, data) methods. Register two handlers for 'data' event: one that returns data as-is, one that returns data * 2. Emit with value 42, collect all handler results into an array. Return the array.
+
+## Final Answer
+
+```
+[42, 84]
+```
+
+## Attempts
+
+### Attempt 1 (OK)
+
+```javascript
+function EventEmitter() {
+  let handlers = {};
+  
+  function on(event, handler) {
+    if (!handlers[event]) {
+      handlers[event] = [];
+    }
+    handlers[event].push(handler);
+  }
+  
+  function emit(event, data) {
+    if (!handlers[event]) {
+      return [];
+    }
+    let results = [];
+    for (let h of handlers[event]) {
+      results.push(h(data));
+    }
+    return results;
+  }
+  
+  return { on, emit };
+}
+
+let emitter = EventEmitter();
+
+emitter.on('data', (data) => data);
+emitter.on('data', (data) => data * 2);
+
+let results = emitter.emit('data', 42);
+results
+```
+
+**Result:**
+```
+"[42, 84]"
+```
+

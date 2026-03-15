@@ -84,6 +84,7 @@ dependencies {
   implementation(libs.ktor.client.cio)
   implementation(libs.jsoup)
   testImplementation(libs.testng)
+  testImplementation(libs.jtokkit)
 }
 
 java {

@@ -173,7 +173,7 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       TString(arr.elements.joinToString(sep) { it.toDisplayString() })
     }
 
-    shell.register("split", "input: string, sep?: string|regex", "splits by separator (string or regex)",
+    shell.register("split", "input: string, sep?: string|regex", "splits by separator; default: ,",
       listOf(""""a,b,c" |> split(",")""", """split("hello world", " ")""", """"a, b,  c" |> split(/,\\s*/)""")
     ) { args ->
       val s = requireString("split", args[0])

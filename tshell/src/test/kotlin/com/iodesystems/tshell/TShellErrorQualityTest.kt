@@ -249,9 +249,9 @@ class TShellErrorQualityTest {
     assertTrue(msg.contains("all()"), msg)
   }
 
-  @Test fun `fn suggests function or arrow`() {
-    val msg = errorMessage("fn f() {}")
-    assertTrue(msg.contains("function") || msg.contains("=>"), msg)
+  @Test fun `fn is alias for function`() {
+    val sh = shell()
+    assertEquals(TShellValue.TNumber(6.0), sh.eval("fn double(x) { return x * 2 }; double(3)"))
   }
 
   @Test fun `import explains no imports`() {

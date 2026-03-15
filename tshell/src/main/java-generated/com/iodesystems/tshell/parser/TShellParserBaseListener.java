@@ -713,6 +713,18 @@ public class TShellParserBaseListener implements TShellParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterRawTemplateLiteral(TShellParser.RawTemplateLiteralContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitRawTemplateLiteral(TShellParser.RawTemplateLiteralContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterTrueLiteral(TShellParser.TrueLiteralContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -996,6 +1008,18 @@ public class TShellParserBaseListener implements TShellParserListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitTemplateString(TShellParser.TemplateStringContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterRawTemplateString(TShellParser.RawTemplateStringContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitRawTemplateString(TShellParser.RawTemplateStringContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
