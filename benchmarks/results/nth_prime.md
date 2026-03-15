@@ -1,8 +1,8 @@
 # nth_prime
 
 **Status:** PASS
-**Duration:** 15294ms
-**Tool calls:** 2
+**Duration:** 8042ms
+**Tool calls:** 1
 
 ## Prompt
 
@@ -19,7 +19,7 @@
 ### Attempt 1 (OK)
 
 ```javascript
-function isPrime(n) {
+let isPrime = (n) => {
   if (n < 2) return false;
   if (n === 2) return true;
   if (n % 2 === 0) return false;
@@ -27,36 +27,7 @@ function isPrime(n) {
     if (n % i === 0) return false;
   }
   return true;
-}
-
-let count = 0;
-let num = 2;
-while (count < 50) {
-  if (isPrime(num)) {
-    count++;
-    if (count === 50) return num;
-  }
-  num++;
-}
-```
-
-**Result:**
-```
-"ERROR: null"
-```
-
-### Attempt 2 (OK)
-
-```javascript
-function isPrime(n) {
-  if (n < 2) return false;
-  if (n === 2) return true;
-  if (n % 2 === 0) return false;
-  for (let i = 3; i * i <= n; i += 2) {
-    if (n % i === 0) return false;
-  }
-  return true;
-}
+};
 
 let count = 0;
 let num = 2;
@@ -64,10 +35,9 @@ while (count < 50) {
   if (isPrime(num)) {
     count++;
   }
-  if (count === 50) {
-    break;
+  if (count < 50) {
+    num++;
   }
-  num++;
 }
 num
 ```

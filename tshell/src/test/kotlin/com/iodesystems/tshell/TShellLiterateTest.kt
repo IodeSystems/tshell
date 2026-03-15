@@ -68,7 +68,7 @@ survives tool set changes.
 LLMs famously fail at tasks like "how many R's in strawberry?" because they try to
 reason about it instead of computing it. With tshell, they write code instead.
       """.trim(), listOf(
-        Example(""""strawberry" |> split("") |> filter(c => c == "r") |> len()""", "3",
+        Example(""""strawberry".split("").filter(c => c == "r").length""", "3",
           "Count letters — LLMs get this wrong by reasoning, right by computing"),
         Example("""
 let words = "the quick brown fox jumps over the lazy dog the fox"
@@ -179,6 +179,10 @@ with `r` to disable backslash escape processing. What you type is what you get.
           "Interpolation still works"),
         Example("""`tab\there`""", "tab\there",
           "Regular template for comparison — \\t becomes a tab"),
+        Example("`line1\nline2\nline3`", "line1\nline2\nline3",
+          "Multiline template strings"),
+        Example("let x = 42; r`result: ${'$'}{x}\\nend`", "result: 42\\nend",
+          "Raw interpolation with literal backslash — \\n stays as two characters"),
       )),
 
       Section("What's Missing", """
@@ -233,7 +237,7 @@ Use `help()` to discover what's available.
       appendLine()
       appendLine("One `eval` tool instead of twenty. Sandboxed JS syntax your LLM already knows.")
       appendLine()
-      appendLine("- **LLMs compute instead of reasoning** — \"how many R's in strawberry?\" becomes `split |> filter |> len`")
+      appendLine("- **LLMs compute instead of reasoning** — \"how many R's in strawberry?\" becomes `.split(\"\").filter(c => c == \"r\").length`")
       appendLine("- **~95% less tool context** — one `eval` tool replaces dozens of MCP tool schemas; the LLM prompt stays constant as you add capabilities")
       appendLine("- **Polyglot composition** — chain tools from Python, Go, TypeScript MCP servers with pipes in a single `eval` call")
       appendLine("- **KV cache friendly** — system prompt doesn't change when tools change; `help()` discovers capabilities at runtime")
@@ -277,7 +281,7 @@ Use `help()` to discover what's available.
       appendLine()
       appendLine("```javascript")
       appendLine("// LLM can compute instead of reasoning:")
-      appendLine("\"strawberry\" |> split(\"\") |> filter(c => c == \"r\") |> len()  // → 3")
+      appendLine("\"strawberry\".split(\"\").filter(c => c == \"r\").length  // → 3")
       appendLine()
       appendLine("// Chain operations in a single tool call:")
       appendLine("let data = [{name: \"Alice\", score: 85}, {name: \"Bob\", score: 92}]")

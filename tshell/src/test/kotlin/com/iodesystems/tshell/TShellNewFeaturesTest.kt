@@ -1177,4 +1177,28 @@ class TShellNewFeaturesTest {
     val sh = shell()
     assertEquals(TNumber(15.0), sh.eval("let r = 5; r * 3"))
   }
+
+  // --- Quoted object keys (JSON compat) ---
+
+  @Test fun `object with quoted string keys`() {
+    val sh = shell()
+    assertEquals(TString("apple"), sh.eval("""{"type": "fruit", "name": "apple"}.name"""))
+  }
+
+  @Test fun `array of objects with quoted keys and reduce`() {
+    val sh = shell()
+    val result = sh.eval("""
+      [{"type":"fruit","name":"apple"},{"type":"veg","name":"carrot"},{"type":"fruit","name":"banana"},{"type":"veg","name":"pea"}]
+      |> reduce((acc, item) => {
+          let t = item.type;
+          acc[t] = (acc[t] || []).concat([item.name]);
+          return acc;
+      }, {})
+    """.trimIndent())
+    val obj = result as TObject
+    val fruit = (obj.fields["fruit"] as TArray).elements.map { (it as TString).value }
+    val veg = (obj.fields["veg"] as TArray).elements.map { (it as TString).value }
+    assertEquals(listOf("apple", "banana"), fruit)
+    assertEquals(listOf("carrot", "pea"), veg)
+  }
 }

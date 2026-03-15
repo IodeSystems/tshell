@@ -1,7 +1,7 @@
 # merge_sort
 
 **Status:** PASS
-**Duration:** 13351ms
+**Duration:** 12531ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,40 +19,39 @@
 ### Attempt 1 (OK)
 
 ```javascript
-let merge = (left, right) => {
-  let result = [];
+const mergeSort = arr => {
+  if (arr.len() <= 1) return arr;
+  const mid = Math.floor(arr.len() / 2);
+  const left = arr.slice(0, mid) |> mergeSort;
+  const right = arr.slice(mid) |> mergeSort;
+  return merge(left, right);
+};
+
+const merge = (left, right) => {
+  const result = [];
   let i = 0, j = 0;
   while (i < left.len() && j < right.len()) {
     if (left[i] <= right[j]) {
-      result = result.concat([left[i]]);
+      result.push(left[i]);
       i++;
     } else {
-      result = result.concat([right[j]]);
+      result.push(right[j]);
       j++;
     }
   }
   while (i < left.len()) {
-    result = result.concat([left[i]]);
+    result.push(left[i]);
     i++;
   }
   while (j < right.len()) {
-    result = result.concat([right[j]]);
+    result.push(right[j]);
     j++;
   }
   return result;
 };
 
-let mergeSort = (arr) => {
-  if (arr.len() <= 1) {
-    return arr;
-  }
-  let mid = Math.floor(arr.len() / 2);
-  let left = arr.slice(0, mid);
-  let right = arr.slice(mid);
-  return merge(mergeSort(left), mergeSort(right));
-};
-
-mergeSort([38, 27, 43, 3, 9, 82, 10])
+let arr = [38, 27, 43, 3, 9, 82, 10];
+mergeSort(arr);
 ```
 
 **Result:**

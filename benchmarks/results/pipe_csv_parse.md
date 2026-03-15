@@ -1,7 +1,7 @@
 # pipe_csv_parse
 
 **Status:** PASS
-**Duration:** 14445ms
+**Duration:** 14101ms
 **Tool calls:** 2
 
 ## Prompt
@@ -20,28 +20,27 @@
 
 ```javascript
 let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
-let lines = csv.split("\n");
+let lines = csv.lines();
 let headers = lines[0].split(",");
 let data = lines.slice(1).map(line => {
   let values = line.split(",");
-  return headers.reduce((obj, h, i) => {
-    obj[h] = values[i];
-    return obj;
-  }, {});
+  let obj = {};
+  headers.forEach((h, i) => obj[h] = values[i]);
+  return obj;
 });
 data
 ```
 
 **Result:**
 ```
-"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 7:19"
+"ERROR: Syntax error at line 7:35\n\n    headers.forEach((h, i) => obj[h] = values[i]);\n                                     ^\n\n  Unexpected syntax at '='\n\n  This doesn't look like a valid statement or expression"
 ```
 
 ### Attempt 2 (OK)
 
 ```javascript
 let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
-let lines = csv.split("\n");
+let lines = csv.lines();
 let headers = lines[0].split(",");
 let data = lines.slice(1).map(line => {
   let values = line.split(",");

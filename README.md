@@ -2,7 +2,7 @@
 
 One `eval` tool instead of twenty. Sandboxed JS syntax your LLM already knows.
 
-- **LLMs compute instead of reasoning** — "how many R's in strawberry?" becomes `split |> filter |> len`
+- **LLMs compute instead of reasoning** — "how many R's in strawberry?" becomes `.split("").filter(c => c == "r").length`
 - **~95% less tool context** — one `eval` tool replaces dozens of MCP tool schemas; the LLM prompt stays constant as you add capabilities
 - **Polyglot composition** — chain tools from Python, Go, TypeScript MCP servers with pipes in a single `eval` call
 - **KV cache friendly** — system prompt doesn't change when tools change; `help()` discovers capabilities at runtime
@@ -35,7 +35,7 @@ Your LLM now has `eval` and `help`. It writes JS-syntax code; tshell executes it
 
 ```javascript
 // LLM can compute instead of reasoning:
-"strawberry" |> split("") |> filter(c => c == "r") |> len()  // → 3
+"strawberry".split("").filter(c => c == "r").length  // → 3
 
 // Chain operations in a single tool call:
 let data = [{name: "Alice", score: 85}, {name: "Bob", score: 92}]
@@ -97,7 +97,7 @@ reason about it instead of computing it. With tshell, they write code instead.
 Count letters — LLMs get this wrong by reasoning, right by computing:
 
 ```javascript
-"strawberry" |> split("") |> filter(c => c == "r") |> len()
+"strawberry".split("").filter(c => c == "r").length
 // → 3
 ```
 
@@ -303,6 +303,24 @@ Regular template for comparison — \t becomes a tab:
 ```javascript
 `tab\there`
 // → tab	here
+```
+
+Multiline template strings:
+
+```javascript
+`line1
+line2
+line3`
+// → line1
+line2
+line3
+```
+
+Raw interpolation with literal backslash — \n stays as two characters:
+
+```javascript
+let x = 42; r`result: ${x}\nend`
+// → result: 42\nend
 ```
 
 ### What's Missing

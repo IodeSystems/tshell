@@ -1,7 +1,7 @@
 # bitwise_flags
 
 **Status:** PASS
-**Duration:** 5717ms
+**Duration:** 5513ms
 **Tool calls:** 1
 
 ## Prompt
@@ -22,12 +22,9 @@
 let READ = 4;
 let WRITE = 2;
 let EXEC = 1;
-
-let READ_WRITE = READ | WRITE;
-
-let hasWrite = (READ_WRITE & WRITE) !== 0;
-let hasExec = (READ_WRITE & EXEC) !== 0;
-
+let RW = READ | WRITE;
+let hasWrite = (RW & WRITE) !== 0;
+let hasExec = (RW & EXEC) !== 0;
 {hasWrite, hasExec}
 ```
 

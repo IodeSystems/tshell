@@ -1,7 +1,7 @@
 # deep_clone
 
 **Status:** PASS
-**Duration:** 10398ms
+**Duration:** 9964ms
 **Tool calls:** 1
 
 ## Prompt
@@ -11,7 +11,7 @@
 ## Final Answer
 
 ```
-[{a: 1, b: {c: 2, d: [3, 4]}}, {a: 1, b: {c: 99, d: [3, 4]}}]
+`[{a: 1, b: {c: 2, d: [3, 4]}}, {a: 1, b: {c: 99, d: [3, 4]}}]`
 ```
 
 ## Attempts
@@ -19,31 +19,26 @@
 ### Attempt 1 (OK)
 
 ```javascript
-function deepClone(obj) {
-  if (obj === null || typeof obj !== "object") {
+let deepClone = (obj) => {
+  if (obj === null || typeof obj !== 'object') {
     return obj;
   }
-  
   if (Array.isArray(obj)) {
-    return obj.map(item => deepClone(item));
+    return obj.map(deepClone);
   }
-  
-  const cloned = {};
+  let clone = {};
   for (let key in obj) {
     if (obj.hasOwnProperty(key)) {
-      cloned[key] = deepClone(obj[key]);
+      clone[key] = deepClone(obj[key]);
     }
   }
-  
-  return cloned;
-}
+  return clone;
+};
 
-const original = {a:1, b:{c:2, d:[3,4]}};
-const clone = deepClone(original);
-
+let original = {a:1, b:{c:2, d:[3,4]}};
+let clone = deepClone(original);
 clone.b.c = 99;
-
-print([original, clone]);
+[original, clone];
 ```
 
 **Result:**

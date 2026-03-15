@@ -1,7 +1,7 @@
 # roman_numerals
 
 **Status:** PASS
-**Duration:** 10293ms
+**Duration:** 10210ms
 **Tool calls:** 1
 
 ## Prompt
@@ -11,7 +11,7 @@
 ## Final Answer
 
 ```
-"MCMXCIV"
+MCMXCIV
 ```
 
 ## Attempts
@@ -19,7 +19,7 @@
 ### Attempt 1 (OK)
 
 ```javascript
-const toRoman = n => {
+const toRoman = (num: number): string => {
   const romanMap = [
     [1000, "M"],
     [900, "CM"],
@@ -37,19 +37,19 @@ const toRoman = n => {
   ];
   
   let result = "";
-  let remaining = n;
+  let n = num;
   
   for (const [value, symbol] of romanMap) {
-    while (remaining >= value) {
+    while (n >= value) {
       result += symbol;
-      remaining -= value;
+      n -= value;
     }
   }
   
   return result;
 };
 
-toRoman(1994)
+toRoman(1994);
 ```
 
 **Result:**

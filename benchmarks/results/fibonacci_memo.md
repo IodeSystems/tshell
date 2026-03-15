@@ -1,7 +1,7 @@
 # fibonacci_memo
 
 **Status:** PASS
-**Duration:** 15015ms
+**Duration:** 12996ms
 **Tool calls:** 3
 
 ## Prompt
@@ -20,14 +20,13 @@
 
 ```javascript
 let cache = {};
-const fib = (n) => {
+function fib(n) {
   if (n <= 1) return n;
   if (cache[n] !== undefined) return cache[n];
   cache[n] = fib(n - 1) + fib(n - 2);
   return cache[n];
-};
-export let result = fib(20);
-result;
+}
+fib(20);
 ```
 
 **Result:**
@@ -39,35 +38,33 @@ result;
 
 ```javascript
 let cache = {};
-const fib = (n) => {
+function fib(n) {
   if (n <= 1) return n;
   let key = str(n);
   if (cache[key] !== undefined) return cache[key];
   cache[key] = fib(n - 1) + fib(n - 2);
   return cache[key];
-};
-export let result = fib(20);
-result;
+}
+fib(20);
 ```
 
 **Result:**
 ```
-"ERROR: tshell does not have 'undefined' — use null instead\n\n  at line 9:23"
+"ERROR: tshell does not have 'undefined' — use null instead\n\n  at line 9:3"
 ```
 
 ### Attempt 3 (OK)
 
 ```javascript
 let cache = {};
-const fib = (n) => {
+function fib(n) {
   if (n <= 1) return n;
   let key = str(n);
-  if (cache[key] != null) return cache[key];
+  if (cache[key] !== null) return cache[key];
   cache[key] = fib(n - 1) + fib(n - 2);
   return cache[key];
-};
-export let result = fib(20);
-result;
+}
+fib(20);
 ```
 
 **Result:**

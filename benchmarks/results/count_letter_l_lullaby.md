@@ -1,8 +1,8 @@
 # count_letter_l_lullaby
 
 **Status:** PASS
-**Duration:** 3384ms
-**Tool calls:** 1
+**Duration:** 7687ms
+**Tool calls:** 3
 
 ## Prompt
 
@@ -19,7 +19,32 @@
 ### Attempt 1 (OK)
 
 ```javascript
-"lullaby".split("").filter(c => c === "l").len()
+"lullaby" | split("") | filter(c => c === "l") | len()
+```
+
+**Result:**
+```
+"ERROR: Type mismatch in '|'\n\n  Expected: number\n  Got:      string (\"lullaby\")"
+```
+
+### Attempt 2 (OK)
+
+```javascript
+"lullaby" | str | split("") | filter(c => c === "l") | len()
+```
+
+**Result:**
+```
+"ERROR: Type mismatch in '|'\n\n  Expected: number\n  Got:      string (\"lullaby\")"
+```
+
+### Attempt 3 (OK)
+
+```javascript
+let s = "lullaby";
+s.split("")
+  .filter(c => c === "l")
+  .length
 ```
 
 **Result:**

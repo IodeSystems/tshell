@@ -1,8 +1,8 @@
 # regex_extract
 
 **Status:** PASS
-**Duration:** 8253ms
-**Tool calls:** 2
+**Duration:** 26374ms
+**Tool calls:** 8
 
 ## Prompt
 
@@ -19,7 +19,7 @@
 ### Attempt 1 (OK)
 
 ```javascript
-r"contact alice@example.com or bob@test.org for info" | match(/email/g)
+r"contact alice@example.com or bob@test.org for info" | match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/)
 ```
 
 **Result:**
@@ -30,11 +30,77 @@ r"contact alice@example.com or bob@test.org for info" | match(/email/g)
 ### Attempt 2 (OK)
 
 ```javascript
-"contact alice@example.com or bob@test.org for info".match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g)
+"contact alice@example.com or bob@test.org for info" | match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/)
 ```
 
 **Result:**
 ```
-"[{match: \"alice@example.com\", groups: [], index: 8}, {match: \"bob@test.org\", groups: [], index: 29}]"
+"ERROR: Type mismatch in pipe into match\n\n  Expected: string\n  Got:      regex (/\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b/)\n\n  at line 1:60"
+```
+
+### Attempt 3 (OK)
+
+```javascript
+"contact alice@example.com or bob@test.org for info" | match(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
+```
+
+**Result:**
+```
+"ERROR: Syntax error at line 1:62\n\n  \"contact alice@example.com or bob@test.org for info\" | match(r\"\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b\")\n                                                                ^\n\n  Unexpected syntax at '\"\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b\"'\n\n  This doesn't look like a valid statement or expression"
+```
+
+### Attempt 4 (OK)
+
+```javascript
+"contact alice@example.com or bob@test.org for info" | match(/\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b/)
+```
+
+**Result:**
+```
+"ERROR: Type mismatch in pipe into match\n\n  Expected: string\n  Got:      regex (/\\\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\\\.[A-Za-z]{2,}\\\\b/)\n\n  at line 1:60"
+```
+
+### Attempt 5 (OK)
+
+```javascript
+let s = "contact alice@example.com or bob@test.org for info"; s.match(/\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b/)
+```
+
+**Result:**
+```
+"[]"
+```
+
+### Attempt 6 (OK)
+
+```javascript
+let s = "contact alice@example.com or bob@test.org for info"; s.match(/\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b/, true)
+```
+
+**Result:**
+```
+"[]"
+```
+
+### Attempt 7 (OK)
+
+```javascript
+let s = "contact alice@example.com or bob@test.org for info"; s.match(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
+```
+
+**Result:**
+```
+"ERROR: Syntax error at line 1:71\n\n  let s = \"contact alice@example.com or bob@test.org for info\"; s.match(r\"\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b\")\n                                                                         ^\n\n  Unexpected syntax at '\"\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b\"'\n\n  This doesn't look like a valid statement or expression"
+```
+
+### Attempt 8 (OK)
+
+```javascript
+let s = "contact alice@example.com or bob@test.org for info"; s.match("\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b")
+```
+
+**Result:**
+```
+"[\"alice@example.com\", \"bob@test.org\"]"
 ```
 

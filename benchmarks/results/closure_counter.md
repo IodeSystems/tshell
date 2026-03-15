@@ -22,11 +22,10 @@
 let createCounter = () => {
   let count = 0;
   return {
-    increment: () => { count++; return count; },
+    increment: () => { count++; },
     get: () => count
   };
 };
-
 let counter = createCounter();
 counter.increment();
 counter.increment();

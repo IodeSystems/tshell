@@ -5481,7 +5481,7 @@ public class TShellParser extends Parser {
 			setState(718);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 1107296254L) != 0) || _la==LBRACKET || _la==IDENTIFIER) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 1107296254L) != 0) || ((((_la - 77)) & ~0x3f) == 0 && ((1L << (_la - 77)) & 289L) != 0)) {
 				{
 				setState(707);
 				objectField();
@@ -5711,6 +5711,7 @@ public class TShellParser extends Parser {
 	@SuppressWarnings("CheckReturnValue")
 	public static class FieldNameContext extends ParserRuleContext {
 		public TerminalNode IDENTIFIER() { return getToken(TShellParser.IDENTIFIER, 0); }
+		public TerminalNode STRING() { return getToken(TShellParser.STRING, 0); }
 		public TerminalNode LET() { return getToken(TShellParser.LET, 0); }
 		public TerminalNode FUNCTION() { return getToken(TShellParser.FUNCTION, 0); }
 		public TerminalNode IF() { return getToken(TShellParser.IF, 0); }
@@ -5763,7 +5764,7 @@ public class TShellParser extends Parser {
 			{
 			setState(738);
 			_la = _input.LA(1);
-			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 33554430L) != 0) || _la==IDENTIFIER) ) {
+			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 33554430L) != 0) || _la==STRING || _la==IDENTIFIER) ) {
 			_errHandler.recoverInline(this);
 			}
 			else {
@@ -6347,7 +6348,7 @@ public class TShellParser extends Parser {
 		"TVXZ\\^`bdfhjlnprtvxz|~\u0080\u0082\u0084\u0086\u0000\n\u0002\u0000\u0002"+
 		"\u0002UU\u0001\u0000\u001f \u0002\u0000!+EE\u0001\u000025\u0002\u0000"+
 		"\b\b9<\u0001\u000068\u0001\u0000\u0019\u001a\u0001\u0000,-\u0002\u0000"+
-		"..01\u0002\u0000\u0001\u0018UU\u0353\u0000\u008b\u0001\u0000\u0000\u0000"+
+		"..01\u0003\u0000\u0001\u0018RRUU\u0353\u0000\u008b\u0001\u0000\u0000\u0000"+
 		"\u0002\u00a3\u0001\u0000\u0000\u0000\u0004\u00a5\u0001\u0000\u0000\u0000"+
 		"\u0006\u00ab\u0001\u0000\u0000\u0000\b\u00b7\u0001\u0000\u0000\u0000\n"+
 		"\u00bc\u0001\u0000\u0000\u0000\f\u00c9\u0001\u0000\u0000\u0000\u000e\u00d6"+

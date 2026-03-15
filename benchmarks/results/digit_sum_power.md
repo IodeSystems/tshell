@@ -1,7 +1,7 @@
 # digit_sum_power
 
 **Status:** PASS
-**Duration:** 4369ms
+**Duration:** 4657ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,11 +19,12 @@
 ### Attempt 1 (OK)
 
 ```javascript
-let n = pow(2, 15);
-str(n)
-  |> split("")
-  |> map(num)
-  |> reduce((a, x) => a + x, 0)
+let result = pow(2, 15);
+let digits = str(result)
+  .split('')
+  .map(d => num(d));
+let sum = digits.reduce((a, x) => a + x, 0);
+sum
 ```
 
 **Result:**

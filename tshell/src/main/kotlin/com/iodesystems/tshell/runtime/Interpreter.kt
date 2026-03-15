@@ -994,7 +994,7 @@ class Interpreter(
         if (isOptional && base is TShellValue.TNull) continue
         base = withLocation(op) {
           when {
-            op.fieldName() != null -> accessMember(base, op.fieldName().text)
+            op.fieldName() != null -> accessMember(base, fieldNameText(op.fieldName()))
             op.LBRACKET() != null -> accessIndex(base, eval(op.expression()))
             op.LPAREN() != null -> {
               val callArgs = op.argumentList()?.let { evalCallArgs(it) } ?: CallArgs.EMPTY
@@ -1237,7 +1237,7 @@ class Interpreter(
         result = withLocation(op) {
           when {
             op.fieldName() != null -> {
-              val field = op.fieldName().text
+              val field = fieldNameText(op.fieldName())
               // Check if next op is a call and this is a mutating array method
               val nextOp = ctx.postfixOp().getOrNull(opIdx + 1)
               if (nextOp?.LPAREN() != null && current is TShellValue.TArray && field in MUTATING_ARRAY_METHODS && lvaluePath.isNotEmpty()) {
@@ -1438,7 +1438,7 @@ class Interpreter(
       for (field in ctx.objectField()) {
         when (field) {
           is NamedFieldContext -> {
-            fields[field.fieldName().text] = eval(field.expression())
+            fields[fieldNameText(field.fieldName())] = eval(field.expression())
           }
           is ShorthandFieldContext -> {
             val name = field.IDENTIFIER()?.text ?: field.FUNCTION()?.text
@@ -1666,6 +1666,15 @@ class Interpreter(
 
     private fun paramName(p: ParamContext): String = identOrFunctionText(p.IDENTIFIER(), p.FUNCTION())
 
+    private fun fieldNameText(ctx: com.iodesystems.tshell.parser.TShellParser.FieldNameContext): String {
+      val str = ctx.STRING()
+      if (str != null) {
+        val raw = str.text
+        return unescapeString(raw.substring(1, raw.length - 1))
+      }
+      return ctx.text
+    }
+
     // FieldStep/IndexStep defined at file level
 
     private suspend fun buildAccessorSteps(target: AssignTargetContext): List<Any> {
@@ -1677,7 +1686,7 @@ class Interpreter(
         if (child is org.antlr.v4.runtime.tree.TerminalNode) {
           when (child.symbol.type) {
             TShellLexer.DOT -> {
-              steps.add(FieldStep(target.fieldName(fieldIdx).text))
+              steps.add(FieldStep(fieldNameText(target.fieldName(fieldIdx))))
               fieldIdx++
             }
             TShellLexer.LBRACKET -> {
