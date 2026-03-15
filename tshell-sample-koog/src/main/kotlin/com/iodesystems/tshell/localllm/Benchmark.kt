@@ -228,7 +228,7 @@ val BENCHMARK_SUITE = listOf(
     validator = { it.contains("3") }
   ),
   BenchmarkTeaser(
-    name = "reverse_words_order",
+    name = "count_words_with_letter",
     prompt = "Using tshell, take the sentence 'the quick brown fox jumps over the lazy dog' and return the number of words that contain the letter 'o'.",
     validator = { it.contains("4") }
   ),

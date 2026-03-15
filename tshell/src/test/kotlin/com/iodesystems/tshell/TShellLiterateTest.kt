@@ -182,9 +182,9 @@ with `r` to disable backslash escape processing. What you type is what you get.
       )),
 
       Section("What's Missing", """
-No `class`, `this`, `new`, `var`, `const`, `async`/`await`, `try`/`catch`,
-`import`/`require`, prototypes, generators, or `Symbol`. Type annotations are
-accepted but ignored. Use `help()` to discover what's available.
+No `class`, `this`, `new`, `async`/`await`, `import`/`require`, prototypes,
+generators, or `Symbol`. Type annotations are accepted but ignored.
+Use `help()` to discover what's available.
       """.trim(), listOf()),
 
     )),
@@ -288,9 +288,17 @@ accepted but ignored. Use `help()` to discover what's available.
       // ── MCP Composition ──
       appendLine("## MCP Composition")
       appendLine()
-      appendLine("Connect external MCP servers — their tools become tshell commands, composed with pipes:")
+      appendLine("Connect external MCP servers — their tools become tshell commands, composed with pipes.")
+      appendLine("Use `--mcp` with the standard JSON config format, or `--connect` for shorthand:")
       appendLine()
       appendLine("```bash")
+      appendLine("# Standard MCP JSON config — same format as Claude Desktop, Cursor, etc.")
+      appendLine("tshell-cli --mcp '{\"mcpServers\": {\"browser\": {\"command\": \"npx\", \"args\": [\"@anthropic/mcp-playwright\"]}}}'")
+      appendLine()
+      appendLine("# Or point to a config file")
+      appendLine("tshell-cli --mcp mcp-config.json")
+      appendLine()
+      appendLine("# Shorthand for simple cases")
       appendLine("tshell-cli --connect \"app=python my_tools.py\" --connect \"data=npx data-server\"")
       appendLine("```")
       appendLine()
@@ -311,7 +319,7 @@ accepted but ignored. Use `help()` to discover what's available.
       appendLine("replaces all of it with one `eval` tool — commands are discovered via `help()`")
       appendLine("at runtime, not baked into the prompt. The KV cache survives tool set changes.")
       appendLine()
-      appendLine("See [`tshell-mcp/README.md`](tshell-mcp/README.md) for the programmatic API.")
+      appendLine("See [`tshell-cli/README.md`](tshell-cli/README.md) for CLI flags, Claude Desktop config, and JDBC driver setup.")
       appendLine()
 
       // ── Why tshell ──
@@ -397,11 +405,11 @@ accepted but ignored. Use `help()` to discover what's available.
       appendLine("| --- | --- | --- |")
       appendLine("| **Core** | `tshell` | Language runtime, `CoreToolkit` (pipes, arrays, strings, math, JSON, composition), `MathToolkit`, `WebToolkit`, `FileToolkit` |")
       appendLine("| **Graph** | `tshell-graph` | Graph database toolkit: nodes, edges, traversal, schema validation. See [`tshell-graph/README.md`](tshell-graph/README.md) |")
-      appendLine("| **MCP** | `tshell-mcp` | MCP server + client toolkit for polyglot composition. See [`tshell-mcp/README.md`](tshell-mcp/README.md) |")
-      appendLine("| **CLI** | `tshell-cli` | Standalone MCP server with `--connect` for external tool servers |")
+      appendLine("| **MCP** | `tshell-mcp` | MCP server + client library. See [`tshell-mcp/README.md`](tshell-mcp/README.md) |")
+      appendLine("| **CLI** | `tshell-cli` | Standalone MCP server binary with toolkits, external server composition, JDBC drivers. See [`tshell-cli/README.md`](tshell-cli/README.md) |")
       appendLine("| **Browser** | `tshell-playwright` | Lean Playwright automation (12 commands, ~800 chars context vs ~8KB for `@playwright/mcp`). See [`tshell-playwright/README.md`](tshell-playwright/README.md) |")
       appendLine("| **SQL** | `tshell-sql` | JDBC toolkit: `db.query`, `db.tables`, `db.schema`. Read-only by default |")
-      appendLine("| **Sample** | `tshell-sample-koog` | CLI chat agent + benchmarks (96% on 32 challenges). See [`tshell-sample-koog/README.md`](tshell-sample-koog/README.md) |")
+      appendLine("| **Sample** | `tshell-sample-koog` | CLI chat agent + benchmarks (100% on 32 challenges). See [`tshell-sample-koog/README.md`](tshell-sample-koog/README.md) |")
       appendLine()
 
       // ── Context Budget ──

@@ -44,9 +44,17 @@ data |> filter(d => d.score > 80) |> map(d => d.name) |> join(", ")  // → "Ali
 
 ## MCP Composition
 
-Connect external MCP servers — their tools become tshell commands, composed with pipes:
+Connect external MCP servers — their tools become tshell commands, composed with pipes.
+Use `--mcp` with the standard JSON config format, or `--connect` for shorthand:
 
 ```bash
+# Standard MCP JSON config — same format as Claude Desktop, Cursor, etc.
+tshell-cli --mcp '{"mcpServers": {"browser": {"command": "npx", "args": ["@anthropic/mcp-playwright"]}}}'
+
+# Or point to a config file
+tshell-cli --mcp mcp-config.json
+
+# Shorthand for simple cases
 tshell-cli --connect "app=python my_tools.py" --connect "data=npx data-server"
 ```
 
@@ -67,7 +75,7 @@ descriptions. A Playwright MCP server adds ~8KB of tool definitions. tshell
 replaces all of it with one `eval` tool — commands are discovered via `help()`
 at runtime, not baked into the prompt. The KV cache survives tool set changes.
 
-See [`tshell-mcp/README.md`](tshell-mcp/README.md) for the programmatic API.
+See [`tshell-cli/README.md`](tshell-cli/README.md) for CLI flags, Claude Desktop config, and JDBC driver setup.
 
 ## Why tshell
 
@@ -299,9 +307,9 @@ Regular template for comparison — \t becomes a tab:
 
 ### What's Missing
 
-No `class`, `this`, `new`, `var`, `const`, `async`/`await`, `try`/`catch`,
-`import`/`require`, prototypes, generators, or `Symbol`. Type annotations are
-accepted but ignored. Use `help()` to discover what's available.
+No `class`, `this`, `new`, `async`/`await`, `import`/`require`, prototypes,
+generators, or `Symbol`. Type annotations are accepted but ignored.
+Use `help()` to discover what's available.
 
 ## Programmatic Integration
 
@@ -354,11 +362,11 @@ val shell = TShell(
 | --- | --- | --- |
 | **Core** | `tshell` | Language runtime, `CoreToolkit` (pipes, arrays, strings, math, JSON, composition), `MathToolkit`, `WebToolkit`, `FileToolkit` |
 | **Graph** | `tshell-graph` | Graph database toolkit: nodes, edges, traversal, schema validation. See [`tshell-graph/README.md`](tshell-graph/README.md) |
-| **MCP** | `tshell-mcp` | MCP server + client toolkit for polyglot composition. See [`tshell-mcp/README.md`](tshell-mcp/README.md) |
-| **CLI** | `tshell-cli` | Standalone MCP server with `--connect` for external tool servers |
+| **MCP** | `tshell-mcp` | MCP server + client library. See [`tshell-mcp/README.md`](tshell-mcp/README.md) |
+| **CLI** | `tshell-cli` | Standalone MCP server binary with toolkits, external server composition, JDBC drivers. See [`tshell-cli/README.md`](tshell-cli/README.md) |
 | **Browser** | `tshell-playwright` | Lean Playwright automation (12 commands, ~800 chars context vs ~8KB for `@playwright/mcp`). See [`tshell-playwright/README.md`](tshell-playwright/README.md) |
 | **SQL** | `tshell-sql` | JDBC toolkit: `db.query`, `db.tables`, `db.schema`. Read-only by default |
-| **Sample** | `tshell-sample-koog` | CLI chat agent + benchmarks (96% on 32 challenges). See [`tshell-sample-koog/README.md`](tshell-sample-koog/README.md) |
+| **Sample** | `tshell-sample-koog` | CLI chat agent + benchmarks (100% on 32 challenges). See [`tshell-sample-koog/README.md`](tshell-sample-koog/README.md) |
 
 ## Context Budget
 
