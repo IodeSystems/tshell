@@ -295,7 +295,9 @@ NOTES:
 
   private fun <T> withConnection(name: String, config: DatabaseConfig, block: (Connection) -> T): T {
     val conn = try {
-      config.dataSource.getConnection()
+      config.dataSource.getConnection().also {
+        if (config.readOnly) it.isReadOnly = true
+      }
     } catch (e: SQLException) {
       throw TShellError(
         "$name: failed to connect to database\n\n" +
