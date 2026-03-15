@@ -1,7 +1,7 @@
 # scatter_parallel
 
 **Status:** PASS
-**Duration:** 4211ms
+**Duration:** 3867ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,7 +19,7 @@
 ### Attempt 1 (OK)
 
 ```javascript
-[1,2,3,4,5] |* (x => x * x) |> reduce((a, x) => a + x, 0)
+[1, 2, 3, 4, 5] |* (x => x * x) |> reduce((a, x) => a + x, 0)
 ```
 
 **Result:**

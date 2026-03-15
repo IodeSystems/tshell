@@ -1,8 +1,8 @@
 # digit_sum_power
 
 **Status:** PASS
-**Duration:** 6729ms
-**Tool calls:** 2
+**Duration:** 4249ms
+**Tool calls:** 1
 
 ## Prompt
 
@@ -20,19 +20,9 @@
 
 ```javascript
 let result = pow(2, 15);
-result.toString().split('').map(num => num).reduce((sum, d) => sum + parseInt(d), 0)
-```
-
-**Result:**
-```
-"ERROR: Type mismatch in member access .toString\n\n  Expected: object, array, or string\n  Got:      number (32768)\n\n  at line 2:6"
-```
-
-### Attempt 2 (OK)
-
-```javascript
-let result = pow(2, 15);
-str(result).split('').map(num => parseInt(num)).reduce((sum, d) => sum + d, 0)
+let str = str(result);
+let sum = str |> split("") |> map(num) |> reduce((a, x) => a + x, 0);
+sum
 ```
 
 **Result:**

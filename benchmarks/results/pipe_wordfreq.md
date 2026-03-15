@@ -1,7 +1,7 @@
 # pipe_wordfreq
 
 **Status:** PASS
-**Duration:** 5175ms
+**Duration:** 4574ms
 **Tool calls:** 1
 
 ## Prompt
@@ -11,7 +11,7 @@
 ## Final Answer
 
 ```
-{"the": 3, "cat": 2, "sat": 1, "on": 1, "mat": 1}
+{the: 3, cat: 2, sat: 1, on: 1, mat: 1}
 ```
 
 ## Attempts

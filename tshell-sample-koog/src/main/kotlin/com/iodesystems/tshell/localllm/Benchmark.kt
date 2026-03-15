@@ -268,6 +268,16 @@ val BENCHMARK_SUITE = listOf(
     prompt = "Using tshell, compute the minimum number of moves to solve Tower of Hanoi with 10 disks. Return the number.",
     validator = { it.contains("1023") }
   ),
+  BenchmarkTeaser(
+    name = "escape_heavy_strings",
+    prompt = """Using tshell, given these three Windows file paths:
+- C:\Users\admin\Documents\report_2024.csv
+- D:\Projects\src\main\kotlin\App.kt
+- E:\backup\db\prod_dump_2024-01-15.sql
+Extract just the filename (after the last backslash) from each path using the regex pattern \\([^\\]+)${'$'} to capture the filename part (including the leading backslash), then strip the leading backslash. Join the filenames with " | ". Return the joined string.""",
+    validator = { it.contains("report_2024.csv") && it.contains("App.kt") && it.contains("prod_dump_2024-01-15.sql") && it.contains("|") },
+    timeoutMs = 60_000
+  ),
 )
 
 // --- Runner ---

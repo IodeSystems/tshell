@@ -1,8 +1,9 @@
 # merge_sort
 
-**Status:** PASS
-**Duration:** 12478ms
-**Tool calls:** 1
+**Status:** FAIL
+**Duration:** 30004ms
+**Tool calls:** 3
+**Error:** TIMEOUT (30s)
 
 ## Prompt
 
@@ -11,7 +12,7 @@
 ## Final Answer
 
 ```
-[3, 9, 10, 27, 38, 43, 82]
+
 ```
 
 ## Attempts
@@ -19,36 +20,28 @@
 ### Attempt 1 (OK)
 
 ```javascript
-const mergeSort = (arr) => {
-  if (arr.len() <= 1) return arr;
-  const mid = Math.floor(arr.len() / 2);
-  const left = mergeSort(arr.slice(0, mid));
-  const right = mergeSort(arr.slice(mid));
-  
-  const merge = (a, b) => {
-    const result = [];
-    let i = 0, j = 0;
-    while (i < a.len() && j < b.len()) {
-      if (a[i] <= b[j]) {
-        result.push(a[i]);
-        i++;
-      } else {
-        result.push(b[j]);
-        j++;
-      }
+let mergeSort = (arr) => {
+  if (arr.len() <= 1) {
+    return arr;
+  }
+  let mid = Math.floor(arr.len() / 2);
+  let left = arr.slice(0, mid);
+  let right = arr.slice(mid);
+  let leftSorted = mergeSort(left);
+  let rightSorted = mergeSort(right);
+  return merge(leftSorted, rightSorted);
+};
+
+let merge = (left, right) => {
+  let result = [];
+  while (left.len() > 0 && right.len() > 0) {
+    if (left[0] <= right[0]) {
+      result.push(left.shift());
+    } else {
+      result.push(right.shift());
     }
-    while (i < a.len()) {
-      result.push(a[i]);
-      i++;
-    }
-    while (j < b.len()) {
-      result.push(b[j]);
-      j++;
-    }
-    return result;
-  };
-  
-  return merge(left, right);
+  }
+  return concat(result, left).concat(right);
 };
 
 mergeSort([38, 27, 43, 3, 9, 82, 10]);
@@ -56,6 +49,76 @@ mergeSort([38, 27, 43, 3, 9, 82, 10]);
 
 **Result:**
 ```
-"[3, 9, 10, 27, 38, 43, 82]"
+"ERROR: null"
+```
+
+### Attempt 2 (OK)
+
+```javascript
+let mergeSort = (arr) => {
+  if (arr.len() <= 1) {
+    return arr;
+  }
+  let mid = Math.floor(arr.len() / 2);
+  let left = arr.slice(0, mid);
+  let right = arr.slice(mid);
+  let leftSorted = mergeSort(left);
+  let rightSorted = mergeSort(right);
+  return merge(leftSorted, rightSorted);
+};
+
+let merge = (left, right) => {
+  let result = [];
+  while (left.len() > 0 && right.len() > 0) {
+    if (left[0] <= right[0]) {
+      result.push(left.shift());
+    } else {
+      result.push(right.shift());
+    }
+  }
+  return concat(result, left).concat(right);
+};
+
+mergeSort([38, 27, 43, 3, 9, 82, 10]);
+```
+
+**Result:**
+```
+"ERROR: null"
+```
+
+### Attempt 3 (OK)
+
+```javascript
+let mergeSort = (arr) => {
+  if (arr.len() <= 1) {
+    return arr;
+  }
+  let mid = Math.floor(arr.len() / 2);
+  let left = arr.slice(0, mid);
+  let right = arr.slice(mid);
+  let leftSorted = mergeSort(left);
+  let rightSorted = mergeSort(right);
+  return merge(leftSorted, rightSorted);
+};
+
+let merge = (left, right) => {
+  let result = [];
+  while (left.len() > 0 && right.len() > 0) {
+    if (left[0] <= right[0]) {
+      result.push(left.shift());
+    } else {
+      result.push(right.shift());
+    }
+  }
+  return concat(result, left).concat(right);
+};
+
+mergeSort([38, 27, 43, 3, 9, 82, 10]);
+```
+
+**Result:**
+```
+"ERROR: null"
 ```
 

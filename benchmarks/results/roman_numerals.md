@@ -1,7 +1,7 @@
 # roman_numerals
 
 **Status:** PASS
-**Duration:** 9327ms
+**Duration:** 9099ms
 **Tool calls:** 1
 
 ## Prompt
@@ -11,7 +11,7 @@
 ## Final Answer
 
 ```
-"MCMXCIV"
+MCMXCIV
 ```
 
 ## Attempts
@@ -22,7 +22,6 @@
 function intToRoman(num) {
   const values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
   const symbols = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"];
-  
   let result = "";
   for (let i = 0; i < values.length; i++) {
     while (num >= values[i]) {
@@ -30,10 +29,8 @@ function intToRoman(num) {
       num -= values[i];
     }
   }
-  
   return result;
 }
-
 intToRoman(1994);
 ```
 

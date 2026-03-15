@@ -1,8 +1,8 @@
 # recursive_flatten
 
 **Status:** PASS
-**Duration:** 10600ms
-**Tool calls:** 2
+**Duration:** 5228ms
+**Tool calls:** 1
 
 ## Prompt
 
@@ -20,40 +20,16 @@
 
 ```javascript
 function flatten(arr) {
-  return arr.reduce((acc, val) => {
-    if (isArray(val)) {
-      return acc.concat(flatten(val));
-    } else {
-      return acc.concat(val);
+  return arr.flatMap(item => {
+    if (isArray(item)) {
+      return flatten(item);
     }
-  }, []);
+    return [item];
+  });
 }
 
-flatten([[1,[2]],[[3,4],[5]]])
-```
-
-**Result:**
-```
-"ERROR: Type mismatch in pipe into concat\n\n  Expected: array\n  Got:      number (1)\n\n  at line 6:23"
-```
-
-### Attempt 2 (OK)
-
-```javascript
-function flatten(arr) {
-  let result = [];
-  for (let i = 0; i < arr.length; i++) {
-    let val = arr[i];
-    if (isArray(val)) {
-      result = result.concat(flatten(val));
-    } else {
-      result.push(val);
-    }
-  }
-  return result;
-}
-
-flatten([[1,[2]],[[3,4],[5]]])
+let result = flatten([[1,[2]],[[3,4],[5]]]);
+result
 ```
 
 **Result:**

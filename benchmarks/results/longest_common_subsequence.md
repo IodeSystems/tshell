@@ -1,7 +1,7 @@
 # longest_common_subsequence
 
 **Status:** PASS
-**Duration:** 9518ms
+**Duration:** 10337ms
 **Tool calls:** 1
 
 ## Prompt
@@ -20,24 +20,28 @@
 
 ```javascript
 function lcsLength(s1, s2) {
-  const n = s1.length;
-  const m = s2.length;
-  const dp = Array(n + 1).fill(null).map(() => Array(m + 1).fill(0));
-  
-  for (let i = 1; i <= n; i++) {
-    for (let j = 1; j <= m; j++) {
-      if (s1[i - 1] === s2[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1] + 1;
-      } else {
-        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
-      }
+    let m = s1.length;
+    let n = s2.length;
+    let dp = [];
+    for (let i = 0; i <= m; i++) {
+        dp[i] = [];
+        for (let j = 0; j <= n; j++) {
+            dp[i][j] = 0;
+        }
     }
-  }
-  
-  return dp[n][m];
+    for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+            if (s1[i-1] === s2[j-1]) {
+                dp[i][j] = dp[i-1][j-1] + 1;
+            } else {
+                dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+            }
+        }
+    }
+    return dp[m][n];
 }
 
-lcsLength('ABCBDAB', 'BDCAB');
+lcsLength("ABCBDAB", "BDCAB");
 ```
 
 **Result:**

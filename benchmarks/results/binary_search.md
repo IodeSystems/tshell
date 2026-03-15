@@ -1,7 +1,7 @@
 # binary_search
 
 **Status:** PASS
-**Duration:** 7856ms
+**Duration:** 7638ms
 **Tool calls:** 1
 
 ## Prompt
@@ -21,21 +21,25 @@
 ```javascript
 let arr = [1,3,5,7,9,11,13,15];
 let target = 7;
-let left = 0;
-let right = arr.len() - 1;
+let low = 0;
+let high = arr.len() - 1;
 
-while (left <= right) {
-  let mid = floor((left + right) / 2);
+while (low <= high) {
+  let mid = floor((low + high) / 2);
   if (arr[mid] === target) {
     break;
   } else if (arr[mid] < target) {
-    left = mid + 1;
+    low = mid + 1;
   } else {
-    right = mid - 1;
+    high = mid - 1;
   }
 }
 
-mid
+if (low > high) {
+  -1
+} else {
+  mid
+}
 ```
 
 **Result:**

@@ -1202,6 +1202,41 @@ class TShellNewFeaturesTest {
     assertEquals(listOf("carrot", "pea"), veg)
   }
 
+  // --- Raw quoted strings r"..." / r'...' ---
+
+  @Test fun `raw double-quoted string preserves backslashes`() {
+    val sh = shell()
+    assertEquals(TString("C:\\Users\\admin"), sh.eval("""r"C:\Users\admin""""))
+  }
+
+  @Test fun `raw single-quoted string preserves backslashes`() {
+    val sh = shell()
+    assertEquals(TString("C:\\Users\\admin"), sh.eval("r'C:\\Users\\admin'"))
+  }
+
+  @Test fun `raw string does not process escape sequences`() {
+    val sh = shell()
+    assertEquals(TString("hello\\nworld\\t!"), sh.eval("""r"hello\nworld\t!""""))
+  }
+
+  @Test fun `raw string with regex pattern`() {
+    val sh = shell()
+    assertEquals(TString("\\d+\\.\\d+"), sh.eval("""r"\d+\.\d+""""))
+  }
+
+  @Test fun `raw string in array`() {
+    val sh = shell()
+    val result = sh.eval("""[r"C:\path\one", r"D:\path\two"]""")
+    val arr = result as TArray
+    assertEquals(TString("C:\\path\\one"), arr.elements[0])
+    assertEquals(TString("D:\\path\\two"), arr.elements[1])
+  }
+
+  @Test fun `raw string with split for Windows paths`() {
+    val sh = shell()
+    assertEquals(TString("file.txt"), sh.eval("""r"C:\Users\admin\file.txt" |> split(r"\") |> last()"""))
+  }
+
   // --- evalExported with vars ---
 
   @Test fun `vars are available in code`() {

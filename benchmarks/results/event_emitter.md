@@ -1,8 +1,8 @@
 # event_emitter
 
 **Status:** PASS
-**Duration:** 16794ms
-**Tool calls:** 2
+**Duration:** 13484ms
+**Tool calls:** 1
 
 ## Prompt
 
@@ -19,72 +19,33 @@
 ### Attempt 1 (OK)
 
 ```javascript
-let eventEmitter = (() => {
+function EventEmitter() {
   let handlers = {};
   
-  return {
-    on: function(event, handler) {
-      if (!handlers[event]) {
-        handlers[event] = [];
-      }
-      handlers[event].push(handler);
-      return this;
-    },
-    emit: function(event, data) {
-      let results = [];
-      if (handlers[event]) {
-        for (let i = 0; i < handlers[event].length; i++) {
-          let result = handlers[event][i](data);
-          results.push(result);
-        }
-      }
-      return results;
+  function on(event, handler) {
+    if (!handlers[event]) {
+      handlers[event] = [];
     }
-  };
-})();
-
-eventEmitter.on("data", d => d);
-eventEmitter.on("data", d => d * 2);
-
-eventEmitter.emit("data", 42);
-```
-
-**Result:**
-```
-"ERROR: tshell does not support 'this' — there are no classes or methods\n\n  at line 25:15"
-```
-
-### Attempt 2 (OK)
-
-```javascript
-let eventEmitter = (() => {
-  let handlers = {};
+    handlers[event].push(handler);
+  }
   
-  return {
-    on: function(event, handler) {
-      if (!handlers[event]) {
-        handlers[event] = [];
-      }
-      handlers[event].push(handler);
-      return eventEmitter;
-    },
-    emit: function(event, data) {
-      let results = [];
-      if (handlers[event]) {
-        for (let i = 0; i < handlers[event].length; i++) {
-          let result = handlers[event][i](data);
-          results.push(result);
-        }
-      }
-      return results;
+  function emit(event, data) {
+    let results = [];
+    if (handlers[event]) {
+      handlers[event].forEach(h => {
+        results.push(h(data));
+      });
     }
-  };
-})();
+    return results;
+  }
+  
+  return { on, emit };
+}
 
-eventEmitter.on("data", d => d);
-eventEmitter.on("data", d => d * 2);
-
-eventEmitter.emit("data", 42);
+let emitter = EventEmitter();
+emitter.on("data", d => d);
+emitter.on("data", d => d * 2);
+emitter.emit("data", 42);
 ```
 
 **Result:**

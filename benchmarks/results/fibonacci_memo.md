@@ -1,7 +1,7 @@
 # fibonacci_memo
 
 **Status:** PASS
-**Duration:** 14724ms
+**Duration:** 13377ms
 **Tool calls:** 3
 
 ## Prompt
@@ -19,14 +19,15 @@
 ### Attempt 1 (OK)
 
 ```javascript
-let cache = {};
-let fib = (n) => {
-  if (n <= 1) return n;
-  if (cache[n] !== undefined) return cache[n];
-  cache[n] = fib(n - 1) + fib(n - 2);
-  return cache[n];
-};
-export let result = fib(20);
+let cache = {}
+let fib = n => {
+  if (n <= 1) return n
+  if (cache[n] !== undefined) return cache[n]
+  cache[n] = fib(n - 1) + fib(n - 2)
+  return cache[n]
+}
+export let result = fib(20)
+result
 ```
 
 **Result:**
@@ -37,15 +38,16 @@ export let result = fib(20);
 ### Attempt 2 (OK)
 
 ```javascript
-let cache = {};
-let fib = (n) => {
-  if (n <= 1) return n;
-  let key = str(n);
-  if (cache[key] !== undefined) return cache[key];
-  cache[key] = fib(n - 1) + fib(n - 2);
-  return cache[key];
-};
-export let result = fib(20);
+let cache = {}
+let fib = n => {
+  if (n <= 1) return n
+  let key = str(n)
+  if (cache[key] !== undefined) return cache[key]
+  cache[key] = fib(n - 1) + fib(n - 2)
+  return cache[key]
+}
+export let result = fib(20)
+result
 ```
 
 **Result:**
@@ -56,15 +58,16 @@ export let result = fib(20);
 ### Attempt 3 (OK)
 
 ```javascript
-let cache = {};
-let fib = (n) => {
-  if (n <= 1) return n;
-  let key = str(n);
-  if (cache[key] != null) return cache[key];
-  cache[key] = fib(n - 1) + fib(n - 2);
-  return cache[key];
-};
-export let result = fib(20);
+let cache = {}
+let fib = n => {
+  if (n <= 1) return n
+  let key = str(n)
+  if (cache[key] != null) return cache[key]
+  cache[key] = fib(n - 1) + fib(n - 2)
+  return cache[key]
+}
+export let result = fib(20)
+result
 ```
 
 **Result:**

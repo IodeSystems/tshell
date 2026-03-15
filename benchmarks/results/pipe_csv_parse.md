@@ -1,7 +1,7 @@
 # pipe_csv_parse
 
 **Status:** PASS
-**Duration:** 20571ms
+**Duration:** 18626ms
 **Tool calls:** 3
 
 ## Prompt
@@ -19,66 +19,56 @@
 ### Attempt 1 (OK)
 
 ```javascript
-const csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
-const lines = csv.split("\n");
-const headers = lines[0].split(",");
-const rows = lines.slice(1);
-rows.map(row => {
-  const values = row.split(",");
-  const obj = {};
-  headers.forEach((h, i) => {
-    obj[h] = values[i];
-  });
-  return obj;
+let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
+let lines = csv.lines();
+let headers = lines[0].split(",");
+let rows = lines.slice(1).map(row => {
+  let vals = row.split(",");
+  return headers.reduce((obj, h, i) => { obj[h] = vals[i]; return obj; }, {});
 });
+rows
 ```
 
 **Result:**
 ```
-"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 9:19"
+"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 6:54"
 ```
 
 ### Attempt 2 (OK)
 
 ```javascript
-const csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
-const lines = csv.split("\n");
-const headers = lines[0].split(",");
-const rows = lines.slice(1);
-rows.map(row => {
-  const values = row.split(",");
-  const obj = {};
-  headers.forEach((h, i) => {
-    obj[h] = values[i];
-  });
+let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
+let lines = csv.lines();
+let headers = lines[0].split(",");
+let rows = lines.slice(1).map(row => {
+  let vals = row.split(",");
+  let obj = {};
+  headers.forEach((h, i) => { obj[h] = vals[i]; });
   return obj;
 });
+rows
 ```
 
 **Result:**
 ```
-"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 9:19"
+"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 7:43"
 ```
 
 ### Attempt 3 (OK)
 
 ```javascript
-const csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
-const lines = csv.split("\n");
-const headers = lines[0].split(",");
-const rows = lines.slice(1);
-
-let result = [];
-for (let i = 0; i < rows.length; i++) {
-  const row = rows[i];
-  const values = row.split(",");
-  const obj = {};
-  for (let j = 0; j < headers.length; j++) {
-    obj[headers[j]] = values[j];
+let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
+let lines = csv.lines();
+let headers = lines[0].split(",");
+let rows = lines.slice(1).map(row => {
+  let vals = row.split(",");
+  let obj = {};
+  for (let i = 0; i < headers.length; i++) {
+    obj[headers[i]] = vals[i];
   }
-  result.push(obj);
-}
-result
+  return obj;
+});
+rows
 ```
 
 **Result:**

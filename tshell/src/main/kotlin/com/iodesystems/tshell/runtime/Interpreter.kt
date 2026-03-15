@@ -426,6 +426,7 @@ class Interpreter(
       // Primary expressions
       is NumberLiteralContext -> visitNumberLiteral(ctx)
       is StringLiteralContext -> visitStringLiteral(ctx)
+      is RawStringLiteralContext -> visitRawStringLiteral(ctx)
       is TemplateLiteralContext -> visitTemplateLiteral(ctx)
       is RawTemplateLiteralContext -> visitRawTemplateLiteral(ctx)
       is TrueLiteralContext -> visitTrueLiteral(ctx)
@@ -1347,6 +1348,14 @@ class Interpreter(
       val raw = ctx.STRING().text
       val inner = raw.substring(1, raw.length - 1)
       return TShellValue.TString(unescapeString(inner))
+    }
+
+    @Suppress("unused")
+    suspend fun visitRawStringLiteral(ctx: RawStringLiteralContext): TShellValue {
+      val raw = ctx.RAW_STRING().text
+      // Strip r" and trailing " (or r' and ')
+      val inner = raw.substring(2, raw.length - 1)
+      return TShellValue.TString(inner)
     }
 
     @Suppress("unused")

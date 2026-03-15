@@ -104,6 +104,11 @@ STRING
   | '\'' (~['\\\r\n] | '\\' .)* '\''
   ;
 
+RAW_STRING
+  : 'r"' (~["\r\n])* '"'
+  | 'r\'' (~['\r\n])* '\''
+  ;
+
 TEMPLATE_START     : '`' -> pushMode(TEMPLATE_MODE);
 RAW_TEMPLATE_START : 'r`' -> pushMode(TEMPLATE_MODE);
 

@@ -1,7 +1,7 @@
 # bitwise_flags
 
 **Status:** PASS
-**Duration:** 5961ms
+**Duration:** 5214ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,18 +19,13 @@
 ### Attempt 1 (OK)
 
 ```javascript
-export let READ = 4;
-export let WRITE = 2;
-export let EXEC = 1;
-
-export let combined = READ | WRITE;
-
-export let result = {
-  hasWrite: (combined & WRITE) !== 0,
-  hasExec: (combined & EXEC) !== 0
-};
-
-result;
+let READ = 4;
+let WRITE = 2;
+let EXEC = 1;
+let READ_WRITE = READ | WRITE;
+let hasWrite = (READ_WRITE & WRITE) !== 0;
+let hasExec = (READ_WRITE & EXEC) !== 0;
+{hasWrite, hasExec}
 ```
 
 **Result:**

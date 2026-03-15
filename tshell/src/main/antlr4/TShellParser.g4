@@ -121,6 +121,7 @@ postfixOp
 primaryExpr
   : NUMBER                                              # numberLiteral
   | STRING                                              # stringLiteral
+  | RAW_STRING                                          # rawStringLiteral
   | templateString                                      # templateLiteral
   | rawTemplateString                                   # rawTemplateLiteral
   | TRUE                                                # trueLiteral

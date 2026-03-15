@@ -1,7 +1,7 @@
 # reduce_groupby
 
 **Status:** PASS
-**Duration:** 7116ms
+**Duration:** 6426ms
 **Tool calls:** 1
 
 ## Prompt
@@ -11,7 +11,7 @@
 ## Final Answer
 
 ```
-{fruit:["apple","banana"],veg:["carrot","pea"]}
+{fruit: ["apple", "banana"], veg: ["carrot", "pea"]}
 ```
 
 ## Attempts
@@ -20,14 +20,13 @@
 
 ```javascript
 let data = [{type:"fruit",name:"apple"},{type:"veg",name:"carrot"},{type:"fruit",name:"banana"},{type:"veg",name:"pea"}];
-data |> reduce((acc, item) => {
-  let type = item.type;
-  if (!acc[type]) {
-    acc[type] = [];
-  }
-  acc[type].push(item.name);
+
+data.reduce((acc, item) => {
+  let key = item.type;
+  if (!acc[key]) acc[key] = [];
+  acc[key].push(item.name);
   return acc;
-}, {})
+}, {});
 ```
 
 **Result:**
