@@ -10,7 +10,7 @@ plugins {
 
 allprojects {
   group = "com.iodesystems.tshell"
-  version = "0.1.1-SNAPSHOT"
+  version = "0.1.1"
   description = "tshell is a sandboxed virtual shell language with TypeScript-like semantics for safe programmatic execution."
 
   repositories {
