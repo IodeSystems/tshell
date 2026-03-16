@@ -1202,6 +1202,22 @@ class TShellNewFeaturesTest {
     assertEquals(listOf("carrot", "pea"), veg)
   }
 
+  // --- Top-level return ---
+
+  @Test fun `top-level return yields value`() {
+    val sh = shell()
+    assertEquals(TNumber(8.0), sh.eval("return 3 + 5"))
+  }
+
+  @Test fun `top-level return from curried function`() {
+    val sh = shell()
+    assertEquals(TNumber(8.0), sh.eval("""
+      let curriedAdd = (a) => (b) => a + b;
+      let add5 = curriedAdd(5);
+      return add5(3);
+    """))
+  }
+
   // --- Raw quoted strings r"..." / r'...' ---
 
   @Test fun `raw double-quoted string preserves backslashes`() {

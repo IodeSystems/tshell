@@ -1,8 +1,8 @@
 # digit_sum_power
 
 **Status:** PASS
-**Duration:** 21040ms
-**Tool calls:** 6
+**Duration:** 9345ms
+**Tool calls:** 3
 
 ## Prompt
 
@@ -20,89 +20,31 @@
 
 ```javascript
 let result = pow(2, 15);
-let str = str(result);
-let digits = str |* (c => num(c));
-let sum = digits |* (n => n) | reduce((a, x) => a + x, 0);
-sum
+str(result) | split("") | map(num) | reduce((a, x) => a + x, 0)
 ```
 
 **Result:**
 ```
-"ERROR: Type mismatch in pipe into reduce\n\n  Expected: array\n  Got:      function (function <anonymous>(a, x))\n\n  at line 4:37"
+"ERROR: Type mismatch in '|'\n\n  Expected: number\n  Got:      string (\"32768\")"
 ```
 
 ### Attempt 2 (ERROR)
 
 ```javascript
 let result = pow(2, 15);
-let str = str(result);
-let digits = str |* (c => num(c));
-let sum = digits | reduce((a, x) => a + x, 0);
-sum
+str(result) | split("") | map(n => num(n)) | reduce((a, x) => a + x, 0)
 ```
 
 **Result:**
 ```
-"ERROR: Type mismatch in pipe into reduce\n\n  Expected: array\n  Got:      function (function <anonymous>(a, x))\n\n  at line 4:25"
+"ERROR: Type mismatch in '|'\n\n  Expected: number\n  Got:      string (\"32768\")"
 ```
 
 ### Attempt 3 (OK)
 
 ```javascript
 let result = pow(2, 15);
-let str = str(result);
-let digits = str |* (c => num(c));
-let sum = reduce(digits, (a, x) => a + x, 0);
-sum
-```
-
-**Result:**
-```
-"32768"
-```
-
-### Attempt 4 (OK)
-
-```javascript
-let result = pow(2, 15);
-let str = str(result);
-let digits = str |* (c => num(c));
-let sum = reduce(digits, (a, x) => a + x, 0);
-sum
-```
-
-**Result:**
-```
-"32768"
-```
-
-### Attempt 5 (OK)
-
-```javascript
-let result = pow(2, 15);
-let str = str(result);
-let chars = str |* (c => c);
-let digits = chars |* (c => num(c));
-let sum = reduce(digits, (a, x) => a + x, 0);
-sum
-```
-
-**Result:**
-```
-"32768"
-```
-
-### Attempt 6 (OK)
-
-```javascript
-let result = pow(2, 15);
-let str = str(result);
-let len = len(str);
-let sum = 0;
-for (let i = 0; i < len; i++) {
-  sum = sum + num(charAt(str, i));
-}
-sum
+str(result) |> split("") |> map(n => num(n)) |> reduce((a, x) => a + x, 0)
 ```
 
 **Result:**

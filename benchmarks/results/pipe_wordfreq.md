@@ -1,8 +1,8 @@
 # pipe_wordfreq
 
 **Status:** PASS
-**Duration:** 11788ms
-**Tool calls:** 3
+**Duration:** 4828ms
+**Tool calls:** 1
 
 ## Prompt
 
@@ -16,42 +16,10 @@
 
 ## Attempts
 
-### Attempt 1 (ERROR)
+### Attempt 1 (OK)
 
 ```javascript
-"the cat sat on the mat the cat".split(" ")
-  |> groupBy(word => word)
-  |> map(([word, arr]) => [word, arr.length])
-  |> fromEntries()
-```
-
-**Result:**
-```
-"ERROR: Syntax error at line 3:23\n\n    |> map(([word, arr]) => [word, arr.length])\n                         ^\n\n  Expected ')' to close the parentheses\n\n  Check for missing or extra arguments"
-```
-
-### Attempt 2 (ERROR)
-
-```javascript
-"the cat sat on the mat the cat".split(" ")
-  |> groupBy(word => word)
-  |> map(x => [x[0], x[1].length])
-  |> fromEntries()
-```
-
-**Result:**
-```
-"ERROR: Type mismatch in pipe into map\n\n  Expected: array\n  Got:      object ({the: [\"the\", \"the\", \"the\"], cat: [\"cat\", \"cat\"], sat: [\"sat\"], on: [\"on\"], mat: [\"mat\"]})\n\n  at line 1:0"
-```
-
-### Attempt 3 (OK)
-
-```javascript
-"the cat sat on the mat the cat".split(" ")
-  |> groupBy(word => word)
-  |> entries()
-  |> map(x => [x[0], x[1].length])
-  |> fromEntries()
+"the cat sat on the mat the cat" |> split(" ") |> countBy(w => w)
 ```
 
 **Result:**

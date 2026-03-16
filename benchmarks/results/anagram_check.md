@@ -1,7 +1,7 @@
 # anagram_check
 
 **Status:** PASS
-**Duration:** 4743ms
+**Duration:** 5215ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,12 +19,14 @@ true
 ### Attempt 1 (OK)
 
 ```javascript
-let isAnagram = (word1, word2) => {
-  let normalize = word => word.toLowerCase().split('').sort().join('');
-  return normalize(word1) === normalize(word2);
-};
+fn areAnagrams(word1, word2) {
+  let sorted1 = word1.lower().split("").sort().join("")
+  let sorted2 = word2.lower().split("").sort().join("")
+  return sorted1 === sorted2
+}
 
-isAnagram('listen', 'silent');
+let result = areAnagrams("listen", "silent")
+print(result)
 ```
 
 **Result:**

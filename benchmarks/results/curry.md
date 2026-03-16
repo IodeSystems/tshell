@@ -1,8 +1,8 @@
 # curry
 
 **Status:** PASS
-**Duration:** 20563ms
-**Tool calls:** 7
+**Duration:** 4305ms
+**Tool calls:** 1
 
 ## Prompt
 
@@ -16,90 +16,14 @@
 
 ## Attempts
 
-### Attempt 1 (ERROR)
+### Attempt 1 (OK)
 
 ```javascript
-let curriedAdd = (a) => (b) => a + b;
+function curriedAdd(a) {
+  return (b) => a + b;
+}
 let add5 = curriedAdd(5);
 return add5(3);
-```
-
-**Result:**
-```
-"ERROR: null"
-```
-
-### Attempt 2 (ERROR)
-
-```javascript
-export let curriedAdd = (a) => (b) => a + b;
-export let add5 = curriedAdd(5);
-return add5(3);
-```
-
-**Result:**
-```
-"ERROR: null"
-```
-
-### Attempt 3 (ERROR)
-
-```javascript
-let curriedAdd = (a) => (b) => a + b;
-let add5 = curriedAdd(5);
-return add5(3);
-```
-
-**Result:**
-```
-"ERROR: null"
-```
-
-### Attempt 4 (ERROR)
-
-```javascript
-let curriedAdd = function(a) { return function(b) { return a + b; }; };
-let add5 = curriedAdd(5);
-return add5(3);
-```
-
-**Result:**
-```
-"ERROR: null"
-```
-
-### Attempt 5 (ERROR)
-
-```javascript
-let curriedAdd = function(a) { return function(b) { return a + b; }; };
-let add5 = curriedAdd(5);
-return (add5(3));
-```
-
-**Result:**
-```
-"ERROR: null"
-```
-
-### Attempt 6 (ERROR)
-
-```javascript
-let curriedAdd = function(a) { return function(b) { return a + b; }; };
-let add5 = curriedAdd(5);
-return add5(3);
-```
-
-**Result:**
-```
-"ERROR: null"
-```
-
-### Attempt 7 (OK)
-
-```javascript
-let curriedAdd = function(a) { return function(b) { return a + b; }; };
-let add5 = curriedAdd(5);
-print(add5(3));
 ```
 
 **Result:**

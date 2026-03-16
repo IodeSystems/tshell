@@ -1,7 +1,7 @@
 # closure_counter
 
 **Status:** PASS
-**Duration:** 5715ms
+**Duration:** 5462ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,18 +19,17 @@
 ### Attempt 1 (OK)
 
 ```javascript
-let createCounter = () => {
+const makeCounter = () => {
   let count = 0;
   return {
     increment: () => {
       count += 1;
-      return count;
     },
     get: () => count
   };
 };
 
-let counter = createCounter();
+const counter = makeCounter();
 counter.increment();
 counter.increment();
 counter.increment();

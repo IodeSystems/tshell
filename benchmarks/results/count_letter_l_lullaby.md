@@ -1,7 +1,7 @@
 # count_letter_l_lullaby
 
 **Status:** PASS
-**Duration:** 3528ms
+**Duration:** 3380ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,7 +19,7 @@
 ### Attempt 1 (OK)
 
 ```javascript
-"lullaby".split("").filter(c => c === "l").len()
+"lullaby".match(/l/g) |> len()
 ```
 
 **Result:**

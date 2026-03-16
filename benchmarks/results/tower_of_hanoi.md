@@ -1,7 +1,7 @@
 # tower_of_hanoi
 
 **Status:** PASS
-**Duration:** 4048ms
+**Duration:** 3566ms
 **Tool calls:** 1
 
 ## Prompt

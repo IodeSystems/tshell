@@ -1,8 +1,8 @@
 # linked_list
 
 **Status:** PASS
-**Duration:** 6368ms
-**Tool calls:** 1
+**Duration:** 10072ms
+**Tool calls:** 2
 
 ## Prompt
 
@@ -16,21 +16,29 @@
 
 ## Attempts
 
-### Attempt 1 (OK)
+### Attempt 1 (ERROR)
 
 ```javascript
-let list = {value: 10, next: {value: 20, next: {value: 30, next: null}}};
+let head = {value: 10, next: {value: 20, next: {value: 30, next: null}}};
+let toList = (node, acc = []) => (node === null ? acc : toList(node.next, [...acc, node.value]));
+toList(head)
+```
 
-let to_array = (node) => {
-  let result = [];
-  while (node) {
-    result.push(node.value);
-    node = node.next;
-  }
-  return result;
+**Result:**
+```
+"ERROR: Type mismatch in spread\n\n  Expected: array\n  Got:      null (null)\n\n  Hint: ... can only spread arrays into arrays\n\n  at line 2:62"
+```
+
+### Attempt 2 (OK)
+
+```javascript
+let head = {value: 10, next: {value: 20, next: {value: 30, next: null}}};
+let toList = (node, acc) => {
+  if (node === null) return acc;
+  if (acc === null) acc = [];
+  return toList(node.next, [...acc, node.value]);
 };
-
-to_array(list);
+toList(head, null)
 ```
 
 **Result:**

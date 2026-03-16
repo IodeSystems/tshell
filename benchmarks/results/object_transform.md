@@ -1,7 +1,7 @@
 # object_transform
 
 **Status:** PASS
-**Duration:** 5632ms
+**Duration:** 5431ms
 **Tool calls:** 1
 
 ## Prompt
@@ -20,8 +20,8 @@
 
 ```javascript
 [{"name":"alice","score":85},{"name":"bob","score":92},{"name":"carol","score":78}]
-  |> filter(x => x.score > 80)
-  |> map(x => x.name)
+  |> filter(item => item.score > 80)
+  |> map(item => item.name)
   |> sort()
   |> join(", ")
 ```

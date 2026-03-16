@@ -1,7 +1,7 @@
 # matrix_multiply
 
 **Status:** PASS
-**Duration:** 9536ms
+**Duration:** 9375ms
 **Tool calls:** 1
 
 ## Prompt
@@ -33,7 +33,7 @@ let result = [
   ]
 ];
 
-result
+result;
 ```
 
 **Result:**

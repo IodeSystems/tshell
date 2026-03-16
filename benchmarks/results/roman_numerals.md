@@ -1,7 +1,7 @@
 # roman_numerals
 
 **Status:** PASS
-**Duration:** 9207ms
+**Duration:** 9484ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,20 +19,21 @@
 ### Attempt 1 (OK)
 
 ```javascript
-fn intToRoman(num) {
-  let values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
-  let symbols = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"];
+fn toRoman(num) {
+  const values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+  const numerals = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"];
   let result = "";
-  for (let i = 0; i < values.len(); i++) {
-    while (num >= values[i]) {
-      num -= values[i];
-      result += symbols[i];
+  let n = num;
+  for (let i = 0; i < values.length; i++) {
+    while (n >= values[i]) {
+      result += numerals[i];
+      n -= values[i];
     }
   }
   return result;
 }
 
-intToRoman(1994)
+toRoman(1994)
 ```
 
 **Result:**

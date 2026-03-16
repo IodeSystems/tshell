@@ -43,7 +43,11 @@ class Interpreter(
   suspend fun evalAsync(source: String): EvalResult {
     val tree = parse(source)
     val visitor = Visitor(globals)
-    val value = visitor.eval(tree)
+    val value = try {
+      visitor.eval(tree)
+    } catch (r: ReturnSignal) {
+      r.value
+    }
     return EvalResult(value, visitor.exportedNames)
   }
 
