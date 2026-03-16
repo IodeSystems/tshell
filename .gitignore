@@ -2,4 +2,5 @@
 **/build/
 .idea/
 *.iml
-
+ai/
+tshell-sample-koog/benchmarks/

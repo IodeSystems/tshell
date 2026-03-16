@@ -437,7 +437,7 @@ Use `help()` to discover what's available.
       appendLine("tshell replaces them all with one `eval` tool. Additional commands added via toolkits")
       appendLine("(FileToolkit, SqlToolkit, etc.) grow only the command signatures section.")
       appendLine()
-      appendLine("See [benchmark results](tshell-sample-koog/benchmarks/results/README.md) for how this prompt performs across 32 challenges.")
+      appendLine("See [benchmark results](benchmarks/results/README.md) for how this prompt performs across 33 challenges.")
       appendLine()
 
       appendLine("---")
