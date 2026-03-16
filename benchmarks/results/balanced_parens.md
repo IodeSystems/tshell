@@ -1,7 +1,7 @@
 # balanced_parens
 
 **Status:** PASS
-**Duration:** 7443ms
+**Duration:** 6588ms
 **Tool calls:** 1
 
 ## Prompt
@@ -20,19 +20,16 @@
 
 ```javascript
 let isBalanced = (s) => {
-  let count = 0;
-  for (let i = 0; i < s.length; i++) {
-    if (s[i] === '(') count++;
-    else if (s[i] === ')') count--;
-    if (count < 0) return false;
+  let count = 0
+  for (let ch of s) {
+    if (ch === '(') count++
+    else if (ch === ')') count--
+    if (count < 0) return false
   }
-  return count === 0;
-};
+  return count === 0
+}
 
-let test1 = isBalanced("((())())");
-let test2 = isBalanced("((()");
-
-{test1, test2};
+{ test1: isBalanced('((())())'), test2: isBalanced('((()') }
 ```
 
 **Result:**

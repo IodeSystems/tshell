@@ -1,8 +1,8 @@
 # regex_extract
 
 **Status:** PASS
-**Duration:** 12354ms
-**Tool calls:** 3
+**Duration:** 4382ms
+**Tool calls:** 1
 
 ## Prompt
 
@@ -19,29 +19,7 @@
 ### Attempt 1 (OK)
 
 ```javascript
-"contact alice@example.com or bob@test.org for info" |> match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
-```
-
-**Result:**
-```
-"[{match: \"alice@example.com\", groups: [\"alice@example.com\"], index: 8}]"
-```
-
-### Attempt 2 (OK)
-
-```javascript
-"contact alice@example.com or bob@test.org for info" |> match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/) |> map(m => m.match)
-```
-
-**Result:**
-```
-"[\"alice@example.com\"]"
-```
-
-### Attempt 3 (OK)
-
-```javascript
-"contact alice@example.com or bob@test.org for info" |> match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g) |> map(m => m.match)
+r"contact alice@example.com or bob@test.org for info" |> match(/[\w.-]+@[\w.-]+\.[a-z]+/gi)
 ```
 
 **Result:**

@@ -1,8 +1,8 @@
 # factorial
 
 **Status:** PASS
-**Duration:** 19077ms
-**Tool calls:** 1
+**Duration:** 21087ms
+**Tool calls:** 2
 
 ## Prompt
 
@@ -16,10 +16,21 @@
 
 ## Attempts
 
-### Attempt 1 (OK)
+### Attempt 1 (ERROR)
 
 ```javascript
-let result = 1; for (let i = 1; i <= 7; i++) { result *= i; } result
+reduce((a, x) => a * x, 1)(range(1, 8))
+```
+
+**Result:**
+```
+"ERROR: Type mismatch in pipe into reduce\n\n  Expected: array\n  Got:      function (function <anonymous>(a, x))\n\n  at line 1:6"
+```
+
+### Attempt 2 (OK)
+
+```javascript
+range(1, 8) |> reduce((a, x) => a * x, 1)
 ```
 
 **Result:**

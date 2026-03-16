@@ -1,8 +1,8 @@
 # deep_clone
 
 **Status:** PASS
-**Duration:** 18110ms
-**Tool calls:** 2
+**Duration:** 10002ms
+**Tool calls:** 1
 
 ## Prompt
 
@@ -11,7 +11,7 @@
 ## Final Answer
 
 ```
-"[{a: 1, b: {c: 2, d: [3, 4]}}, {a: 1, b: {c: 99, d: [3, 4]}}]"
+`[{a: 1, b: {c: 2, d: [3, 4]}}, {a: 1, b: {c: 99, d: [3, 4]}}]`
 ```
 
 ## Attempts
@@ -19,15 +19,13 @@
 ### Attempt 1 (OK)
 
 ```javascript
-export function deepClone(obj) {
+function deepClone(obj) {
   if (obj === null || typeof obj !== "object") {
     return obj;
   }
-  
   if (Array.isArray(obj)) {
     return obj.map(deepClone);
   }
-  
   let clone = {};
   for (let key in obj) {
     if (obj.hasOwnProperty(key)) {
@@ -39,43 +37,7 @@ export function deepClone(obj) {
 
 let original = {a: 1, b: {c: 2, d: [3, 4]}};
 let clone = deepClone(original);
-
 clone.b.c = 99;
-
-print(original, clone);
-```
-
-**Result:**
-```
-"{a: 1, b: {c: 99, d: [3, 4]}}"
-```
-
-### Attempt 2 (OK)
-
-```javascript
-export function deepClone(obj) {
-  if (obj === null || typeof obj !== "object") {
-    return obj;
-  }
-  
-  if (Array.isArray(obj)) {
-    return obj.map(deepClone);
-  }
-  
-  let clone = {};
-  for (let key in obj) {
-    if (obj.hasOwnProperty(key)) {
-      clone[key] = deepClone(obj[key]);
-    }
-  }
-  return clone;
-}
-
-let original = {a: 1, b: {c: 2, d: [3, 4]}};
-let clone = deepClone(original);
-
-clone.b.c = 99;
-
 [original, clone];
 ```
 

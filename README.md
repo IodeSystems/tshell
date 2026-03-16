@@ -8,7 +8,7 @@ One `eval` tool instead of twenty. Sandboxed JS syntax your LLM already knows.
 - **KV cache friendly** — system prompt doesn't change when tools change; `help()` discovers capabilities at runtime
 - **No double-encoding corruption** — raw template strings (`r\`...\``) let LLMs write backslashes, quotes, and code exactly as-is. No more `\\\\` spirals when editing files with Windows paths or regex patterns
 
-**Total stdlib context cost: 5.8KB / 1630 tokens** (cl100k_base — tool description + syntax reference + command signatures)
+**Total stdlib context cost: 5.8KB / 1641 tokens** (cl100k_base — tool description + syntax reference + command signatures)
 
 ## Quick Start
 
@@ -395,8 +395,8 @@ computed at build time from actual prompt content.
 | --- | ---: | --- |
 | Tool description | 112 | One-line summary in the tool schema |
 | Syntax reference | 403 | JS subset, pipes, raw templates, composition |
-| Command signatures | 1087 | All stdlib commands with types and descriptions |
-| **Total** | **1630** | **5.8KB** |
+| Command signatures | 1098 | All stdlib commands with types and descriptions |
+| **Total** | **1641** | **5.8KB** |
 
 For comparison: a typical MCP tool server exposes 10-20 tools at ~200 tokens each (2000-4000 tokens).
 tshell replaces them all with one `eval` tool. Additional commands added via toolkits

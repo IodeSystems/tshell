@@ -116,6 +116,8 @@ postfixOp
   | OPTIONAL_CHAIN LBRACKET expression RBRACKET
   | LPAREN argumentList? RPAREN
   | OPTIONAL_CHAIN LPAREN argumentList? RPAREN
+  | INCREMENT
+  | DECREMENT
   ;
 
 primaryExpr

@@ -1,8 +1,8 @@
 # pipe_csv_parse
 
 **Status:** PASS
-**Duration:** 20655ms
-**Tool calls:** 3
+**Duration:** 14164ms
+**Tool calls:** 2
 
 ## Prompt
 
@@ -20,62 +20,35 @@
 
 ```javascript
 let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
-let lines = csv.trim().split("\n");
+let lines = csv.split("\n");
 let headers = lines[0].split(",");
-let rows = lines.slice(1).map(line => {
-  let values = line.split(",");
-  return headers.reduce((obj, header, i) => {
-    obj[header] = values[i];
-    return obj;
-  }, {});
+let data = lines.slice(1).map(row => {
+  let values = row.split(",");
+  return fromEntries(headers.map((h, i) => [h, values[i]]));
 });
-rows
+data
 ```
 
 **Result:**
 ```
-"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 7:24"
+"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 6:53"
 ```
 
-### Attempt 2 (ERROR)
+### Attempt 2 (OK)
 
 ```javascript
 let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
-let lines = csv.trim().split("\n");
+let lines = csv.split("\n");
 let headers = lines[0].split(",");
-let rows = lines.slice(1).map(line => {
-  let values = line.split(",");
+let data = lines.slice(1).map(row => {
+  let values = row.split(",");
   let obj = {};
-  headers.forEach((header, i) => {
-    obj[header] = values[i];
-  });
+  for (let i = 0; i < headers.length; i++) {
+    obj[headers[i]] = values[i];
+  }
   return obj;
 });
-rows
-```
-
-**Result:**
-```
-"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 8:24"
-```
-
-### Attempt 3 (OK)
-
-```javascript
-let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
-let lines = csv.trim().split("\n");
-let headers = lines[0].split(",");
-let rows = [];
-for (let i = 1; i < lines.length; i++) {
-  let line = lines[i];
-  let values = line.split(",");
-  let obj = {};
-  for (let j = 0; j < headers.length; j++) {
-    obj[headers[j]] = values[j];
-  }
-  rows.push(obj);
-}
-rows
+data
 ```
 
 **Result:**

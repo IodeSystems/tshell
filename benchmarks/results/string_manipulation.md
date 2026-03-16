@@ -1,7 +1,7 @@
 # string_manipulation
 
 **Status:** PASS
-**Duration:** 4032ms
+**Duration:** 4162ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,7 +19,11 @@ BAR-FOO-WORLD-HELLO
 ### Attempt 1 (OK)
 
 ```javascript
-"hello world foo bar" |> split(" ") |> reverse() |> map(w => w.upper()) |> join("-")
+"hello world foo bar"
+  |> split(" ")
+  |> reverse()
+  |> map(word => word.upper())
+  |> join("-")
 ```
 
 **Result:**

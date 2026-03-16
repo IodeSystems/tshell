@@ -1,8 +1,8 @@
 # event_emitter
 
 **Status:** PASS
-**Duration:** 7541ms
-**Tool calls:** 1
+**Duration:** 13364ms
+**Tool calls:** 2
 
 ## Prompt
 
@@ -16,27 +16,61 @@
 
 ## Attempts
 
-### Attempt 1 (OK)
+### Attempt 1 (ERROR)
 
 ```javascript
-let handlers = {};
-let on = (event, handler) => {
-  if (!handlers[event]) {
-    handlers[event] = [];
-  }
-  handlers[event].push(handler);
-};
-let emit = (event, data) => {
-  if (!handlers[event]) {
-    return [];
-  }
-  return handlers[event].map(h => h(data));
+export let EventEmitter = (function() {
+  let events = {};
+  
+  return {
+    on(event, handler) {
+      if (!events[event]) events[event] = [];
+      events[event].push(handler);
+    },
+    emit(event, data) {
+      if (!events[event]) return [];
+      return events[event].map(handler => handler(data));
+    }
+  };
+})();
+
+let emitter = EventEmitter();
+emitter.on("data", d => d);
+emitter.on("data", d => d * 2);
+emitter.emit("data", 42);
+```
+
+**Result:**
+```
+"ERROR: Syntax error at line 5:6\n\n      on(event, handler) {\n        ^\n\n  Expected '}' to close the block or object"
+```
+
+### Attempt 2 (OK)
+
+```javascript
+export let events = {};
+
+export let on = function(event, handler) {
+  if (!events[event]) events[event] = [];
+  events[event].push(handler);
 };
 
-on("data", d => d);
-on("data", d => d * 2);
-let results = emit("data", 42);
-results;
+export let emit = function(event, data) {
+  if (!events[event]) return [];
+  return events[event].map(function(handler) {
+    return handler(data);
+  });
+};
+
+on("data", function(d) {
+  return d;
+});
+
+on("data", function(d) {
+  return d * 2;
+});
+
+emit("data", 42);
 ```
 
 **Result:**

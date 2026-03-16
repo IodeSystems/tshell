@@ -1,7 +1,7 @@
 # tower_of_hanoi
 
 **Status:** PASS
-**Duration:** 3566ms
+**Duration:** 4322ms
 **Tool calls:** 1
 
 ## Prompt
@@ -20,7 +20,9 @@
 
 ```javascript
 let n = 10;
-pow(2, n) - 1
+// Minimum moves for Tower of Hanoi with n disks is 2^n - 1
+let moves = pow(2, n) - 1;
+moves
 ```
 
 **Result:**

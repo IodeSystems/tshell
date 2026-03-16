@@ -93,13 +93,8 @@ class TShellRegexTest {
   @Test fun `regex after pipe`() {
     val sh = shell()
     val result = sh.eval(""""abc123" |> match(/([a-z]+)([0-9]+)/)""")
-    assertTrue(result is TArray)
-    val arr = result as TArray
-    assertEquals(arr.elements.size, 1)
-    val obj = arr.elements[0] as TObject
-    assertEquals(obj.fields["match"], TString("abc123"))
-    val groups = obj.fields["groups"] as TArray
-    assertEquals(groups.elements, listOf(TString("abc"), TString("123")))
+    // JS-compatible: non-global returns [fullMatch, group1, group2, ...]
+    assertEquals(result, TArray(listOf(TString("abc123"), TString("abc"), TString("123"))))
   }
 
   // --- match with regex ---
@@ -112,32 +107,23 @@ class TShellRegexTest {
 
   @Test fun `match with regex returns capture groups`() {
     val sh = shell()
+    // JS-compatible: non-global returns [fullMatch, group1, group2, ...]
     val result = sh.eval(""""abc123" |> match(/([a-z]+)([0-9]+)/)""")
-    val arr = result as TArray
-    assertEquals(arr.elements.size, 1)
-    val obj = arr.elements[0] as TObject
-    assertEquals(obj.fields["match"], TString("abc123"))
-    val groups = obj.fields["groups"] as TArray
-    assertEquals(groups.elements[0], TString("abc"))
-    assertEquals(groups.elements[1], TString("123"))
-    assertEquals(obj.fields["index"], TNumber(0.0))
+    assertEquals(result, TArray(listOf(TString("abc123"), TString("abc"), TString("123"))))
   }
 
   @Test fun `match with global regex finds all`() {
     val sh = shell()
+    // JS-compatible: global returns flat array of match strings
     val result = sh.eval(""""abc123def456" |> match(/[a-z]+/g)""")
-    val arr = result as TArray
-    assertEquals(arr.elements.size, 2)
-    assertEquals((arr.elements[0] as TObject).fields["match"], TString("abc"))
-    assertEquals((arr.elements[1] as TObject).fields["match"], TString("def"))
+    assertEquals(result, TArray(listOf(TString("abc"), TString("def"))))
   }
 
   @Test fun `match without global returns first only`() {
     val sh = shell()
+    // JS-compatible: non-global returns [fullMatch] (no groups in this regex)
     val result = sh.eval(""""abc123def456" |> match(/[a-z]+/)""")
-    val arr = result as TArray
-    assertEquals(arr.elements.size, 1)
-    assertEquals((arr.elements[0] as TObject).fields["match"], TString("abc"))
+    assertEquals(result, TArray(listOf(TString("abc"))))
   }
 
   // --- replace with regex ---
@@ -250,10 +236,8 @@ class TShellRegexTest {
 
   @Test fun `match with regex multiline flag`() {
     val sh = shell()
+    // JS-compatible: non-global returns [fullMatch]
     val result = sh.eval(""""line1\nline2\nline3" |> match(/^line[0-9]+/m)""")
-    val arr = result as TArray
-    assertEquals(arr.elements.size, 1)
-    // Without 'g' flag, only first match
-    assertEquals((arr.elements[0] as TObject).fields["match"], TString("line1"))
+    assertEquals(result, TArray(listOf(TString("line1"))))
   }
 }

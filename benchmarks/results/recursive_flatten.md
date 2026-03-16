@@ -1,8 +1,8 @@
 # recursive_flatten
 
 **Status:** PASS
-**Duration:** 6861ms
-**Tool calls:** 1
+**Duration:** 14552ms
+**Tool calls:** 3
 
 ## Prompt
 
@@ -16,26 +16,69 @@
 
 ## Attempts
 
-### Attempt 1 (OK)
+### Attempt 1 (ERROR)
 
 ```javascript
-let flatten = arr => {
-  let result = [];
-  let recurse = item => {
+function flatten(arr, acc = []) {
+  for (let item of arr) {
     if (isArray(item)) {
-      for (let sub of item) {
-        recurse(sub);
-      }
+      flatten(item, acc);
+    } else {
+      acc.push(item);
+    }
+  }
+  return acc;
+}
+
+let nested = [[1,[2]],[[3,4],[5]]];
+flatten(nested)
+```
+
+**Result:**
+```
+"ERROR: Type mismatch in member access .push\n\n  Expected: object, array, or string\n  Got:      null (null)\n\n  at line 6:9"
+```
+
+### Attempt 2 (OK)
+
+```javascript
+function flatten(arr, acc) {
+  for (let item of arr) {
+    if (isArray(item)) {
+      flatten(item, acc);
+    } else {
+      acc = acc.concat([item]);
+    }
+  }
+  return acc;
+}
+
+let nested = [[1,[2]],[[3,4],[5]]];
+flatten(nested, [])
+```
+
+**Result:**
+```
+"[]"
+```
+
+### Attempt 3 (OK)
+
+```javascript
+function flatten(arr) {
+  let result = [];
+  for (let item of arr) {
+    if (isArray(item)) {
+      result = result.concat(flatten(item));
     } else {
       result.push(item);
     }
-  };
-  recurse(arr);
+  }
   return result;
-};
+}
 
-let nested = [[1, [2]], [[3, 4], [5]]];
-flatten(nested);
+let nested = [[1,[2]],[[3,4],[5]]];
+flatten(nested)
 ```
 
 **Result:**

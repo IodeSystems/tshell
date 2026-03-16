@@ -1,7 +1,7 @@
 # fizzbuzz
 
 **Status:** PASS
-**Duration:** 6448ms
+**Duration:** 6616ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,7 +19,7 @@
 ### Attempt 1 (OK)
 
 ```javascript
-range(1, 16) |> map(n => n % 15 === 0 ? "FizzBuzz" : n % 3 === 0 ? "Fizz" : n % 5 === 0 ? "Buzz" : str(n))
+range(1, 16) |> map(n => n % 15 == 0 ? "FizzBuzz" : n % 3 == 0 ? "Fizz" : n % 5 == 0 ? "Buzz" : str(n))
 ```
 
 **Result:**

@@ -1,8 +1,8 @@
 # fibonacci_memo
 
 **Status:** PASS
-**Duration:** 13109ms
-**Tool calls:** 3
+**Duration:** 9011ms
+**Tool calls:** 2
 
 ## Prompt
 
@@ -26,45 +26,25 @@ let fib = n => {
   cache[n] = fib(n - 1) + fib(n - 2);
   return cache[n];
 };
-fib(20)
+fib(20);
 ```
 
 **Result:**
 ```
-"ERROR: Type mismatch in index\n\n  Expected: string\n  Got:      number (20)\n\n  at line 4:11"
+"ERROR: tshell does not have 'undefined' — use null instead\n\n  at line 8:3"
 ```
 
-### Attempt 2 (ERROR)
+### Attempt 2 (OK)
 
 ```javascript
 let cache = {};
 let fib = n => {
   if (n <= 1) return n;
-  let key = str(n);
-  if (cache[key] !== undefined) return cache[key];
-  cache[key] = fib(n - 1) + fib(n - 2);
-  return cache[key];
+  if (cache[n] != null) return cache[n];
+  cache[n] = fib(n - 1) + fib(n - 2);
+  return cache[n];
 };
-fib(20)
-```
-
-**Result:**
-```
-"ERROR: tshell does not have 'undefined' — use null instead\n\n  at line 9:3"
-```
-
-### Attempt 3 (OK)
-
-```javascript
-let cache = {};
-let fib = n => {
-  if (n <= 1) return n;
-  let key = str(n);
-  if (cache[key] != null) return cache[key];
-  cache[key] = fib(n - 1) + fib(n - 2);
-  return cache[key];
-};
-fib(20)
+fib(20);
 ```
 
 **Result:**

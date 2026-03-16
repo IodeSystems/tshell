@@ -643,8 +643,11 @@ class Interpreter(
         }
         is IndexStep -> when (parent) {
           is TShellValue.TObject -> {
-            val key = (step.value as? TShellValue.TString)?.value
-              ?: throw TShellError.typeMismatch("index assignment", "string key", step.value)
+            val key = when (step.value) {
+              is TShellValue.TString -> step.value.value
+              is TShellValue.TNumber -> step.value.toDisplayString()
+              else -> throw TShellError.typeMismatch("index assignment", "string key", step.value)
+            }
             (parent.fields as MutableMap)[key] = value
           }
           is TShellValue.TArray -> {
@@ -1288,6 +1291,18 @@ class Interpreter(
               val args = resolveNamedArgs(fn, callArgs, op)
               callFunction(fn, args, op)
             }
+            op.INCREMENT() != null || op.DECREMENT() != null -> {
+              // Postfix increment/decrement: return old value, mutate the variable
+              val oldValue = current
+              val delta = if (op.INCREMENT() != null) TShellValue.TNumber(1.0) else TShellValue.TNumber(-1.0)
+              val newValue = applyCompoundOp("+=", current, delta)
+              if (lvaluePath.size == 1) {
+                env.set(lvaluePath[0], newValue)
+              } else {
+                throw TShellError.runtime("Postfix ${if (op.INCREMENT() != null) "++" else "--"} requires a simple variable")
+              }
+              oldValue
+            }
             else -> current
           }
         }
@@ -1818,8 +1833,11 @@ class Interpreter(
           obj.elements.getOrElse(idx) { TShellValue.TNull }
         }
         is TShellValue.TObject -> {
-          val key = (index as? TShellValue.TString)?.value
-            ?: throw TShellError.typeMismatch("index", "string", index)
+          val key = when (index) {
+            is TShellValue.TString -> index.value
+            is TShellValue.TNumber -> index.toDisplayString()
+            else -> throw TShellError.typeMismatch("index", "string", index)
+          }
           obj.fields[key] ?: TShellValue.TNull
         }
         is TShellValue.TString -> {

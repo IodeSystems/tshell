@@ -1,8 +1,8 @@
 # digit_sum_power
 
 **Status:** PASS
-**Duration:** 9345ms
-**Tool calls:** 3
+**Duration:** 4686ms
+**Tool calls:** 1
 
 ## Prompt
 
@@ -16,35 +16,14 @@
 
 ## Attempts
 
-### Attempt 1 (ERROR)
+### Attempt 1 (OK)
 
 ```javascript
-let result = pow(2, 15);
-str(result) | split("") | map(num) | reduce((a, x) => a + x, 0)
-```
-
-**Result:**
-```
-"ERROR: Type mismatch in '|'\n\n  Expected: number\n  Got:      string (\"32768\")"
-```
-
-### Attempt 2 (ERROR)
-
-```javascript
-let result = pow(2, 15);
-str(result) | split("") | map(n => num(n)) | reduce((a, x) => a + x, 0)
-```
-
-**Result:**
-```
-"ERROR: Type mismatch in '|'\n\n  Expected: number\n  Got:      string (\"32768\")"
-```
-
-### Attempt 3 (OK)
-
-```javascript
-let result = pow(2, 15);
-str(result) |> split("") |> map(n => num(n)) |> reduce((a, x) => a + x, 0)
+let power = pow(2, 15);
+let str = str(power);
+let digits = str.split("").map(c => num(c));
+let sum = digits |> reduce((a, x) => a + x, 0);
+sum
 ```
 
 **Result:**

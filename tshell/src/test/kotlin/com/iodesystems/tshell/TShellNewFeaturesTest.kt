@@ -975,14 +975,16 @@ class TShellNewFeaturesTest {
   @Test fun `regex with character class containing slash`() {
     val sh = shell()
     // /[+\-*/]/g — dash escaped, slash allowed inside char class
+    // Global match returns flat array of match strings (JS-compatible)
     assertEquals(TArray(listOf(TString("+"), TString("-"), TString("*"), TString("/"))),
-      sh.eval(""""a+b-c*d/e" |> match(/[+\-*/]/g) |> map(m => m.match)"""))
+      sh.eval(""""a+b-c*d/e" |> match(/[+\-*/]/g)"""))
   }
 
   @Test fun `regex with character class containing brackets`() {
     val sh = shell()
+    // Global match returns flat array of match strings (JS-compatible)
     assertEquals(TArray(listOf(TString("["), TString("]"))),
-      sh.eval(""""a[b]c" |> match(/[\[\]]/g) |> map(m => m.match)"""))
+      sh.eval(""""a[b]c" |> match(/[\[\]]/g)"""))
   }
 
   // --- Dynamic field + push (reduce_groupby pattern) ---
@@ -1418,5 +1420,71 @@ class TShellNewFeaturesTest {
       let s2 = 'BDCAB';
       lcsLength(s1, s2);
     """))
+  }
+
+  // --- Numeric object key coercion ---
+
+  @Test fun `numeric key read on object`() {
+    val sh = shell()
+    assertEquals(TString("a"), sh.eval("""let obj = {"0": "a", "1": "b"}; obj[0]"""))
+  }
+
+  @Test fun `numeric key write on object`() {
+    val sh = shell()
+    assertEquals(TString("x"), sh.eval("""let obj = {}; obj[0] = "x"; obj[0]"""))
+  }
+
+  @Test fun `numeric key round-trips with string key - num to str`() {
+    val sh = shell()
+    assertEquals(TString("v"), sh.eval("""let obj = {}; obj[0] = "v"; obj["0"]"""))
+  }
+
+  @Test fun `numeric key round-trips with string key - str to num`() {
+    val sh = shell()
+    assertEquals(TString("w"), sh.eval("""let obj = {}; obj["1"] = "w"; obj[1]"""))
+  }
+
+  // --- Postfix increment/decrement in expressions ---
+
+  @Test fun `postfix increment returns old value`() {
+    val sh = shell()
+    assertEquals(TNumber(0.0), sh.eval("let i = 0; let x = i++; x"))
+  }
+
+  @Test fun `postfix increment mutates variable`() {
+    val sh = shell()
+    assertEquals(TNumber(1.0), sh.eval("let i = 0; i++; i"))
+  }
+
+  @Test fun `postfix increment in array index`() {
+    val sh = shell()
+    assertEquals(TNumber(10.0), sh.eval("let arr = [10,20,30]; let i = 0; arr[i++]"))
+  }
+
+  @Test fun `postfix decrement returns old value`() {
+    val sh = shell()
+    assertEquals(TNumber(5.0), sh.eval("let i = 5; let x = i--; x"))
+  }
+
+  @Test fun `postfix decrement mutates variable`() {
+    val sh = shell()
+    assertEquals(TNumber(4.0), sh.eval("let i = 5; i--; i"))
+  }
+
+  @Test fun `postfix increment in for loop`() {
+    val sh = shell()
+    assertEquals(TNumber(10.0), sh.eval("""
+      let sum = 0;
+      let i = 0;
+      while (i < 5) {
+        sum += i++;
+      }
+      sum
+    """))
+  }
+
+  @Test fun `standalone postfix increment still works`() {
+    val sh = shell()
+    assertEquals(TNumber(3.0), sh.eval("let i = 0; i++; i++; i++; i"))
   }
 }

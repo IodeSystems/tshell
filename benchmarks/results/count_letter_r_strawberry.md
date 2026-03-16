@@ -1,7 +1,7 @@
 # count_letter_r_strawberry
 
 **Status:** PASS
-**Duration:** 3348ms
+**Duration:** 3497ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,7 +19,7 @@
 ### Attempt 1 (OK)
 
 ```javascript
-"strawberry".match(/r/g) |> len()
+"strawberry".split("").filter(c => c === 'r').len()
 ```
 
 **Result:**

@@ -1,7 +1,7 @@
 # binary_search
 
 **Status:** PASS
-**Duration:** 14165ms
+**Duration:** 13314ms
 **Tool calls:** 2
 
 ## Prompt
@@ -22,20 +22,18 @@
 let arr = [1,3,5,7,9,11,13,15];
 let target = 7;
 let left = 0;
-let right = len(arr) - 1;
+let right = arr.len() - 1;
 
 while (left <= right) {
-  let mid = floor((left + right) / 2);
-  let midVal = arr[mid];
-  
-  if (midVal === target) {
-    mid;
-    break;
-  } else if (midVal < target) {
-    left = mid + 1;
-  } else {
-    right = mid - 1;
-  }
+    let mid = Math.floor((left + right) / 2);
+    if (arr[mid] === target) {
+        mid;
+        break;
+    } else if (arr[mid] < target) {
+        left = mid + 1;
+    } else {
+        right = mid - 1;
+    }
 }
 ```
 
@@ -50,21 +48,19 @@ while (left <= right) {
 let arr = [1,3,5,7,9,11,13,15];
 let target = 7;
 let left = 0;
-let right = len(arr) - 1;
-let result = null;
+let right = arr.len() - 1;
 
+let result = null;
 while (left <= right) {
-  let mid = floor((left + right) / 2);
-  let midVal = arr[mid];
-  
-  if (midVal === target) {
-    result = mid;
-    break;
-  } else if (midVal < target) {
-    left = mid + 1;
-  } else {
-    right = mid - 1;
-  }
+    let mid = Math.floor((left + right) / 2);
+    if (arr[mid] === target) {
+        result = mid;
+        break;
+    } else if (arr[mid] < target) {
+        left = mid + 1;
+    } else {
+        right = mid - 1;
+    }
 }
 
 result

@@ -619,7 +619,7 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       TString(s.padEnd(len, fill[0]))
     }
 
-    shell.register("match", "input: string, pattern: string|regex", "regex match → array (string: flat matches; regex: [{match, groups, index}])",
+    shell.register("match", "input: string, pattern: string|regex", "JS-compatible regex match: non-global → [fullMatch, group1, ...] or null; global → [match1, match2, ...]",
       listOf(
         """"abc123def456" |> match("[0-9]+")""",
         """"abc123" |> match(/([a-z]+)([0-9]+)/)""",
@@ -631,20 +631,18 @@ IMPORTANT — ALGORITHM COMPLEXITY:
         is TRegex -> {
           val regex = buildKotlinRegex(pattern)
           val hasGlobal = pattern.flags.contains('g')
-          val results = if (hasGlobal) regex.findAll(s) else {
+          if (hasGlobal) {
+            // Global: return flat array of all full match strings (JS behavior)
+            TArray(regex.findAll(s).map { TString(it.value) as TShellValue }.toList())
+          } else {
+            // Non-global: return [fullMatch, group1, group2, ...] or null (JS behavior)
             val m = regex.find(s)
-            if (m != null) sequenceOf(m) else emptySequence()
+            if (m == null) TNull
+            else TArray(m.groupValues.map { TString(it) as TShellValue })
           }
-          TArray(results.map { mr ->
-            TObject(mapOf(
-              "match" to TString(mr.value),
-              "groups" to TArray(mr.groupValues.drop(1).map { TString(it) }),
-              "index" to TNumber(mr.range.first.toDouble())
-            ))
-          }.toList())
         }
         is TString -> {
-          // Backward compat: flat array of match strings
+          // String pattern: find all matches (backward compat)
           val regex = Regex(pattern.value)
           TArray(regex.findAll(s).map { TString(it.value) as TShellValue }.toList())
         }
