@@ -402,7 +402,7 @@ For comparison: a typical MCP tool server exposes 10-20 tools at ~200 tokens eac
 tshell replaces them all with one `eval` tool. Additional commands added via toolkits
 (FileToolkit, SqlToolkit, etc.) grow only the command signatures section.
 
-See [benchmark results](tshell-sample-koog/benchmarks/results/README.md) for how this prompt performs across 32 challenges.
+See [benchmark results](benchmarks/results/README.md) for how this prompt performs across 33 challenges.
 
 ---
 
