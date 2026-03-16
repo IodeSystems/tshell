@@ -582,6 +582,18 @@ public interface TShellParserListener extends ParseTreeListener {
 	 */
 	void exitStringLiteral(TShellParser.StringLiteralContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code rawStringLiteral}
+	 * labeled alternative in {@link TShellParser#primaryExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterRawStringLiteral(TShellParser.RawStringLiteralContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code rawStringLiteral}
+	 * labeled alternative in {@link TShellParser#primaryExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitRawStringLiteral(TShellParser.RawStringLiteralContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code templateLiteral}
 	 * labeled alternative in {@link TShellParser#primaryExpr}.
 	 * @param ctx the parse tree

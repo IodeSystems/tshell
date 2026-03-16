@@ -355,6 +355,13 @@ public interface TShellParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitStringLiteral(TShellParser.StringLiteralContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code rawStringLiteral}
+	 * labeled alternative in {@link TShellParser#primaryExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitRawStringLiteral(TShellParser.RawStringLiteralContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code templateLiteral}
 	 * labeled alternative in {@link TShellParser#primaryExpr}.
 	 * @param ctx the parse tree
