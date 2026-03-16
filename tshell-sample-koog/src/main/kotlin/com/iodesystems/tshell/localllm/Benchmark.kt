@@ -72,7 +72,7 @@ class BenchmarkTracingFeatureFactory(val state: BenchmarkTracingState) :
         val last = state.attempts.removeAt(state.attempts.size - 1)
         state.attempts.add(last.copy(
           result = ctx.toolResult.toString(),
-          isError = ctx.toolResult.toString().startsWith("ERROR:")
+          isError = ctx.toolResult.toString().contains("ERROR:")
         ))
       }
     }

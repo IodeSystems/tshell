@@ -1,7 +1,7 @@
 # pipe_chain
 
 **Status:** PASS
-**Duration:** 4798ms
+**Duration:** 4960ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,7 +19,7 @@
 ### Attempt 1 (OK)
 
 ```javascript
-[5,3,8,1,9,2,7,4,6] |> sort("desc") |> limit(3) |> map(n => n * 2) |> reduce((a, x) => a + x, 0)
+[5,3,8,1,9,2,7,4,6] |> sort() |> reverse() |> limit(3) |> map(n => n * 2) |> reduce((a, x) => a + x, 0)
 ```
 
 **Result:**

@@ -1,7 +1,7 @@
 # closure_counter
 
 **Status:** PASS
-**Duration:** 5690ms
+**Duration:** 5715ms
 **Tool calls:** 1
 
 ## Prompt
@@ -23,7 +23,7 @@ let createCounter = () => {
   let count = 0;
   return {
     increment: () => {
-      count++;
+      count += 1;
       return count;
     },
     get: () => count

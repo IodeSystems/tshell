@@ -1,7 +1,7 @@
 # matrix_multiply
 
 **Status:** PASS
-**Duration:** 7713ms
+**Duration:** 9536ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,17 +19,19 @@
 ### Attempt 1 (OK)
 
 ```javascript
-let A = [[1,2],[3,4]];
-let B = [[5,6],[7,8]];
-let result = [[0,0],[0,0]];
+let A = [[1, 2], [3, 4]];
+let B = [[5, 6], [7, 8]];
 
-for (let i = 0; i < 2; i++) {
-    for (let j = 0; j < 2; j++) {
-        for (let k = 0; k < 2; k++) {
-            result[i][j] += A[i][k] * B[k][j];
-        }
-    }
-}
+let result = [
+  [
+    A[0][0] * B[0][0] + A[0][1] * B[1][0],
+    A[0][0] * B[0][1] + A[0][1] * B[1][1]
+  ],
+  [
+    A[1][0] * B[0][0] + A[1][1] * B[1][0],
+    A[1][0] * B[0][1] + A[1][1] * B[1][1]
+  ]
+];
 
 result
 ```

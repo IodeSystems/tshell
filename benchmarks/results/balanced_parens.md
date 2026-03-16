@@ -1,7 +1,7 @@
 # balanced_parens
 
 **Status:** PASS
-**Duration:** 6639ms
+**Duration:** 7157ms
 **Tool calls:** 1
 
 ## Prompt
@@ -23,10 +23,8 @@ let isBalanced = (s) => {
   let count = 0;
   for (let c of s) {
     if (c === '(') count++;
-    else if (c === ')') {
-      count--;
-      if (count < 0) return false;
-    }
+    else if (c === ')') count--;
+    if (count < 0) return false;
   }
   return count === 0;
 };

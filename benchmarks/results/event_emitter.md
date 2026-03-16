@@ -1,8 +1,8 @@
 # event_emitter
 
 **Status:** PASS
-**Duration:** 8704ms
-**Tool calls:** 1
+**Duration:** 13234ms
+**Tool calls:** 2
 
 ## Prompt
 
@@ -16,35 +16,57 @@
 
 ## Attempts
 
-### Attempt 1 (OK)
+### Attempt 1 (ERROR)
 
 ```javascript
-let handlers = {};
-
-function on(event, handler) {
-  if (!handlers[event]) {
-    handlers[event] = [];
-  }
-  handlers[event].push(handler);
-  return { on, emit };
+let handlers = {}
+let on = (event, handler) => {
+  if (!handlers[event]) handlers[event] = []
+  handlers[event].push(handler)
+  return this
 }
-
-function emit(event, data) {
-  let results = [];
+let emit = (event, data) => {
+  let results = []
   if (handlers[event]) {
     for (let handler of handlers[event]) {
-      results.push(handler(data));
+      results.push(handler(data))
     }
   }
-  return results;
+  return results
 }
 
-let emitter = { on, emit };
+on("data", d => d)
+on("data", d => d * 2)
+emit("data", 42)
+```
 
-emitter.on("data", d => d);
-emitter.on("data", d => d * 2);
+**Result:**
+```
+"ERROR: tshell does not support 'this' — there are no classes or methods\n\n  at line 17:2"
+```
 
-emitter.emit("data", 42);
+### Attempt 2 (OK)
+
+```javascript
+let handlers = {}
+let on = (event, handler) => {
+  if (!handlers[event]) handlers[event] = []
+  handlers[event].push(handler)
+  return on
+}
+let emit = (event, data) => {
+  let results = []
+  if (handlers[event]) {
+    for (let handler of handlers[event]) {
+      results.push(handler(data))
+    }
+  }
+  return results
+}
+
+on("data", d => d)
+on("data", d => d * 2)
+emit("data", 42)
 ```
 
 **Result:**

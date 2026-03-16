@@ -1,7 +1,7 @@
 # tower_of_hanoi
 
 **Status:** PASS
-**Duration:** 3711ms
+**Duration:** 4048ms
 **Tool calls:** 1
 
 ## Prompt
@@ -20,8 +20,7 @@
 
 ```javascript
 let n = 10;
-let result = pow(2, n) - 1;
-result
+pow(2, n) - 1
 ```
 
 **Result:**

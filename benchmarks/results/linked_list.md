@@ -1,8 +1,8 @@
 # linked_list
 
 **Status:** PASS
-**Duration:** 11351ms
-**Tool calls:** 2
+**Duration:** 6368ms
+**Tool calls:** 1
 
 ## Prompt
 
@@ -19,42 +19,18 @@
 ### Attempt 1 (OK)
 
 ```javascript
-const list = { value: 10, next: { value: 20, next: { value: 30, next: null } } };
+let list = {value: 10, next: {value: 20, next: {value: 30, next: null}}};
 
-const listToArray = (head) => {
+let to_array = (node) => {
   let result = [];
-  let current = head;
-  while (current !== null && current !== undefined) {
-    result.push(current.value);
-    current = current.next;
+  while (node) {
+    result.push(node.value);
+    node = node.next;
   }
   return result;
 };
 
-listToArray(list);
-```
-
-**Result:**
-```
-"ERROR: tshell does not have 'undefined' — use null instead\n\n  at line 13:11"
-```
-
-### Attempt 2 (OK)
-
-```javascript
-const list = { value: 10, next: { value: 20, next: { value: 30, next: null } } };
-
-const listToArray = (head) => {
-  let result = [];
-  let current = head;
-  while (current !== null) {
-    result.push(current.value);
-    current = current.next;
-  }
-  return result;
-};
-
-listToArray(list);
+to_array(list);
 ```
 
 **Result:**

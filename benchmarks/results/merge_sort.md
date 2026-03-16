@@ -1,7 +1,7 @@
 # merge_sort
 
 **Status:** PASS
-**Duration:** 14227ms
+**Duration:** 13182ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,18 +19,13 @@
 ### Attempt 1 (OK)
 
 ```javascript
-let mergeSort = (arr) => {
+let mergeSort = (arr: number[]) => {
   if (len(arr) <= 1) return arr;
   let mid = floor(len(arr) / 2);
   let left = mergeSort(slice(arr, 0, mid));
   let right = mergeSort(slice(arr, mid));
-  return merge(left, right);
-};
-
-let merge = (left, right) => {
   let result = [];
-  let i = 0;
-  let j = 0;
+  let i = 0, j = 0;
   while (i < len(left) && j < len(right)) {
     if (left[i] <= right[j]) {
       result = concat(result, [left[i]]);
@@ -51,8 +46,7 @@ let merge = (left, right) => {
   return result;
 };
 
-let arr = [38, 27, 43, 3, 9, 82, 10];
-mergeSort(arr);
+mergeSort([38, 27, 43, 3, 9, 82, 10])
 ```
 
 **Result:**

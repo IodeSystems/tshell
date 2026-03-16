@@ -1,7 +1,7 @@
 # pipe_csv_parse
 
 **Status:** PASS
-**Duration:** 20711ms
+**Duration:** 22762ms
 **Tool calls:** 3
 
 ## Prompt
@@ -16,18 +16,16 @@
 
 ## Attempts
 
-### Attempt 1 (OK)
+### Attempt 1 (ERROR)
 
 ```javascript
 let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
-let lines = csv.split("\n");
-let headers = lines[0].split(",");
-let result = lines.slice(1).map(line => {
-  let values = line.split(",");
+let lines = csv.split('\n');
+let headers = lines[0].split(',');
+let result = lines.slice(1).map(row => {
+  let values = row.split(',');
   let obj = {};
-  headers.forEach((header, i) => {
-    obj[header] = values[i];
-  });
+  headers.forEach((h, i) => { obj[h] = values[i]; });
   return obj;
 });
 result
@@ -35,21 +33,19 @@ result
 
 **Result:**
 ```
-"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 8:24"
+"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 7:45"
 ```
 
-### Attempt 2 (OK)
+### Attempt 2 (ERROR)
 
 ```javascript
 let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
-let lines = csv.split("\n");
-let headers = lines[0].split(",");
-let result = lines.slice(1).map(line => {
-  let values = line.split(",");
+let lines = csv.split('\n');
+let headers = lines[0].split(',');
+let result = lines.slice(1).map(row => {
+  let values = row.split(',');
   let obj = {};
-  headers.forEach((header, i) => {
-    obj[header] = values[i];
-  });
+  headers.forEach((h, i) => { obj[h] = values[i]; });
   return obj;
 });
 result
@@ -57,19 +53,20 @@ result
 
 **Result:**
 ```
-"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 8:24"
+"ERROR: Type mismatch in index\n\n  Expected: number\n  Got:      null (null)\n\n  at line 7:45"
 ```
 
 ### Attempt 3 (OK)
 
 ```javascript
 let csv = "name,age,city\nalice,30,nyc\nbob,25,sf\ncarol,35,la";
-let lines = csv.split("\n");
-let headers = lines[0].split(",");
+let lines = csv.split('\n');
+let headers = lines[0].split(',');
+let rows = lines.slice(1);
 let result = [];
-for (let i = 1; i < lines.length; i++) {
-  let line = lines[i];
-  let values = line.split(",");
+for (let i = 0; i < rows.length; i++) {
+  let row = rows[i];
+  let values = row.split(',');
   let obj = {};
   for (let j = 0; j < headers.length; j++) {
     obj[headers[j]] = values[j];

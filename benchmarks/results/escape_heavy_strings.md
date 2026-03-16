@@ -1,8 +1,8 @@
 # escape_heavy_strings
 
 **Status:** PASS
-**Duration:** 8773ms
-**Tool calls:** 1
+**Duration:** 20675ms
+**Tool calls:** 3
 
 ## Prompt
 
@@ -29,10 +29,59 @@ let paths = [
   r"E:\backup\db\prod_dump_2024-01-15.sql"
 ];
 
-let filenames = paths
-  |> map(p => p.match(r"\\([^\\]+)$"))
-  |> map(m => m ? m[0] : null)
-  |> map(f => f ? f.substring(1) : null);
+let filenames = paths.map(p => {
+  let match = p.match(r"\\([^\\]+)$");
+  if (match) {
+    return match[1];
+  }
+  return null;
+});
+
+filenames.join(" | ");
+```
+
+**Result:**
+```
+"null | null | null"
+```
+
+### Attempt 2 (OK)
+
+```javascript
+let paths = [
+  "C:\\Users\\admin\\Documents\\report_2024.csv",
+  "D:\\Projects\\src\\main\\kotlin\\App.kt",
+  "E:\\backup\\db\\prod_dump_2024-01-15.sql"
+];
+
+let filenames = paths.map(p => {
+  let match = p.match(/\\([^\\]+)$/);
+  if (match) {
+    return match[1];
+  }
+  return null;
+});
+
+filenames.join(" | ");
+```
+
+**Result:**
+```
+"null | null | null"
+```
+
+### Attempt 3 (OK)
+
+```javascript
+let paths = [
+  "C:\\Users\\admin\\Documents\\report_2024.csv",
+  "D:\\Projects\\src\\main\\kotlin\\App.kt",
+  "E:\\backup\\db\\prod_dump_2024-01-15.sql"
+];
+
+let filenames = paths.map(p => {
+  return p.split(/\\/).last();
+});
 
 filenames.join(" | ");
 ```

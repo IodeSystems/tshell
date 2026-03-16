@@ -1,7 +1,7 @@
 # recursive_flatten
 
 **Status:** PASS
-**Duration:** 6396ms
+**Duration:** 6652ms
 **Tool calls:** 1
 
 ## Prompt
