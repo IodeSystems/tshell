@@ -343,8 +343,17 @@ class Interpreter(
           "Unexpected '$got' here\n\n  Check for typos or missing operators"
 
         // No viable alternative
-        msg.contains("no viable alternative") ->
-          "Unexpected syntax at '$got'\n\n  This doesn't look like a valid statement or expression"
+        msg.contains("no viable alternative") -> {
+          // Detect `if expr {` without parens (Go/Python style)
+          val trimmedBefore = before.trimStart()
+          if (trimmedBefore.startsWith("if ") && !trimmedBefore.startsWith("if (")) {
+            "if requires parentheses around the condition\n\n  Example: if (condition) { ... }\n  Got:     $trimmedBefore"
+          } else if (trimmedBefore.startsWith("while ") && !trimmedBefore.startsWith("while (")) {
+            "while requires parentheses around the condition\n\n  Example: while (condition) { ... }"
+          } else {
+            "Unexpected syntax at '$got'\n\n  This doesn't look like a valid statement or expression"
+          }
+        }
 
         // Default: pass through ANTLR's message but add a hint
         else -> "$msg\n\n  Hint: check for missing operators, unclosed brackets, or typos"
@@ -416,6 +425,8 @@ class Interpreter(
       is BlockContext -> visitBlock(ctx)
       is BlockOrStatementContext -> visitBlockOrStatement(ctx)
       // Expressions
+      is AssignExprContext -> visitAssignExpr(ctx)
+      is ExprTernaryContext -> eval(ctx.ternaryExpr())
       is ExpressionContext -> visitExpression(ctx)
       is TernaryExprContext -> visitTernaryExpr(ctx)
       is NullCoalesceExprContext -> visitNullCoalesceExpr(ctx)
@@ -430,6 +441,7 @@ class Interpreter(
       is PipeExprContext -> visitPipeExpr(ctx)
       is AdditiveExprContext -> visitAdditiveExpr(ctx)
       is MultiplicativeExprContext -> visitMultiplicativeExpr(ctx)
+      is ExponentiationExprContext -> visitExponentiationExpr(ctx)
       is UnaryExprContext -> visitUnaryExpr(ctx)
       is PostfixExprContext -> visitPostfixExpr(ctx)
       // Primary expressions
@@ -516,6 +528,12 @@ class Interpreter(
           for (dest in ctx.arrayDestructure().destructure()) {
             collectDestructureNames(dest, names)
           }
+          // Handle rest element: [..., ...rest]
+          val adCtx = ctx.arrayDestructure()
+          if (adCtx.SPREAD() != null) {
+            val restName = adCtx.IDENTIFIER()?.text ?: adCtx.FUNCTION()?.text
+            if (restName != null) names.add(restName)
+          }
         }
       }
     }
@@ -530,13 +548,20 @@ class Interpreter(
     }
 
     suspend fun visitFnDecl(ctx: FnDeclContext): TShellValue {
-      val name = ctx.IDENTIFIER()?.text ?: ctx.FUNCTION(1)?.text ?: throw TShellError.runtime("Expected function name")
-      val params = ctx.paramList()?.param()?.map { paramName(it) } ?: emptyList()
+      // Alt 1: FUNCTION name(...) { } — name is IDENTIFIER or FUNCTION(1)
+      // Alt 2: LET name(...) { }     — name is IDENTIFIER or FUNCTION(0)
+      val isLetForm = ctx.LET() != null
+      val name = ctx.IDENTIFIER()?.text
+        ?: (if (isLetForm) ctx.FUNCTION(0)?.text else ctx.FUNCTION(1)?.text)
+        ?: throw TShellError.runtime("Expected function name")
+      val (params, defaults, paramNodes) = extractParams(ctx.paramList())
       val capturedEnv = env
       val fn = TShellValue.TFunction(
         name = name,
         params = params,
-        body = TShellValue.FunctionBody.Block(ctx.block(), capturedEnv, commands, limits)
+        body = TShellValue.FunctionBody.Block(ctx.block(), capturedEnv, commands, limits),
+        paramDefaults = defaults,
+        paramNodes = paramNodes,
       )
       env.defineOrSet(name, fn)
       return TShellValue.TNull
@@ -545,13 +570,15 @@ class Interpreter(
     suspend fun visitFuncExpr(ctx: FuncExprContext): TShellValue {
       val fCtx = ctx.functionExpr()
       val name = fCtx.IDENTIFIER()?.text ?: fCtx.FUNCTION(1)?.text
-      val params = fCtx.paramList()?.param()?.map { paramName(it) } ?: emptyList()
+      val (params, defaults, paramNodes) = extractParams(fCtx.paramList())
       // Named function expressions get a child env with self-reference for recursion
       val closureEnv = if (name != null) env.child() else env
       val fn = TShellValue.TFunction(
         name = name ?: "<anonymous>",
         params = params,
-        body = TShellValue.FunctionBody.Block(fCtx.block(), closureEnv, commands, limits)
+        body = TShellValue.FunctionBody.Block(fCtx.block(), closureEnv, commands, limits),
+        paramDefaults = defaults,
+        paramNodes = paramNodes,
       )
       if (name != null) closureEnv.define(name, fn)
       return fn
@@ -684,11 +711,94 @@ class Interpreter(
     }
 
     suspend fun visitExpressionStatement(ctx: ExpressionStatementContext): TShellValue {
+      // Detect bare identifier/literal statements that are no-ops (dead code)
+      // Only flag when inside a block (not the last top-level statement, which is the return value)
+      if (isNonTerminalInBlock(ctx)) {
+        val bareRef = extractBareRef(ctx.expression())
+        if (bareRef != null) {
+          throw TShellError(
+            "'$bareRef' as a statement has no effect — did you mean:\n" +
+            "  return $bareRef    to exit a function with this value"
+          )
+        }
+      }
       return eval(ctx.expression())
     }
 
+    /**
+     * Check if this expression statement is a non-terminal statement inside a block.
+     * A bare ref at the end of a block is the return value — that's fine.
+     * A bare ref followed by more statements is dead code — flag it.
+     */
+    private fun isNonTerminalInBlock(ctx: ExpressionStatementContext): Boolean {
+      // Walk up: expressionStatement → statement → block/program
+      val stmtCtx = ctx.parent as? StatementContext ?: return false
+      val container = stmtCtx.parent ?: return false
+      val statements = when (container) {
+        is BlockContext -> container.statement()
+        is ProgramContext -> return false  // top-level is always fine
+        else -> return false
+      }
+      // Only flag if this is NOT the last statement in its block
+      return statements.lastOrNull() !== stmtCtx
+    }
+
+    /** If the expression is a bare identifier or number literal, return its text. Null otherwise. */
+    private fun extractBareRef(ctx: ExpressionContext): String? {
+      // Drill through: expression → exprTernary → ternary → nullCoalesce → or → and → ...
+      // → postfix → primary → identifierExpr
+      if (ctx is AssignExprContext) return null  // assignments have effects
+      val ternary = when (ctx) {
+        is ExprTernaryContext -> ctx.ternaryExpr()
+        else -> return null
+      } ?: return null
+      if (ternary.QUESTION() != null) return null  // has ternary operator
+      val nc = ternary.nullCoalesceExpr() ?: return null
+      if (nc.orExpr().size != 1) return null
+      val or = nc.orExpr(0)
+      if (or.andExpr().size != 1) return null
+      val and = or.andExpr(0)
+      if (and.bitwiseOrExpr().size != 1) return null
+      val bor = and.bitwiseOrExpr(0)
+      if (bor.bitwiseXorExpr().size != 1) return null
+      val bxor = bor.bitwiseXorExpr(0)
+      if (bxor.bitwiseAndExpr().size != 1) return null
+      val band = bxor.bitwiseAndExpr(0)
+      if (band.equalityExpr().size != 1) return null
+      val eq = band.equalityExpr(0)
+      if (eq.comparisonExpr().size != 1) return null
+      val cmp = eq.comparisonExpr(0)
+      if (cmp.shiftExpr().size != 1) return null
+      val sh = cmp.shiftExpr(0)
+      if (sh.pipeExpr().size != 1) return null
+      val pipe = sh.pipeExpr(0)
+      if (pipe.additiveExpr().size != 1) return null
+      val add = pipe.additiveExpr(0)
+      if (add.multiplicativeExpr().size != 1) return null
+      val mult = add.multiplicativeExpr(0)
+      if (mult.exponentiationExpr().size != 1) return null
+      val exp = mult.exponentiationExpr(0)
+      if (exp.exponentiationExpr() != null) return null
+      val unary = exp.unaryExpr() ?: return null
+      val postfix = unary.postfixExpr() ?: return null
+      if (postfix.postfixOp().isNotEmpty()) return null  // has .field, [idx], (), etc.
+      val primary = postfix.primaryExpr() ?: return null
+      return when (primary) {
+        is IdentifierExprContext -> primary.text
+        else -> null  // literals at end of block are fine (e.g. `42` as return value)
+      }
+    }
+
     suspend fun visitExpression(ctx: ExpressionContext): TShellValue {
-      return eval(ctx.ternaryExpr())
+      // Expression now has labeled alternatives — dispatch to child
+      val child = ctx.getChild(0) ?: throw TShellError.runtime("Empty expression")
+      return eval(child as org.antlr.v4.runtime.tree.ParseTree)
+    }
+
+    suspend fun visitAssignExpr(ctx: AssignExprContext): TShellValue {
+      val rhs = eval(ctx.expression())
+      performAssign(ctx.assignTarget(), ctx.assignOp().text, rhs)
+      return rhs
     }
 
     suspend fun visitBlockOrStatement(ctx: BlockOrStatementContext): TShellValue {
@@ -745,7 +855,7 @@ class Interpreter(
       do {
         step(ctx)
         try {
-          result = visitBlock(ctx.block())
+          result = visitBlockOrStatement(ctx.blockOrStatement())
         } catch (_: BreakSignal) {
           break
         } catch (_: ContinueSignal) {
@@ -760,7 +870,7 @@ class Interpreter(
       while (eval(ctx.expression()).isTruthy()) {
         step(ctx)
         try {
-          result = visitBlock(ctx.block())
+          result = visitBlockOrStatement(ctx.blockOrStatement())
         } catch (_: BreakSignal) {
           break
         } catch (_: ContinueSignal) {
@@ -785,7 +895,7 @@ class Interpreter(
         env = loopEnv
         bindDestructure(ctx.destructure(), item)
         try {
-          result = visitBlock(ctx.block())
+          result = visitBlockOrStatement(ctx.blockOrStatement())
         } catch (_: BreakSignal) {
           env = outerEnv
           break
@@ -814,7 +924,7 @@ class Interpreter(
         env = loopEnv
         env.define(varName, key)
         try {
-          result = visitBlock(ctx.block())
+          result = visitBlockOrStatement(ctx.blockOrStatement())
         } catch (_: BreakSignal) {
           env = outerEnv
           break
@@ -849,7 +959,7 @@ class Interpreter(
           if (!cond.isTruthy()) break
         }
         try {
-          result = visitBlock(ctx.block())
+          result = visitBlockOrStatement(ctx.blockOrStatement())
         } catch (_: BreakSignal) {
           break
         } catch (_: ContinueSignal) {
@@ -1000,8 +1110,11 @@ class Interpreter(
       if (ctx.multiplicativeExpr().size != 1) return null
       val mult = ctx.multiplicativeExpr(0)
       // Must be a single factor (no * or / operators)
-      if (mult.unaryExpr().size != 1) return null
-      val unary = mult.unaryExpr(0)
+      if (mult.exponentiationExpr().size != 1) return null
+      val exp = mult.exponentiationExpr(0)
+      // Must not have exponentiation operator
+      if (exp.exponentiationExpr() != null) return null
+      val unary = exp.unaryExpr()
       // Must not have unary operators (! or -)
       val postfix = unary.postfixExpr() ?: return null
       val ops = postfix.postfixOp()
@@ -1049,8 +1162,10 @@ class Interpreter(
     private fun tryGetArrayDestructureNames(ctx: AdditiveExprContext): List<String>? {
       if (ctx.multiplicativeExpr().size != 1) return null
       val mult = ctx.multiplicativeExpr(0)
-      if (mult.unaryExpr().size != 1) return null
-      val unary = mult.unaryExpr(0)
+      if (mult.exponentiationExpr().size != 1) return null
+      val exp = mult.exponentiationExpr(0)
+      if (exp.exponentiationExpr() != null) return null
+      val unary = exp.unaryExpr()
       val postfix = unary.postfixExpr() ?: return null
       if (postfix.postfixOp().isNotEmpty()) return null
       val primary = postfix.primaryExpr()
@@ -1106,8 +1221,25 @@ class Interpreter(
     suspend fun visitBitwiseOrExpr(ctx: BitwiseOrExprContext): TShellValue {
       var result = eval(ctx.bitwiseXorExpr(0))
       for (i in 1 until ctx.bitwiseXorExpr().size) {
+        val opToken = ctx.getChild(2 * i - 1)
+        val opText = opToken.text
+        if (opText == "|") {
+          val rhsText = ctx.bitwiseXorExpr(i)?.text
+          val truncHint = if (rhsText == "0")
+            "\n  floor(x)   integer truncation (replaces x | 0)"
+          else ""
+          throw TShellError(
+            "'|' is not supported. Did you mean:\n" +
+            "  |>   pipe        (value |> function)\n" +
+            "  |*   scatter     (array |* function)\n" +
+            "  ||   logical OR  (a || b)\n" +
+            "  |:   bitwise OR  (5 |: 3 → 7)" +
+            truncHint
+          )
+        }
+        // |: — real bitwise OR
         val right = eval(ctx.bitwiseXorExpr(i))
-        result = intBitwiseOp(result, right, "|") { a, b -> a or b }
+        result = intBitwiseOp(result, right, "|:") { a, b -> a or b }
       }
       return result
     }
@@ -1115,8 +1247,18 @@ class Interpreter(
     suspend fun visitBitwiseXorExpr(ctx: BitwiseXorExprContext): TShellValue {
       var result = eval(ctx.bitwiseAndExpr(0))
       for (i in 1 until ctx.bitwiseAndExpr().size) {
+        val opToken = ctx.getChild(2 * i - 1)
+        val opText = opToken.text
+        if (opText == "^") {
+          throw TShellError(
+            "'^' is not supported. Did you mean:\n" +
+            "  **   exponentiation  (2 ** 10 → 1024)\n" +
+            "  |.   bitwise XOR    (5 |. 3 → 6)"
+          )
+        }
+        // |. — real bitwise XOR
         val right = eval(ctx.bitwiseAndExpr(i))
-        result = intBitwiseOp(result, right, "^") { a, b -> a xor b }
+        result = intBitwiseOp(result, right, "|.") { a, b -> a xor b }
       }
       return result
     }
@@ -1205,9 +1347,9 @@ class Interpreter(
     }
 
     suspend fun visitMultiplicativeExpr(ctx: MultiplicativeExprContext): TShellValue {
-      var result = eval(ctx.unaryExpr(0))
-      for (i in 1 until ctx.unaryExpr().size) {
-        val right = eval(ctx.unaryExpr(i))
+      var result = eval(ctx.exponentiationExpr(0))
+      for (i in 1 until ctx.exponentiationExpr().size) {
+        val right = eval(ctx.exponentiationExpr(i))
         val op = ctx.getChild(2 * i - 1).text
         result = when (op) {
           "*" -> numericOp(result, right, "*") { a, b -> a * b }
@@ -1217,6 +1359,13 @@ class Interpreter(
         }
       }
       return result
+    }
+
+    suspend fun visitExponentiationExpr(ctx: ExponentiationExprContext): TShellValue {
+      val base = eval(ctx.unaryExpr())
+      val expCtx = ctx.exponentiationExpr() ?: return base
+      val exp = eval(expCtx)
+      return numericOp(base, exp, "**") { a, b -> Math.pow(a, b) }
     }
 
     suspend fun visitUnaryExpr(ctx: UnaryExprContext): TShellValue {
@@ -1504,14 +1653,31 @@ class Interpreter(
             }
             fields[keyStr] = eval(field.expression(1))
           }
+          is MethodFieldContext -> {
+            val name = field.IDENTIFIER()?.text ?: field.FUNCTION()?.text
+              ?: throw TShellError.runtime("Expected method name")
+            val (params, defaults, paramNodes) = extractParams(field.paramList())
+            fields[name] = TShellValue.TFunction(
+              name = name,
+              params = params,
+              body = TShellValue.FunctionBody.Block(field.block(), env, commands, limits),
+              paramDefaults = defaults,
+            )
+          }
         }
       }
       return TShellValue.TObject(fields)
     }
 
     @Suppress("unused")
-    suspend fun visitParenExpr(ctx: ParenExprContext): TShellValue =
-      eval(ctx.expression())
+    suspend fun visitParenExpr(ctx: ParenExprContext): TShellValue {
+      val exprs = ctx.expression()
+      var result: TShellValue = TShellValue.TNull
+      for (expr in exprs) {
+        result = eval(expr)
+      }
+      return result
+    }
 
     // --- Arrow functions ---
 
@@ -1527,11 +1693,13 @@ class Interpreter(
 
     @Suppress("unused")
     suspend fun visitMultiParamArrow(ctx: MultiParamArrowContext): TShellValue {
-      val params = ctx.paramList()?.param()?.map { paramName(it) } ?: emptyList()
+      val (params, defaults, paramNodes) = extractParams(ctx.paramList())
       return TShellValue.TFunction(
         name = null,
         params = params,
-        body = TShellValue.FunctionBody.Expression(ctx.expression(), env, commands, limits)
+        body = TShellValue.FunctionBody.Expression(ctx.expression(), env, commands, limits),
+        paramDefaults = defaults,
+        paramNodes = paramNodes,
       )
     }
 
@@ -1547,11 +1715,13 @@ class Interpreter(
 
     @Suppress("unused")
     suspend fun visitMultiParamArrowBlock(ctx: MultiParamArrowBlockContext): TShellValue {
-      val params = ctx.paramList()?.param()?.map { paramName(it) } ?: emptyList()
+      val (params, defaults, paramNodes) = extractParams(ctx.paramList())
       return TShellValue.TFunction(
         name = null,
         params = params,
-        body = TShellValue.FunctionBody.Block(ctx.block(), env, commands, limits)
+        body = TShellValue.FunctionBody.Block(ctx.block(), env, commands, limits),
+        paramDefaults = defaults,
+        paramNodes = paramNodes,
       )
     }
 
@@ -1645,7 +1815,7 @@ class Interpreter(
         is TShellValue.FunctionBody.Expression -> {
           pushCall(body.node as ParserRuleContext)
           val fnEnv = body.capturedEnv.child()
-          fn.params.forEachIndexed { i, p -> fnEnv.define(p, args.getOrElse(i) { TShellValue.TNull }) }
+          bindParamsWithDefaults(fn, args, fnEnv)
           val outerEnv = env
           env = fnEnv
           try {
@@ -1658,7 +1828,7 @@ class Interpreter(
         is TShellValue.FunctionBody.Block -> {
           pushCall(body.node as ParserRuleContext)
           val fnEnv = body.capturedEnv.child()
-          fn.params.forEachIndexed { i, p -> fnEnv.define(p, args.getOrElse(i) { TShellValue.TNull }) }
+          bindParamsWithDefaults(fn, args, fnEnv)
           val outerEnv = env
           env = fnEnv
           try {
@@ -1669,6 +1839,63 @@ class Interpreter(
             env = outerEnv
             popCall()
           }
+        }
+      }
+    }
+
+    private suspend fun bindParamsWithDefaults(fn: TShellValue.TFunction, args: List<TShellValue>, fnEnv: Environment) {
+      val outerEnv = env
+      fn.params.forEachIndexed { i, p ->
+        val value = if (i < args.size) {
+          args[i]
+        } else {
+          val defaultExpr = fn.paramDefaults.getOrNull(i) as? ParserRuleContext
+          if (defaultExpr != null) {
+            // Evaluate default in the function's env so earlier params are visible
+            env = fnEnv
+            try { eval(defaultExpr) } finally { env = outerEnv }
+          } else {
+            TShellValue.TNull
+          }
+        }
+        // Check if this param is destructured
+        val paramCtx = fn.paramNodes.getOrNull(i) as? ParamContext
+        if (paramCtx != null && (paramCtx.arrayDestructure() != null || paramCtx.objectDestructure() != null)) {
+          // Bind via destructuring in the function's env
+          val prevEnv = env
+          env = fnEnv
+          try {
+            if (paramCtx.arrayDestructure() != null) {
+              val arr = value as? TShellValue.TArray ?: TShellValue.TArray(listOf(value))
+              val destCtx = paramCtx.arrayDestructure()
+              val namedDestructures = destCtx.destructure()
+              for ((j, dest) in namedDestructures.withIndex()) {
+                val el = arr.elements.getOrElse(j) { TShellValue.TNull }
+                bindDestructure(dest, el)
+              }
+              // Handle rest element: [..., ...rest]
+              if (destCtx.SPREAD() != null) {
+                val restName = destCtx.IDENTIFIER()?.text ?: destCtx.FUNCTION()?.text
+                if (restName != null) {
+                  val rest = if (namedDestructures.size < arr.elements.size)
+                    TShellValue.TArray(arr.elements.subList(namedDestructures.size, arr.elements.size).toMutableList())
+                  else TShellValue.TArray(mutableListOf())
+                  env.define(restName, rest)
+                }
+              }
+            } else if (paramCtx.objectDestructure() != null) {
+              val obj = value as? TShellValue.TObject ?: TShellValue.TObject(emptyMap())
+              val destCtx = paramCtx.objectDestructure()
+              for (field in destCtx.destructureField()) {
+                val name = field.IDENTIFIER()?.text ?: field.FUNCTION()?.text ?: continue
+                env.define(name, obj.fields[name] ?: TShellValue.TNull)
+              }
+            }
+          } finally {
+            env = prevEnv
+          }
+        } else {
+          fnEnv.define(p, value)
         }
       }
     }
@@ -1696,8 +1923,20 @@ class Interpreter(
         ctx.arrayDestructure() != null -> {
           val arr = value as? TShellValue.TArray
             ?: throw TShellError.typeMismatch("destructure", "array", value)
-          ctx.arrayDestructure().destructure().forEachIndexed { idx, dest ->
+          val adCtx = ctx.arrayDestructure()
+          val namedDestructures = adCtx.destructure()
+          namedDestructures.forEachIndexed { idx, dest ->
             bindDestructure(dest, arr.elements.getOrElse(idx) { TShellValue.TNull })
+          }
+          // Handle rest element: [..., ...rest]
+          if (adCtx.SPREAD() != null) {
+            val restName = adCtx.IDENTIFIER()?.text ?: adCtx.FUNCTION()?.text
+            if (restName != null) {
+              val rest = if (namedDestructures.size < arr.elements.size)
+                TShellValue.TArray(arr.elements.subList(namedDestructures.size, arr.elements.size).toMutableList())
+              else TShellValue.TArray(mutableListOf())
+              env.define(restName, rest)
+            }
           }
         }
       }
@@ -1707,7 +1946,20 @@ class Interpreter(
     private fun identOrFunctionText(ident: org.antlr.v4.runtime.tree.TerminalNode?, func: org.antlr.v4.runtime.tree.TerminalNode?): String =
       ident?.text ?: func?.text ?: throw TShellError.runtime("Expected identifier")
 
-    private fun paramName(p: ParamContext): String = identOrFunctionText(p.IDENTIFIER(), p.FUNCTION())
+    private fun paramName(p: ParamContext): String =
+      p.IDENTIFIER()?.text ?: p.FUNCTION()?.text
+        ?: "__destructure_${System.identityHashCode(p)}"
+
+    private fun isDestructuredParam(p: ParamContext): Boolean =
+      p.arrayDestructure() != null || p.objectDestructure() != null
+
+    /** Extract param names, default expression AST nodes, and full contexts from a paramList. */
+    private fun extractParams(paramList: ParamListContext?): Triple<List<String>, List<Any?>, List<ParamContext>> {
+      val params = paramList?.param() ?: return Triple(emptyList(), emptyList(), emptyList())
+      val names = params.map { paramName(it) }
+      val defaults = params.map { it.expression() }
+      return Triple(names, defaults, params)
+    }
 
     private fun fieldNameText(ctx: com.iodesystems.tshell.parser.TShellParser.FieldNameContext): String {
       val str = ctx.STRING()
@@ -1755,12 +2007,21 @@ class Interpreter(
       return when (op) {
         "+=" -> add(current, rhs)
         "-=" -> numericOp(current, rhs, "-") { a, b -> a - b }
+        "**=" -> numericOp(current, rhs, "**") { a, b -> Math.pow(a, b) }
         "*=" -> numericOp(current, rhs, "*") { a, b -> a * b }
         "/=" -> numericOp(current, rhs, "/") { a, b -> a / b }
         "%=" -> numericOp(current, rhs, "%") { a, b -> a % b }
         "&=" -> intBitwiseOp(current, rhs, "&") { a, b -> a and b }
-        "|=" -> intBitwiseOp(current, rhs, "|") { a, b -> a or b }
-        "^=" -> intBitwiseOp(current, rhs, "^") { a, b -> a xor b }
+        "|=" -> throw TShellError(
+          "'|=' is not supported. Did you mean:\n" +
+          "  |>   pipe        (value |> function)\n" +
+          "  ||   logical OR  (a || b)"
+        )
+        "^=" -> throw TShellError(
+          "'^=' is not supported. Use **= for exponentiation or xor() for bitwise XOR:\n" +
+          "  x **= 2       exponentiation assign\n" +
+          "  xor(x, y)     bitwise XOR"
+        )
         "<<=" -> intBitwiseOp(current, rhs, "<<") { a, b -> a shl (b and 0x1f) }
         ">>=" -> intBitwiseOp(current, rhs, ">>") { a, b -> a shr (b and 0x1f) }
         ">>>=" -> intBitwiseOp(current, rhs, ">>>") { a, b -> a ushr (b and 0x1f) }
@@ -1782,8 +2043,12 @@ class Interpreter(
             name = "hasOwnProperty",
             params = listOf("key"),
             body = TShellValue.FunctionBody.Native { args ->
-              val key = (args.firstOrNull() as? TShellValue.TString)?.value
-                ?: throw TShellError.typeMismatch("hasOwnProperty", "string", args.firstOrNull() ?: TShellValue.TNull)
+              val arg = args.firstOrNull() ?: TShellValue.TNull
+              val key = when (arg) {
+                is TShellValue.TString -> arg.value
+                is TShellValue.TNumber -> arg.toDisplayString()
+                else -> throw TShellError.typeMismatch("hasOwnProperty", "string or number", arg)
+              }
               TShellValue.TBoolean(obj.fields.containsKey(key))
             }
           )
@@ -1791,11 +2056,52 @@ class Interpreter(
         }
         is TShellValue.TArray -> when (field) {
           "length" -> TShellValue.TNumber(obj.elements.size.toDouble())
+          "entries" -> TShellValue.TFunction(
+            name = "entries",
+            params = emptyList(),
+            body = TShellValue.FunctionBody.Native { _ ->
+              TShellValue.TArray(obj.elements.mapIndexed { i, v ->
+                TShellValue.TArray(listOf(TShellValue.TNumber(i.toDouble()), v))
+              })
+            }
+          )
           else -> bindMethodOrHint(obj, "array", field)
         }
         is TShellValue.TString -> when (field) {
           "length" -> TShellValue.TNumber(obj.value.length.toDouble())
           else -> bindMethodOrHint(obj, "string", field)
+        }
+        is TShellValue.TNumber -> when (field) {
+          "toString" -> TShellValue.TFunction(
+            name = "toString",
+            params = emptyList(),
+            body = TShellValue.FunctionBody.Native { _ -> TShellValue.TString(obj.toDisplayString()) }
+          )
+          "toFixed" -> TShellValue.TFunction(
+            name = "toFixed",
+            params = listOf("digits"),
+            body = TShellValue.FunctionBody.Native { args ->
+              val digits = (args.firstOrNull() as? TShellValue.TNumber)?.value?.toInt() ?: 0
+              TShellValue.TString("%.${digits}f".format(obj.value))
+            }
+          )
+          else -> throw TShellError.typeMismatch(
+            "member access .$field",
+            "object, array, or string",
+            obj
+          )
+        }
+        is TShellValue.TBoolean -> when (field) {
+          "toString" -> TShellValue.TFunction(
+            name = "toString",
+            params = emptyList(),
+            body = TShellValue.FunctionBody.Native { _ -> TShellValue.TString(obj.value.toString()) }
+          )
+          else -> throw TShellError.typeMismatch(
+            "member access .$field",
+            "object, array, string, or number",
+            obj
+          )
         }
         else -> throw TShellError.typeMismatch(
           "member access .$field",
@@ -1901,12 +2207,18 @@ class Interpreter(
       return when {
         a is TShellValue.TNumber && b is TShellValue.TNumber -> a.value.compareTo(b.value)
         a is TShellValue.TString && b is TShellValue.TString -> a.value.compareTo(b.value)
-        else -> throw TShellError.typeMismatch(
-          "comparison",
-          "matching number or string types",
-          a,
-          "Cannot compare ${a.typeName()} with ${b.typeName()}"
-        )
+        else -> {
+          val hint = when {
+            a is TShellValue.TFunction && a.name == "len" ->
+              "Did you mean .length (property) or len(x) (function call)? .len is a function — use .length or len(x) instead"
+            b is TShellValue.TFunction && b.name == "len" ->
+              "Did you mean .length (property) or len(x) (function call)? .len is a function — use .length or len(x) instead"
+            a is TShellValue.TFunction || b is TShellValue.TFunction ->
+              "Cannot compare ${a.typeName()} with ${b.typeName()} — one side is a function, did you forget to call it with ()?"
+            else -> "Cannot compare ${a.typeName()} with ${b.typeName()}"
+          }
+          throw TShellError.typeMismatch("comparison", "matching number or string types", a, hint)
+        }
       }
     }
 
@@ -1993,19 +2305,12 @@ private val JS_METHOD_ALIASES: Map<String, Map<String, String>> = mapOf(
     "matchAll" to "match",
     "search" to "test",
     "slice" to "substring",
+    "trimLeft" to "trimStart",
+    "trimRight" to "trimEnd",
   ),
 )
 
 /** JS methods with no tshell equivalent — error hints */
 private val JS_METHOD_HINTS: Map<String, Map<String, String>> = mapOf(
-  "array" to mapOf(
-    "entries" to "zip(range(0, len(arr)), arr)",
-  ),
-  "string" to mapOf(
-    "charCodeAt" to "not available in tshell",
-    "codePointAt" to "not available in tshell",
-    "repeat" to "not available in tshell",
-    "trimStart" to "str |> trim() (only full trim)",
-    "trimEnd" to "str |> trim() (only full trim)",
-  ),
+  "array" to emptyMap(),
 )

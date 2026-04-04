@@ -54,6 +54,11 @@ class LocalLlmChat : SuspendingCliktCommand(
     .default("true")
   private val benchmark by option("--benchmark", help = "Run benchmark suite and write results to benchmarks/results/")
     .flag()
+  private val compact by option("--compact", help = "Use compact prompt (names only, rely on help() for discovery)")
+    .flag()
+  private val modelArg by option("--model", "-m", help = "Model ID to use (skips interactive selection)")
+  private val failFast by option("--fail-fast", help = "Stop benchmark suite on first failure")
+    .flag()
 
   override suspend fun run() {
     // Fetch available models
@@ -77,8 +82,16 @@ class LocalLlmChat : SuspendingCliktCommand(
       return
     }
 
-    // Let user pick a model
-    val modelId = if (models.data.size == 1) {
+    // Pick a model: --model flag, single available, or interactive
+    val modelId = if (modelArg != null) {
+      val id = modelArg!!
+      if (models.data.none { it.id == id }) {
+        echo("Model '$id' not found. Available: ${models.data.joinToString { it.id }}", err = true)
+        return
+      }
+      echo("Using model: $id")
+      id
+    } else if (models.data.size == 1) {
       echo("Using model: ${models.data[0].id}")
       models.data[0].id
     } else {
@@ -159,14 +172,14 @@ class LocalLlmChat : SuspendingCliktCommand(
         appendLine("Do NOT glob(\"**/*\") — use tree() instead for structure overview.")
         appendLine()
       }
-      appendLine(shell.toPrompt())
+      appendLine(shell.toPrompt(compact = compact))
     }
 
     // Benchmark mode
     if (benchmark) {
       val benchmarkPrompt = systemPrompt + "\n\n" +
-        "IMPORTANT: When answering benchmark questions, return ONLY the raw result from the tool — " +
-        "no explanation, no markdown, no wrapping text. Just the value."
+        "IMPORTANT: Always use the tshell tool to compute answers. " +
+        "Return ONLY the raw result from the tool — no explanation, no markdown, no wrapping. Just the value."
       try {
         runBenchmarks(
           executor = executor,
@@ -178,8 +191,10 @@ class LocalLlmChat : SuspendingCliktCommand(
             MathToolkit().install(s)
             TShellTools(s)
           },
-          outputDir = Path.of(System.getProperty("user.dir")).resolve("benchmarks/results"),
-          timeoutMs = 30_000
+          outputDir = Path.of(System.getProperty("user.dir")).resolve("benchmarks")
+            .resolve("results" + if (compact) "-compact" else ""),
+          timeoutMs = 30_000,
+          failFast = failFast,
         )
       } finally {
         cleanup()

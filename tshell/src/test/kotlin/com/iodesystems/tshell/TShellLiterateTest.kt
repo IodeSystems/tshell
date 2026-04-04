@@ -246,13 +246,17 @@ Use `help()` to discover what's available.
       // Context size info — computed from actual stdlib prompt, tokenized with cl100k_base
       val sh = shell()
       val fullPrompt = sh.toPrompt()
+      val compactPrompt = sh.toPrompt(compact = true)
       val toolDesc = TShell.TOOL_DESCRIPTION
       val totalText = toolDesc + "\n" + fullPrompt
+      val compactText = toolDesc + "\n" + compactPrompt
       val totalKb = "%.1f".format(totalText.length / 1024.0)
+      val compactKb = "%.1f".format(compactText.length / 1024.0)
       val registry = Encodings.newDefaultEncodingRegistry()
       val enc = registry.getEncoding(EncodingType.CL100K_BASE)
       val tokens = enc.countTokens(totalText)
-      appendLine("**Total stdlib context cost: ${totalKb}KB / ${tokens} tokens** (cl100k_base — tool description + syntax reference + command signatures)")
+      val compactTokens = enc.countTokens(compactText)
+      appendLine("**Total stdlib context cost: ${totalKb}KB / ${tokens} tokens** (full) · **${compactKb}KB / ${compactTokens} tokens** (compact) — cl100k_base")
       appendLine()
 
       // ── Quick Start ──
@@ -426,13 +430,16 @@ Use `help()` to discover what's available.
       val descTokens = enc.countTokens(toolDesc)
       val cmdSection = fullPrompt.substringAfter("## Commands")
       val cmdTokens = enc.countTokens(cmdSection)
-      appendLine("| Component | Tokens | What it contains |")
-      appendLine("| --- | ---: | --- |")
-      appendLine("| Tool description | $descTokens | One-line summary in the tool schema |")
-      appendLine("| Syntax reference | $syntaxTokens | JS subset, pipes, raw templates, composition |")
-      appendLine("| Command signatures | $cmdTokens | All stdlib commands with types and descriptions |")
-      appendLine("| **Total** | **$tokens** | **${totalKb}KB** |")
+      val compactCmdSection = compactPrompt.substringAfter("## Commands")
+      val compactCmdTokens = enc.countTokens(compactCmdSection)
+      appendLine("| Component | Full | Compact | What it contains |")
+      appendLine("| --- | ---: | ---: | --- |")
+      appendLine("| Tool description | $descTokens | $descTokens | One-line summary in the tool schema |")
+      appendLine("| Syntax reference | $syntaxTokens | $syntaxTokens | JS subset, pipes, raw templates, composition |")
+      appendLine("| Command signatures | $cmdTokens | $compactCmdTokens | All stdlib commands (compact: names only, use `help()`) |")
+      appendLine("| **Total** | **$tokens** | **$compactTokens** | |")
       appendLine()
+      appendLine("Compact mode lists command names only — the LLM calls `help(\"name\")` for signatures and `help(\"namespace\")` for namespace overviews.")
       appendLine("For comparison: a typical MCP tool server exposes 10-20 tools at ~200 tokens each (2000-4000 tokens).")
       appendLine("tshell replaces them all with one `eval` tool. Additional commands added via toolkits")
       appendLine("(FileToolkit, SqlToolkit, etc.) grow only the command signatures section.")

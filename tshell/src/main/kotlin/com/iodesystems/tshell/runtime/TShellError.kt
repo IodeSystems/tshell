@@ -49,7 +49,6 @@ class TShellError(message: String) : RuntimeException(message) {
       "Map", "Set", "WeakMap", "WeakSet" -> "tshell does not have $name — use objects and arrays\n\n  Example: unique([1, 2, 2, 3])  // Set-like dedup"
       "Symbol", "Proxy", "Reflect" -> "tshell does not support $name"
       "Error", "TypeError", "RangeError" -> "tshell does not have error types — use fail(message)\n\n  Example: fail(\"invalid input\")"
-      "undefined" -> "tshell does not have 'undefined' — use null instead"
       "NaN", "Infinity" -> "tshell does not have $name — use numeric checks instead"
       "isNaN", "isFinite" -> "tshell does not have '$name'"
       "encodeURIComponent", "decodeURIComponent", "encodeURI", "decodeURI" -> "tshell does not have URI encoding functions"

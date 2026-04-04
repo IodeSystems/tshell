@@ -65,17 +65,9 @@ tshell-sample-koog/              # Sample LLM integration
 - `bindDestructure()` in Interpreter handles all destructuring patterns (simple, object, array)
 - `collectDestructureNames()` extracts names for export tracking
 - Export wraps letDecl/fnDecl/assignStatement
+- Generated parser in `src/main/java-generated/` — do not edit directly
 
-## JS compatibility layer
-
-tshell maximizes JS/TS compatibility so LLM-generated code works without modification. See `js-compat.md` for the full matrix.
-
-**Namespaces** (`JSON`, `Math`, `Object`, `console`, `Array`, `Promise`): registered as TObject bindings in globals via `Interpreter.initBuiltinBindings()`. Command-backed namespaces map JS method names to tshell commands. Skipped if a toolkit already installed a richer version (e.g. MathToolkit). Use `registerNamespace(name, methods, globalFallback)` to add new ones.
-
-**Composition functions** (`all`, `race`, `any`, `chain`): regular functions bound in globals, not grammar keywords. They close over the Interpreter for parallel execution support. `Promise.all`/`Promise.race` resolve through the Promise namespace object.
-
-**Constructor aliases** (`String`, `Number`, `Boolean`, `parseInt`, `parseFloat`): resolved in `visitIdentifierExpr` via `JS_CONSTRUCTOR_ALIASES` map.
-
-**Method aliases** (`.toUpperCase()` → `upper()`, `.includes()` → `contains()`, etc.): resolved in `bindMethodOrHint()` in Interpreter.
-
-**Mutating array methods** (`push`, `pop`, `shift`, `unshift`, `splice`): handled via lvalue tracking in `visitPostfixExpr` + atomic read-modify-write via `Environment.mutate()`.
+## Docs
+- `js-compat.md` — adding JS compatibility features
+- `plan/todo.md` — session-scoped deferred work and known behaviors
+- `plan/plan.md` — prioritized roadmap

@@ -205,7 +205,8 @@ class TShell(
     const val PROMPT_SYNTAX = """## Syntax: JS subset
 let/const/var, function, =>, if/else, while, for/for..of/for..in, switch/case,
 try/catch/finally, throw, break, continue, destructuring, spread, ?., ??, ternary,
-template strings, regex, typeof, ===, bitwise. All work as expected.
+template strings, regex (/pattern/g for global), typeof, ===, **, bitwise. All work as expected.
+Loops support braceless bodies: for (let i = 0; i < n; i++) sum += i;
 Not supported: class, new, this, import, yield, async/await, generators.
 Last expression is the output. `let` returns null — end with the value you want.
 

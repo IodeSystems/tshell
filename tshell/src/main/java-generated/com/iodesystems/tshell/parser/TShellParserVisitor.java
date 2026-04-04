@@ -239,11 +239,19 @@ public interface TShellParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitTypeAnnotation(TShellParser.TypeAnnotationContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link TShellParser#expression}.
+	 * Visit a parse tree produced by the {@code assignExpr}
+	 * labeled alternative in {@link TShellParser#expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitExpression(TShellParser.ExpressionContext ctx);
+	T visitAssignExpr(TShellParser.AssignExprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code exprTernary}
+	 * labeled alternative in {@link TShellParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitExprTernary(TShellParser.ExprTernaryContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link TShellParser#ternaryExpr}.
 	 * @param ctx the parse tree
@@ -322,6 +330,12 @@ public interface TShellParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitMultiplicativeExpr(TShellParser.MultiplicativeExprContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link TShellParser#exponentiationExpr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitExponentiationExpr(TShellParser.ExponentiationExprContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link TShellParser#unaryExpr}.
 	 * @param ctx the parse tree
@@ -498,6 +512,13 @@ public interface TShellParserVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitNamedField(TShellParser.NamedFieldContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code methodField}
+	 * labeled alternative in {@link TShellParser#objectField}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMethodField(TShellParser.MethodFieldContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code shorthandField}
 	 * labeled alternative in {@link TShellParser#objectField}.

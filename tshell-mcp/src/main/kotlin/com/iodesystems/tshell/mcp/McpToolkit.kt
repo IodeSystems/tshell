@@ -41,6 +41,8 @@ class McpToolkit(
     val command: List<String>,
     val env: Map<String, String> = emptyMap(),
     val label: String? = null,
+    /** Short description of what this MCP server provides, shown in compact listings */
+    val description: String? = null,
   )
 
   private data class ConnectedServer(
@@ -66,15 +68,19 @@ class McpToolkit(
 
     if (tools.tools.isEmpty()) return
 
-    val toolDescriptions = mutableListOf<String>()
+    val toolSummaries = mutableListOf<String>()
 
     for (tool in tools.tools) {
       val schema = tool.inputSchema
       val paramNames = extractParamNames(schema)
       val signature = deriveSignature(schema)
       val description = tool.description ?: tool.name
+      // One-liner for compact listings: first sentence or first 80 chars
+      val brief = description.substringBefore(". ").take(80).let {
+        if (it.length < description.substringBefore(". ").length) "$it…" else it
+      }
 
-      toolDescriptions.add("  ${namespace}.${tool.name}($signature) — $description")
+      toolSummaries.add("  ${namespace}.${tool.name}($signature) — $brief")
 
       shell.register(
         name = tool.name,
@@ -93,11 +99,17 @@ class McpToolkit(
     val label = config.label ?: namespace
     shell.registerGuide(namespace, buildString {
       appendLine("$label — MCP server (${config.command.joinToString(" ")})")
-      appendLine()
-      appendLine("Available tools:")
-      for (desc in toolDescriptions) {
-        appendLine(desc)
+      if (config.description != null) {
+        appendLine()
+        appendLine(config.description)
       }
+      appendLine()
+      appendLine("Tools:")
+      for (summary in toolSummaries) {
+        appendLine(summary)
+      }
+      appendLine()
+      appendLine("Use help(\"$namespace.toolName\") for full details on any tool.")
     }.trimEnd())
   }
 

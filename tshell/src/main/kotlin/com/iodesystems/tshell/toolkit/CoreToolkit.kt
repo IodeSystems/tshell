@@ -98,29 +98,38 @@ IMPORTANT — ALGORITHM COMPLEXITY:
     function fib(n) { let a = 0; let b = 1; for (let i of range(0, n)) { let t = b; b = a + b; a = t }; return a }
 """.trimIndent())
 
-    shell.register("map", "input: array, fn: (T) => U", "applies fn to each element",
+    shell.register("map", "input: array|object, fn: (T, index?) => U", "applies fn to each element (with optional index); on objects maps values with (value, key)",
       listOf("""[1, 2, 3] |> map(x => x * 2)""", """map([1, 2, 3], x => x * 2)""")
     ) { args ->
-      val arr = requireArray("map", args[0])
       val fn = requireFn("map", args, 1)
-      TArray(arr.elements.map { fn.callAsync(listOf(it)) })
+      when (val input = args[0]) {
+        is TArray -> TArray(input.elements.mapIndexed { i, el -> fn.callAsync(listOf(el, TNumber(i.toDouble()))) })
+        is TObject -> TObject(input.fields.mapValues { (k, v) -> fn.callAsync(listOf(v, TString(k))) })
+        else -> throw TShellError.typeMismatch("map", "array or object", input,
+          "use |> to pipe into map, or |* to scatter elements")
+      }
     }
 
-    shell.register("filter", "input: array, fn: (T) => boolean", "keeps elements where fn is truthy",
+    shell.register("filter", "input: array|object, fn: (T, index?) => boolean", "keeps elements where fn is truthy; on objects filters entries with (value, key)",
       listOf("""[1, 2, 3, 4] |> filter(x => x > 2)""", """filter([1, 2, 3, 4], x => x > 2)""")
     ) { args ->
-      val arr = requireArray("filter", args[0])
       val fn = requireFn("filter", args, 1)
-      TArray(arr.elements.filter { fn.callAsync(listOf(it)).isTruthy() })
+      when (val input = args[0]) {
+        is TArray -> TArray(input.elements.filterIndexed { i, el -> fn.callAsync(listOf(el, TNumber(i.toDouble()))).isTruthy() })
+        is TObject -> TObject(input.fields.filter { (k, v) -> fn.callAsync(listOf(v, TString(k))).isTruthy() })
+        else -> throw TShellError.typeMismatch("filter", "array or object", input,
+          "use |> to pipe into filter, or |* to scatter elements")
+      }
     }
 
-    shell.register("reduce", "input: array, fn: (acc, T) => acc, init?: any = 0", "folds array to single value",
+    shell.register("reduce", "input: array, fn: (acc, T, index?) => acc, init?: any = 0", "folds array to single value",
       listOf("""[1, 2, 3] |> reduce((sum, x) => sum + x)""")
     ) { args ->
       val arr = requireArray("reduce", args[0])
       val fn = requireFn("reduce", args, 1)
       val init = args.getOrElse(2) { TNumber(0.0) }
-      arr.elements.fold(init) { acc, el -> fn.callAsync(listOf(acc, el)) }
+      var idx = 0
+      arr.elements.fold(init) { acc, el -> fn.callAsync(listOf(acc, el, TNumber((idx++).toDouble()))) }
     }
 
     shell.register("sort", "input: array, keyOrComparator?: string | (a, b) => number",
@@ -213,6 +222,13 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       TArray(trimmed.map { TString(it) })
     }
 
+    shell.register("chars", "input: string", "splits string into array of characters",
+      hidden = true
+    ) { args ->
+      val s = requireString("chars", args[0])
+      TArray(s.value.map { TString(it.toString()) })
+    }
+
     shell.register("columns", "input: string, indices: array, sep?: string|regex", "extract fields by index from delimited string",
       listOf(
         """"a,b,c,d" |> columns([1, 3])""",
@@ -294,6 +310,32 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       }
     }
 
+    shell.register("first", "input: array|string, n?: number", "first n elements (default 1 element, not wrapped)",
+      hidden = true
+    ) { args ->
+      val n = (args.getOrNull(1) as? TNumber)?.value?.toInt()
+      when (val input = args[0]) {
+        is TArray -> if (n != null) TArray(input.elements.take(n)) else input.elements.firstOrNull() ?: TNull
+        is TString -> if (n != null) TString(input.value.take(n)) else {
+          if (input.value.isEmpty()) TNull else TString(input.value.first().toString())
+        }
+        else -> throw TShellError.typeMismatch("first", "array or string", input)
+      }
+    }
+
+    shell.register("head", "input: array|string, n?: number", "first n elements (alias for first)",
+      hidden = true
+    ) { args ->
+      val n = (args.getOrNull(1) as? TNumber)?.value?.toInt()
+      when (val input = args[0]) {
+        is TArray -> if (n != null) TArray(input.elements.take(n)) else input.elements.firstOrNull() ?: TNull
+        is TString -> if (n != null) TString(input.value.take(n)) else {
+          if (input.value.isEmpty()) TNull else TString(input.value.first().toString())
+        }
+        else -> throw TShellError.typeMismatch("head", "array or string", input)
+      }
+    }
+
     shell.register("keys", "input: object", "object keys",
       listOf("""{a: 1, b: 2} |> keys()""", """keys({a: 1, b: 2})""")
     ) { args ->
@@ -343,28 +385,36 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       TObject(result)
     }
 
-    shell.register("countBy", "input: array, fn: (T) => string", "→ {key: count}",
+    shell.register("countBy", "input: array, fn?: (T) => string", "→ {key: count}; fn defaults to identity",
       listOf(
         """["a", "b", "a", "c", "a"] |> countBy(x => x)""",
+        """["a", "b", "a", "c", "a"] |> countBy()""",
         """[1, 2, 3, 4, 5] |> countBy(x => x % 2 == 0 ? "even" : "odd")"""
       )
     ) { args ->
       val arr = requireArray("countBy", args[0])
-      val fn = requireFn("countBy", args, 1)
+      val fn = args.getOrNull(1) as? TFunction
       val counts = linkedMapOf<String, Int>()
       for (elem in arr.elements) {
-        val key = fn.callAsync(listOf(elem))
+        val key = if (fn != null) fn.callAsync(listOf(elem)) else elem
         val keyStr = (key as? TString)?.value ?: key.toDisplayString()
         counts[keyStr] = (counts[keyStr] ?: 0) + 1
       }
       TObject(counts.mapValues { TNumber(it.value.toDouble()) })
     }
 
-    shell.register("range", "start: number, end: number", "[start, end) integer array",
-      listOf("""range(0, 5)""", """range(1, 4) |> map(x => x * 10)""")
+    shell.register("range", "end: number | start: number, end: number", "[start, end) integer array (single arg: range(0, end))",
+      listOf("""range(5)""", """range(0, 5)""", """range(1, 4) |> map(x => x * 10)""")
     ) { args ->
-      val start = requireNumber("range", args, 0).toInt()
-      val end = requireNumber("range", args, 1).toInt()
+      val start: Int
+      val end: Int
+      if (args.size == 1) {
+        start = 0
+        end = requireNumber("range", args, 0).toInt()
+      } else {
+        start = requireNumber("range", args, 0).toInt()
+        end = requireNumber("range", args, 1).toInt()
+      }
       TArray((start until end).map { TNumber(it.toDouble()) })
     }
 
@@ -466,6 +516,42 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       val s = requireString("charAt", args[0])
       val idx = requireNumber("charAt", args, 1).toInt()
       if (idx in s.value.indices) TString(s.value[idx].toString()) else TString("")
+    }
+
+    shell.register("charCodeAt", "input: string, index: number", "character code at index",
+      hidden = true
+    ) { args ->
+      val s = requireString("charCodeAt", args[0])
+      val idx = requireNumber("charCodeAt", args, 1).toInt()
+      if (idx in s.value.indices) TNumber(s.value[idx].code.toDouble()) else TNumber(Double.NaN)
+    }
+
+    shell.register("codePointAt", "input: string, index: number", "code point at index",
+      hidden = true
+    ) { args ->
+      val s = requireString("codePointAt", args[0])
+      val idx = requireNumber("codePointAt", args, 1).toInt()
+      if (idx in s.value.indices) TNumber(s.value.codePointAt(idx).toDouble()) else TNumber(Double.NaN)
+    }
+
+    shell.register("repeat", "input: string, count: number", "repeats string n times",
+      hidden = true
+    ) { args ->
+      val s = requireString("repeat", args[0])
+      val count = requireNumber("repeat", args, 1).toInt()
+      TString(s.value.repeat(count))
+    }
+
+    shell.register("trimStart", "input: string", "trims leading whitespace",
+      hidden = true
+    ) { args ->
+      TString(requireString("trimStart", args[0]).value.trimStart())
+    }
+
+    shell.register("trimEnd", "input: string", "trims trailing whitespace",
+      hidden = true
+    ) { args ->
+      TString(requireString("trimEnd", args[0]).value.trimEnd())
     }
 
     shell.register("at", "input: array|string, index: number", "element at index (supports negative)",
@@ -588,6 +674,15 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       TNumber(input.value.indexOf(substr).toDouble())
     }
 
+    shell.register("lastIndexOf", "input: string, substr: string", "last index of substring, or -1",
+      listOf(""""hello world hello" |> lastIndexOf("hello")""")
+    ) { args ->
+      val input = requireString("lastIndexOf", args[0])
+      val substr = (args.getOrElse(1) { TNull } as? TString)?.value
+        ?: throw TShellError.wrongArguments("lastIndexOf", "input: string, substr: string", args)
+      TNumber(input.value.lastIndexOf(substr).toDouble())
+    }
+
     shell.register("substring", "input: string, start: number, end?: number", "slice string",
       listOf(""""hello" |> substring(1, 4)""", """"hello" |> substring(2)""")
     ) { args ->
@@ -642,9 +737,11 @@ IMPORTANT — ALGORITHM COMPLEXITY:
           }
         }
         is TString -> {
-          // String pattern: find all matches (backward compat)
+          // String pattern: JS non-global semantics — [fullMatch, group1, ...] or null
           val regex = Regex(pattern.value)
-          TArray(regex.findAll(s).map { TString(it.value) as TShellValue }.toList())
+          val m = regex.find(s)
+          if (m == null) TNull
+          else TArray(m.groupValues.map { TString(it) as TShellValue })
         }
         else -> throw TShellError.wrongArguments("match", "input: string, pattern: string|regex", args)
       }
@@ -667,12 +764,14 @@ IMPORTANT — ALGORITHM COMPLEXITY:
 
     // --- Array methods that JS LLMs expect ---
 
-    shell.register("forEach", "input: array, fn: (T) => void", "applies fn to each element, returns null",
-      listOf("""[1, 2, 3] |> forEach(x => print(x))""")
+    shell.register("forEach", "input: array, fn: (T, index?) => void", "applies fn to each element (with optional index), returns null",
+      listOf("""[1, 2, 3] |> forEach(x => print(x))""", """[1, 2, 3] |> forEach((x, i) => print(i, x))""")
     ) { args ->
       val arr = requireArray("forEach", args[0])
       val fn = requireFn("forEach", args, 1)
-      for (el in arr.elements) { fn.callAsync(listOf(el)) }
+      for ((i, el) in arr.elements.withIndex()) {
+        fn.callAsync(listOf(el, TNumber(i.toDouble())))
+      }
       TNull
     }
 
@@ -696,6 +795,25 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       val a = requireArray("concat", args[0])
       val b = requireArray("concat", args.getOrElse(1) { TNull })
       TArray(a.elements + b.elements)
+    }
+
+    shell.register("push", "input: array, ...values: any", "appends values to array, returns array",
+      hidden = true
+    ) { args ->
+      val arr = requireArray("push", args[0])
+      val elems = arr.elements as? MutableList ?: arr.elements.toMutableList()
+      for (i in 1 until args.size) {
+        elems.add(args[i])
+      }
+      TArray(elems)
+    }
+
+    shell.register("pop", "input: array", "removes and returns last element",
+      hidden = true
+    ) { args ->
+      val arr = requireArray("pop", args[0])
+      val elems = arr.elements as? MutableList ?: return@register arr.elements.lastOrNull() ?: TNull
+      if (elems.isEmpty()) TNull else elems.removeAt(elems.size - 1)
     }
 
     shell.register("indexOf", "input: array|string, value: any", "first index of value, or -1",
@@ -856,6 +974,14 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       TNumber(base.pow(exp))
     }
 
+    shell.register("xor", "a: number, b: number", "bitwise XOR",
+      listOf("""xor(5, 3)""")
+    ) { args ->
+      val a = requireNumber("xor", args, 0).toInt()
+      val b = requireNumber("xor", args, 1).toInt()
+      TNumber((a xor b).toDouble())
+    }
+
     // --- Type operations ---
 
     shell.register("toArray", "value: any, mapFn?: (v, i) => T", "array-like→array; supports {length: n} and optional mapFn (Array.from semantics)",
@@ -966,6 +1092,62 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       TString(toJsonString(args[0]))
     }
 
+    // --- JS compat (hidden — not listed in help, but LLMs try them) ---
+
+    shell.register("parseInt", "value: any, radix?: number", "parse string to integer",
+      hidden = true
+    ) { args ->
+      val v = args.firstOrNull() ?: TNull
+      val radix = (args.getOrNull(1) as? TNumber)?.value?.toInt() ?: 10
+      when (v) {
+        is TNumber -> TNumber(v.value.toInt().toDouble())
+        is TString -> {
+          val parsed = try { Integer.parseInt(v.value.trim(), radix) } catch (_: Exception) { return@register TNumber(Double.NaN) }
+          TNumber(parsed.toDouble())
+        }
+        else -> TNumber(Double.NaN)
+      }
+    }
+
+    shell.register("parseFloat", "value: any", "parse string to float",
+      hidden = true
+    ) { args ->
+      val v = args.firstOrNull() ?: TNull
+      when (v) {
+        is TNumber -> v
+        is TString -> {
+          val parsed = v.value.trim().toDoubleOrNull() ?: return@register TNumber(Double.NaN)
+          TNumber(parsed)
+        }
+        else -> TNumber(Double.NaN)
+      }
+    }
+
+    shell.register("Number", "value: any", "convert to number",
+      hidden = true
+    ) { args ->
+      val v = args.firstOrNull() ?: TNull
+      when (v) {
+        is TNumber -> v
+        is TString -> TNumber(v.value.trim().toDoubleOrNull() ?: Double.NaN)
+        is TBoolean -> TNumber(if (v.value) 1.0 else 0.0)
+        is TNull -> TNumber(0.0)
+        else -> TNumber(Double.NaN)
+      }
+    }
+
+    shell.register("String", "value: any", "convert to string",
+      hidden = true
+    ) { args ->
+      TString((args.firstOrNull() ?: TNull).toDisplayString())
+    }
+
+    shell.register("Boolean", "value: any", "convert to boolean",
+      hidden = true
+    ) { args ->
+      TBoolean((args.firstOrNull() ?: TNull).isTruthy())
+    }
+
     return shell
   }
 
@@ -982,11 +1164,23 @@ IMPORTANT — ALGORITHM COMPLEXITY:
   }
 
   private fun requireArray(cmd: String, v: TShellValue): TArray {
-    return v as? TArray ?: throw TShellError.typeMismatch("pipe into $cmd", "array", v)
+    // Auto-convert objects to entries when array expected
+    if (v is TObject) {
+      return TArray(v.fields.map { (k, vv) -> TArray(listOf(TString(k), vv)) })
+    }
+    return v as? TArray ?: throw TShellError.typeMismatch(
+      "$cmd", "array", v,
+      if (v is TFunction) "Did you mean: array |> $cmd(fn)? The first argument must be an array."
+      else "use |> to pipe an array into $cmd, or |* to scatter elements"
+    )
   }
 
   private fun requireString(cmd: String, v: TShellValue): TString {
-    return v as? TString ?: throw TShellError.typeMismatch("pipe into $cmd", "string", v)
+    return v as? TString ?: throw TShellError.typeMismatch(
+      "$cmd", "string", v,
+      if (v is TArray) "use |* to apply $cmd to each element, or |> join() first"
+      else null
+    )
   }
 
   private fun buildKotlinRegex(r: TShellValue.TRegex): Regex {

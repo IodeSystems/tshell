@@ -99,10 +99,17 @@ class TShellRegexTest {
 
   // --- match with regex ---
 
-  @Test fun `match with string pattern backward compat`() {
+  @Test fun `match with string pattern returns first match with groups`() {
     val sh = shell()
+    // JS-compatible: string pattern = non-global, returns [fullMatch, group1, ...] or just [fullMatch]
     val result = sh.eval(""""abc123def456" |> match("[0-9]+")""")
-    assertEquals(result, TArray(listOf(TString("123"), TString("456"))))
+    assertEquals(result, TArray(listOf(TString("123"))))
+  }
+
+  @Test fun `match with string pattern capture groups`() {
+    val sh = shell()
+    val result = sh.eval(""""abc123" |> match("([a-z]+)([0-9]+)")""")
+    assertEquals(result, TArray(listOf(TString("abc123"), TString("abc"), TString("123"))))
   }
 
   @Test fun `match with regex returns capture groups`() {

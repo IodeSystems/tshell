@@ -283,12 +283,12 @@ class TShellNewFeaturesTest {
     assertEquals(TString("llo"), sh.eval("\"hello\" |> substring(2)"))
   }
 
-  @Test fun `match returns regex matches`() {
+  @Test fun `match returns first match with groups`() {
     val sh = shell()
+    // String pattern: JS non-global semantics — first match only
     val result = sh.eval("\"abc123def456\" |> match(\"[0-9]+\")") as TArray
-    assertEquals(2, result.elements.size)
+    assertEquals(1, result.elements.size)
     assertEquals(TString("123"), result.elements[0])
-    assertEquals(TString("456"), result.elements[1])
   }
 
   // --- Math operations ---
@@ -882,16 +882,36 @@ class TShellNewFeaturesTest {
     assertEquals(TNumber(12.0), sh.eval("255 & 12"))
   }
 
-  @Test fun `bitwise OR`() {
+  @Test fun `bitwise OR is unsupported error`() {
     val sh = shell()
-    assertEquals(TNumber(7.0), sh.eval("5 | 3"))
-    assertEquals(TNumber(15.0), sh.eval("12 | 3"))
+    val e = assertThrows<TShellError> { sh.eval("5 | 3") }
+    assertTrue(e.message!!.contains("not supported"))
+    assertTrue(e.message!!.contains("|>"))
+    assertTrue(e.message!!.contains("||"))
   }
 
-  @Test fun `bitwise XOR`() {
+  @Test fun `bitwise XOR operator is unsupported error`() {
     val sh = shell()
-    assertEquals(TNumber(6.0), sh.eval("5 ^ 3"))
-    assertEquals(TNumber(0.0), sh.eval("7 ^ 7"))
+    val e = assertThrows<TShellError> { sh.eval("5 ^ 3") }
+    assertTrue(e.message!!.contains("not supported"))
+    assertTrue(e.message!!.contains("**"))
+    assertTrue(e.message!!.contains("|."))
+  }
+
+  @Test fun `bitwise XOR via function`() {
+    val sh = shell()
+    assertEquals(TNumber(6.0), sh.eval("xor(5, 3)"))
+    assertEquals(TNumber(0.0), sh.eval("xor(7, 7)"))
+  }
+
+  @Test fun `bitwise OR via pipe-colon`() {
+    val sh = shell()
+    assertEquals(TNumber(7.0), sh.eval("5 |: 3"))
+  }
+
+  @Test fun `bitwise XOR via pipe-dot`() {
+    val sh = shell()
+    assertEquals(TNumber(6.0), sh.eval("5 |. 3"))
   }
 
   @Test fun `bitwise NOT`() {
@@ -922,12 +942,8 @@ class TShellNewFeaturesTest {
     // JS returns 4294967295 because JS converts to unsigned. We match Kotlin semantics.
   }
 
-  @Test fun `bitwise precedence matches JS`() {
+  @Test fun `bitwise precedence — shift vs comparison`() {
     val sh = shell()
-    // & binds tighter than |
-    assertEquals(TNumber(7.0), sh.eval("5 | 3 & 6"))   // 5 | (3 & 6) = 5 | 2 = 7
-    // ^ between & and |
-    assertEquals(TNumber(7.0), sh.eval("5 | 3 ^ 1"))   // 5 | (3 ^ 1) = 5 | 2 = 7
     // shift binds tighter than comparison
     assertEquals(TBoolean(true), sh.eval("1 << 3 == 8"))
   }
@@ -936,12 +952,14 @@ class TShellNewFeaturesTest {
     assertEquals(TNumber(1.0), shell().eval("let x = 3; x &= 1; x"))
   }
 
-  @Test fun `bitwise compound assignment OR`() {
-    assertEquals(TNumber(7.0), shell().eval("let x = 5; x |= 3; x"))
+  @Test fun `bitwise compound assignment OR is unsupported error`() {
+    val e = assertThrows<TShellError> { shell().eval("let x = 5; x |= 3; x") }
+    assertTrue(e.message!!.contains("not supported"))
   }
 
-  @Test fun `bitwise compound assignment XOR`() {
-    assertEquals(TNumber(6.0), shell().eval("let x = 5; x ^= 3; x"))
+  @Test fun `bitwise compound assignment XOR is unsupported error`() {
+    val e = assertThrows<TShellError> { shell().eval("let x = 5; x ^= 3; x") }
+    assertTrue(e.message!!.contains("not supported"))
   }
 
   @Test fun `bitwise compound assignment left shift`() {
@@ -1486,5 +1504,179 @@ class TShellNewFeaturesTest {
   @Test fun `standalone postfix increment still works`() {
     val sh = shell()
     assertEquals(TNumber(3.0), sh.eval("let i = 0; i++; i++; i++; i"))
+  }
+
+  // --- Exponentiation operator ** ---
+
+  @Test fun `exponentiation basic`() {
+    val sh = shell()
+    assertEquals(TNumber(8.0), sh.eval("2 ** 3"))
+  }
+
+  @Test fun `exponentiation right-associative`() {
+    val sh = shell()
+    // 2 ** 3 ** 2 = 2 ** 9 = 512 (right-associative)
+    assertEquals(TNumber(512.0), sh.eval("2 ** 3 ** 2"))
+  }
+
+  @Test fun `exponentiation with multiplication`() {
+    val sh = shell()
+    // 3 * 2 ** 3 = 3 * 8 = 24 (** binds tighter than *)
+    assertEquals(TNumber(24.0), sh.eval("3 * 2 ** 3"))
+  }
+
+  @Test fun `exponentiation assign`() {
+    val sh = shell()
+    assertEquals(TNumber(8.0), sh.eval("let x = 2; x **= 3; x"))
+  }
+
+  // --- number.toString() and toFixed() ---
+
+  @Test fun `number toString`() {
+    val sh = shell()
+    assertEquals(TString("42"), sh.eval("(42).toString()"))
+  }
+
+  @Test fun `number toString on float`() {
+    val sh = shell()
+    assertEquals(TString("3.14"), sh.eval("(3.14).toString()"))
+  }
+
+  @Test fun `number toFixed`() {
+    val sh = shell()
+    assertEquals(TString("3.14"), sh.eval("(3.14159).toFixed(2)"))
+  }
+
+  @Test fun `boolean toString`() {
+    val sh = shell()
+    assertEquals(TString("true"), sh.eval("true.toString()"))
+  }
+
+  // --- Braceless loops ---
+
+  @Test fun `braceless while`() {
+    val sh = shell()
+    assertEquals(TNumber(5.0), sh.eval("let i = 0; while (i < 5) i++; i"))
+  }
+
+  @Test fun `braceless for`() {
+    val sh = shell()
+    assertEquals(TNumber(10.0), sh.eval("let sum = 0; for (let i = 0; i < 5; i++) sum += i; sum"))
+  }
+
+  @Test fun `braceless for-of`() {
+    val sh = shell()
+    assertEquals(TNumber(6.0), sh.eval("let sum = 0; for (let x of [1,2,3]) sum += x; sum"))
+  }
+
+  @Test fun `nested braceless for-if`() {
+    val sh = shell()
+    // The pattern that failed in the LCS benchmark
+    assertEquals(TNumber(3.0), sh.eval("""
+      let count = 0;
+      for (let i = 0; i < 5; i++)
+        if (i > 1) count++;
+      count
+    """.trimIndent()))
+  }
+
+  // --- Comma expressions ---
+
+  @Test fun `comma expression in parens returns last`() {
+    val sh = shell()
+    assertEquals(TNumber(3.0), sh.eval("(1, 2, 3)"))
+  }
+
+  @Test fun `comma expression evaluates all and returns last`() {
+    val sh = shell()
+    assertEquals(TString("b"), sh.eval("""("a", "b")"""))
+  }
+
+  // --- Bare ref detection ---
+
+  @Test fun `bare ref in block is an error when non-terminal`() {
+    val sh = shell()
+    val e = assertThrows<TShellError> {
+      sh.eval("""
+        function f(x) {
+          x
+          let y = 1
+        }
+        f(5)
+      """.trimIndent())
+    }
+    assertTrue(e.message!!.contains("no effect"))
+    assertTrue(e.message!!.contains("return x"))
+  }
+
+  @Test fun `bare ref as last statement in block is fine`() {
+    val sh = shell()
+    // x as last statement of the if block is the return value
+    assertEquals(TNumber(5.0), sh.eval("function f(x) { if (x > 0) { x } else { 0 } }; f(5)"))
+  }
+
+  @Test fun `bare ref at top level is fine`() {
+    val sh = shell()
+    // Last expression at program level is the return value — not an error
+    assertEquals(TNumber(42.0), sh.eval("let x = 42; x"))
+  }
+
+  @Test fun `function call in block is not a bare ref`() {
+    val sh = shell()
+    // fn() has side effects — not flagged
+    assertEquals(TNumber(1.0), sh.eval("function f() { print(1) }; f()"))
+  }
+
+  // --- Numeric object keys ---
+
+  @Test fun `numeric object keys`() {
+    val sh = shell()
+    val result = sh.eval("{0: \"a\", 1: \"b\"}") as TObject
+    assertEquals(TString("a"), result.fields["0"])
+    assertEquals(TString("b"), result.fields["1"])
+  }
+
+  // --- Assignment as expression ---
+
+  @Test fun `assignment in arrow body`() {
+    val sh = shell()
+    assertEquals(TNumber(99.0), sh.eval("""
+      let obj = {a: 1};
+      let fn = x => obj.a = x;
+      fn(99)
+    """.trimIndent()))
+  }
+
+  // --- Destructured params ---
+
+  @Test fun `array destructured arrow param`() {
+    val sh = shell()
+    assertEquals(TNumber(10.0), sh.eval("[[1,2],[3,4]] |> map(([a,b]) => a + b) |> reduce((s,x) => s+x, 0)"))
+  }
+
+  // --- Map on objects ---
+
+  @Test fun `map over object values`() {
+    val sh = shell()
+    val result = sh.eval("{a: 1, b: 2} |> map(v => v * 10)") as TObject
+    assertEquals(TNumber(10.0), result.fields["a"])
+    assertEquals(TNumber(20.0), result.fields["b"])
+  }
+
+  // --- .len on arrays ---
+
+  @Test fun `array dot len as callable`() {
+    val sh = shell()
+    assertEquals(TNumber(3.0), sh.eval("[1,2,3].len()"))
+    // .len is a function (truthy), .length is the number directly
+    assertEquals(TNumber(3.0), sh.eval("[1,2,3].length"))
+    assertTrue(sh.eval("[1,2,3].len").isTruthy())
+  }
+
+  // --- lastIndexOf ---
+
+  @Test fun `lastIndexOf on string`() {
+    val sh = shell()
+    assertEquals(TNumber(8.0), sh.eval(""" "foo bar foo" |> lastIndexOf("foo") """))
   }
 }

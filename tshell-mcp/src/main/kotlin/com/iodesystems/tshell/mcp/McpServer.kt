@@ -117,15 +117,23 @@ class McpServer(
       helpHandler,
     )
 
-    val promptHandler: suspend (ClientConnection, CallToolRequest) -> CallToolResult = { _, _ ->
-      CallToolResult(content = listOf(TextContent(text = shell.toPrompt())))
+    val promptHandler: suspend (ClientConnection, CallToolRequest) -> CallToolResult = { _, request ->
+      val detail = request.arguments?.get("detail")?.jsonPrimitive?.booleanOrNull ?: false
+      CallToolResult(content = listOf(TextContent(text = shell.toPrompt(compact = !detail))))
     }
 
     server.addTool(
       Tool(
         name = "prompt",
-        description = "Get the tshell language reference and all available commands",
-        inputSchema = ToolSchema(),
+        description = "Get tshell language reference. Default: compact (names only, use help() for details). detail=true for full signatures.",
+        inputSchema = ToolSchema(
+          properties = JsonObject(mapOf(
+            "detail" to JsonObject(mapOf(
+              "type" to JsonPrimitive("boolean"),
+              "description" to JsonPrimitive("true for full signatures and descriptions; false (default) for compact listing"),
+            ))
+          )),
+        ),
       ),
       promptHandler,
     )

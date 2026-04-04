@@ -5,8 +5,8 @@ program : statement* EOF;
 
 statement
   : exportStatement
-  | letDecl
   | fnDecl
+  | letDecl
   | ifStatement
   | switchStatement
   | whileStatement
@@ -28,8 +28,11 @@ statement
 exportStatement   : EXPORT (letDecl | fnDecl | assignStatement);
 
 letDecl           : LET letBinding (COMMA letBinding)* SEMI?;
-letBinding        : destructure (ASSIGN expression)?;
-fnDecl            : FUNCTION (IDENTIFIER | FUNCTION) LPAREN paramList? RPAREN (COLON typeAnnotation)? block;
+letBinding        : destructure (COLON typeAnnotation)? (ASSIGN expression)?;
+fnDecl            : FUNCTION (IDENTIFIER | FUNCTION) LPAREN paramList? RPAREN (COLON typeAnnotation)? block
+                  | LET (IDENTIFIER | FUNCTION) LPAREN paramList? RPAREN (COLON typeAnnotation)? block
+                  | LET FUNCTION (IDENTIFIER | FUNCTION) LPAREN paramList? RPAREN (COLON typeAnnotation)? block
+                  ;
 tryCatchStatement : TRY block (CATCH LPAREN (IDENTIFIER | FUNCTION) RPAREN block)? (FINALLY block)?;
 throwStatement    : THROW expression SEMI?;
 returnStatement   : RETURN expression? SEMI?;
@@ -40,18 +43,18 @@ incrDecrStatement : assignTarget (INCREMENT | DECREMENT) SEMI?;
 expressionStatement : expression SEMI?;
 
 assignTarget      : (IDENTIFIER | FUNCTION) (DOT fieldName | LBRACKET expression RBRACKET)*;
-assignOp          : ASSIGN | PLUS_ASSIGN | MINUS_ASSIGN | STAR_ASSIGN | SLASH_ASSIGN | PERCENT_ASSIGN
+assignOp          : ASSIGN | PLUS_ASSIGN | MINUS_ASSIGN | STAR_STAR_ASSIGN | STAR_ASSIGN | SLASH_ASSIGN | PERCENT_ASSIGN
                    | AMP_ASSIGN | PIPE_ASSIGN | CARET_ASSIGN | LSHIFT_ASSIGN | RSHIFT_ASSIGN | URSHIFT_ASSIGN;
 
 ifStatement       : IF LPAREN expression RPAREN blockOrStatement (ELSE ifStatement | ELSE blockOrStatement)?;
 switchStatement   : SWITCH LPAREN expression RPAREN LBRACE switchCase* switchDefault? RBRACE;
 switchCase        : CASE expression COLON statement*;
 switchDefault     : DEFAULT COLON statement*;
-whileStatement    : WHILE LPAREN expression RPAREN block;
-doWhileStatement  : DO block WHILE LPAREN expression RPAREN SEMI?;
-forOfStatement    : FOR LPAREN LET destructure OF expression RPAREN block;
-forInStatement    : FOR LPAREN LET (IDENTIFIER | FUNCTION) IN expression RPAREN block;
-forStatement      : FOR LPAREN (forInitLet | forInitAssign)? SEMI expression? SEMI (forUpdateAssign | forUpdateIncrDecr)? RPAREN block;
+whileStatement    : WHILE LPAREN expression RPAREN blockOrStatement;
+doWhileStatement  : DO blockOrStatement WHILE LPAREN expression RPAREN SEMI?;
+forOfStatement    : FOR LPAREN LET destructure OF expression RPAREN blockOrStatement;
+forInStatement    : FOR LPAREN LET (IDENTIFIER | FUNCTION) IN expression RPAREN blockOrStatement;
+forStatement      : FOR LPAREN (forInitLet | forInitAssign)? SEMI expression? SEMI (forUpdateAssign | forUpdateIncrDecr)? RPAREN blockOrStatement;
 forInitLet        : LET (IDENTIFIER | FUNCTION) ASSIGN expression;
 forInitAssign     : assignTarget assignOp expression;
 forUpdateAssign   : assignTarget assignOp expression;
@@ -70,32 +73,36 @@ destructure
 
 objectDestructure : LBRACE destructureField (COMMA destructureField)* COMMA? RBRACE;
 destructureField  : (IDENTIFIER | FUNCTION) (COLON destructure)? (ASSIGN expression)?;
-arrayDestructure  : LBRACKET destructure (COMMA destructure)* COMMA? RBRACKET;
+arrayDestructure  : LBRACKET destructure (COMMA destructure)* (COMMA SPREAD (IDENTIFIER | FUNCTION))? COMMA? RBRACKET;
 
 // Parameters
 paramList         : param (COMMA param)*;
-param             : SPREAD? (IDENTIFIER | FUNCTION) (COLON typeAnnotation)? (ASSIGN expression)?;
+param             : SPREAD? (IDENTIFIER | FUNCTION | arrayDestructure | objectDestructure) (COLON typeAnnotation)? (ASSIGN expression)?;
 
 // Type annotations (lightweight, for documentation & errors)
 typeAnnotation    : IDENTIFIER (LBRACKET RBRACKET)* (PIPE typeAnnotation)?;
 
 // Expressions — precedence from lowest to highest
-expression        : ternaryExpr;
+expression
+  : assignTarget assignOp expression                     # assignExpr
+  | ternaryExpr                                          # exprTernary
+  ;
 
 ternaryExpr       : nullCoalesceExpr (QUESTION expression COLON expression)?;
 nullCoalesceExpr  : orExpr (NULLISH orExpr)*;
 
 orExpr            : andExpr (OR andExpr)*;
 andExpr           : bitwiseOrExpr (AND bitwiseOrExpr)*;
-bitwiseOrExpr     : bitwiseXorExpr (PIPE bitwiseXorExpr)*;
-bitwiseXorExpr    : bitwiseAndExpr (CARET bitwiseAndExpr)*;
+bitwiseOrExpr     : bitwiseXorExpr ((PIPE | BITOR) bitwiseXorExpr)*;
+bitwiseXorExpr    : bitwiseAndExpr ((CARET | BITXOR) bitwiseAndExpr)*;
 bitwiseAndExpr    : equalityExpr (AMP equalityExpr)*;
 equalityExpr      : comparisonExpr ((EQ | NEQ | SEQ | SNEQ) comparisonExpr)*;
 comparisonExpr    : shiftExpr ((LT | GT | LTE | GTE | IN) shiftExpr)*;
 shiftExpr         : pipeExpr ((LSHIFT | RSHIFT | URSHIFT) pipeExpr)*;
 pipeExpr          : additiveExpr ((PIPE_RIGHT | PIPE_SCATTER) additiveExpr (PIPE_LEFT additiveExpr)*)*;
 additiveExpr      : multiplicativeExpr ((PLUS | MINUS) multiplicativeExpr)*;
-multiplicativeExpr: unaryExpr ((STAR | SLASH | PERCENT) unaryExpr)*;
+multiplicativeExpr: exponentiationExpr ((STAR | SLASH | PERCENT) exponentiationExpr)*;
+exponentiationExpr: unaryExpr (STAR_STAR exponentiationExpr)?;
 
 unaryExpr
   : NOT unaryExpr
@@ -136,7 +143,7 @@ primaryExpr
   | functionExpr                                        # funcExpr
   | FUNCTION                                            # identifierExpr
   | REGEX                                                # regexExpr
-  | LPAREN expression RPAREN                            # parenExpr
+  | LPAREN expression (COMMA expression)* RPAREN         # parenExpr
   ;
 
 functionExpr  : FUNCTION (IDENTIFIER | FUNCTION)? LPAREN paramList? RPAREN (COLON typeAnnotation)? block;
@@ -156,6 +163,7 @@ arrayLiteral      : LBRACKET (spreadOrExpr (COMMA spreadOrExpr)* COMMA?)? RBRACK
 objectLiteral     : LBRACE (objectField (COMMA objectField)* COMMA?)? RBRACE;
 objectField
   : fieldName COLON expression                          # namedField
+  | (IDENTIFIER | FUNCTION) LPAREN paramList? RPAREN block  # methodField
   | IDENTIFIER                                          # shorthandField
   | FUNCTION                                            # shorthandField
   | SPREAD expression                                   # spreadField
@@ -163,7 +171,7 @@ objectField
   ;
 
 fieldName
-  : IDENTIFIER | STRING | LET | FUNCTION | IF | ELSE | WHILE | DO | FOR | OF | IN | RETURN
+  : IDENTIFIER | STRING | NUMBER | LET | FUNCTION | IF | ELSE | WHILE | DO | FOR | OF | IN | RETURN
   | BREAK | CONTINUE | EXPORT | SWITCH | CASE | DEFAULT | TRY | CATCH | FINALLY | THROW | TYPEOF
   | TRUE | FALSE | NULL
   ;

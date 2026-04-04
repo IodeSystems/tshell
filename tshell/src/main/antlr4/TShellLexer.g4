@@ -26,13 +26,15 @@ THROW   : 'throw';
 TYPEOF  : 'typeof';
 TRUE    : 'true';
 FALSE   : 'false';
-NULL    : 'null';
+NULL    : 'null' | 'undefined';
 
 
 // Operators (multi-char before single-char for correct matching)
 PIPE_RIGHT  : '|>';
 PIPE_SCATTER: '|*';
 PIPE_LEFT   : '<|';
+BITOR       : '|:';
+BITXOR      : '|.';
 PIPE        : '|';
 ARROW       : '=>';
 SPREAD      : '...';
@@ -40,6 +42,7 @@ INCREMENT   : '++';
 DECREMENT   : '--';
 PLUS_ASSIGN : '+=';
 MINUS_ASSIGN: '-=';
+STAR_STAR_ASSIGN: '**=';
 STAR_ASSIGN : '*=';
 SLASH_ASSIGN: '/=';
 PERCENT_ASSIGN: '%=';
@@ -51,6 +54,7 @@ URSHIFT_ASSIGN: '>>>=';
 RSHIFT_ASSIGN: '>>=';
 PLUS        : '+';
 MINUS       : '-';
+STAR_STAR   : '**';
 STAR        : '*';
 
 // Regex literal — must come BEFORE SLASH.

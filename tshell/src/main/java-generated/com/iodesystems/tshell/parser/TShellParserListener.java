@@ -388,15 +388,29 @@ public interface TShellParserListener extends ParseTreeListener {
 	 */
 	void exitTypeAnnotation(TShellParser.TypeAnnotationContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link TShellParser#expression}.
+	 * Enter a parse tree produced by the {@code assignExpr}
+	 * labeled alternative in {@link TShellParser#expression}.
 	 * @param ctx the parse tree
 	 */
-	void enterExpression(TShellParser.ExpressionContext ctx);
+	void enterAssignExpr(TShellParser.AssignExprContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link TShellParser#expression}.
+	 * Exit a parse tree produced by the {@code assignExpr}
+	 * labeled alternative in {@link TShellParser#expression}.
 	 * @param ctx the parse tree
 	 */
-	void exitExpression(TShellParser.ExpressionContext ctx);
+	void exitAssignExpr(TShellParser.AssignExprContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code exprTernary}
+	 * labeled alternative in {@link TShellParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterExprTernary(TShellParser.ExprTernaryContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code exprTernary}
+	 * labeled alternative in {@link TShellParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitExprTernary(TShellParser.ExprTernaryContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link TShellParser#ternaryExpr}.
 	 * @param ctx the parse tree
@@ -527,6 +541,16 @@ public interface TShellParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitMultiplicativeExpr(TShellParser.MultiplicativeExprContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link TShellParser#exponentiationExpr}.
+	 * @param ctx the parse tree
+	 */
+	void enterExponentiationExpr(TShellParser.ExponentiationExprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link TShellParser#exponentiationExpr}.
+	 * @param ctx the parse tree
+	 */
+	void exitExponentiationExpr(TShellParser.ExponentiationExprContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link TShellParser#unaryExpr}.
 	 * @param ctx the parse tree
@@ -827,6 +851,18 @@ public interface TShellParserListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitNamedField(TShellParser.NamedFieldContext ctx);
+	/**
+	 * Enter a parse tree produced by the {@code methodField}
+	 * labeled alternative in {@link TShellParser#objectField}.
+	 * @param ctx the parse tree
+	 */
+	void enterMethodField(TShellParser.MethodFieldContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code methodField}
+	 * labeled alternative in {@link TShellParser#objectField}.
+	 * @param ctx the parse tree
+	 */
+	void exitMethodField(TShellParser.MethodFieldContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code shorthandField}
 	 * labeled alternative in {@link TShellParser#objectField}.

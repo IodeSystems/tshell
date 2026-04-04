@@ -13,6 +13,10 @@ sealed class TShellValue {
     val name: String?,
     val params: List<String>,
     val body: FunctionBody,
+    /** Default value AST nodes per param (null = no default). Same length as params. */
+    val paramDefaults: List<Any?> = emptyList(),
+    /** Full ParamContext AST nodes for destructured params. Same length as params. */
+    val paramNodes: List<Any?> = emptyList(),
   ) : TShellValue() {
     /** Suspend-capable call — use this from coroutine contexts (native commands, etc.) */
     suspend fun callAsync(args: List<TShellValue>): TShellValue = when (val b = body) {
