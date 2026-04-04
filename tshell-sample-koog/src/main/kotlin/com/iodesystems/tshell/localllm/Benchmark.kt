@@ -8,7 +8,6 @@ import ai.koog.agents.core.feature.AIAgentGraphFeature
 import ai.koog.agents.core.feature.config.FeatureConfig
 import ai.koog.agents.core.feature.pipeline.AIAgentGraphPipeline
 import ai.koog.agents.core.tools.ToolRegistry
-import ai.koog.agents.core.tools.reflect.tools
 import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
 import ai.koog.prompt.llm.LLModel
@@ -54,7 +53,7 @@ class BenchmarkTracingFeatureFactory(val state: BenchmarkTracingState) :
   AIAgentGraphFeature<BenchmarkTracingConfig, BenchmarkTracingFeatureFactory> {
   override val key = AIAgentStorageKey<BenchmarkTracingFeatureFactory>("BenchmarkTracing")
 
-  override fun createInitialConfig() = BenchmarkTracingConfig()
+  override fun createInitialConfig(agentConfig: AIAgentConfig) = BenchmarkTracingConfig()
 
   override fun install(
     config: BenchmarkTracingConfig,

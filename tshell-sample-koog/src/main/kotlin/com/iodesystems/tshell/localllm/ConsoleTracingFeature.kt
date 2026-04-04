@@ -1,5 +1,6 @@
 package com.iodesystems.tshell.localllm
 
+import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.entity.AIAgentStorageKey
 import ai.koog.agents.core.feature.AIAgentGraphFeature
 import ai.koog.agents.core.feature.config.FeatureConfig
@@ -10,7 +11,7 @@ class ConsoleTracingConfig : FeatureConfig()
 object ConsoleTracingFeature : AIAgentGraphFeature<ConsoleTracingConfig, ConsoleTracingFeature> {
   override val key = AIAgentStorageKey<ConsoleTracingFeature>("ConsoleTracing")
 
-  override fun createInitialConfig() = ConsoleTracingConfig()
+  override fun createInitialConfig(agentConfig: AIAgentConfig) = ConsoleTracingConfig()
 
   override fun install(
     config: ConsoleTracingConfig,
