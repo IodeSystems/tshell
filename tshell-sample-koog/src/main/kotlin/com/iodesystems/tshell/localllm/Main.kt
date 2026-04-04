@@ -177,7 +177,8 @@ class LocalLlmChat : SuspendingCliktCommand(
     // Benchmark mode
     if (benchmark) {
       val benchmarkPrompt = systemPrompt + "\n\n" +
-        "IMPORTANT: Always use the tshell tool to compute answers. " +
+        "IMPORTANT: You MUST call the tshell tool for every question — never answer from memory. " +
+        "Even if you know the answer, compute it with tshell to verify. " +
         "Return ONLY the raw result from the tool — no explanation, no markdown, no wrapping. Just the value."
       try {
         runBenchmarks(

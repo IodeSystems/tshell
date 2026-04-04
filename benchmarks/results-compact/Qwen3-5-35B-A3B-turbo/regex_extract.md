@@ -1,8 +1,8 @@
 # regex_extract
 
 **Status:** PASS
-**Duration:** 4151ms
-**Tool calls:** 1
+**Duration:** 6654ms
+**Tool calls:** 2
 
 ## Prompt
 
@@ -16,16 +16,29 @@
 
 ## Attempts
 
-### Attempt 1 (OK)
+### Attempt 1 (ERROR)
 
 ```javascript
-let text = "contact alice@example.com or bob@test.org for info";
-let pattern = /[\w.-]+@[\w.-]+\.[\w.-]+/g;
-text.match(pattern)
+
 ```
 
 **Result:**
 ```
-"[\"alice@example.com\", \"bob@test.org\"]"
+"ERROR: '|' is not supported. Did you mean:
+  |>   pipe        (value |> function)
+  |*   scatter     (array |* function)
+  ||   logical OR  (a || b)
+  |:   bitwise OR  (5 |: 3 → 7)"
+```
+
+### Attempt 2 (OK)
+
+```javascript
+
+```
+
+**Result:**
+```
+"["alice@example.com", "bob@test.org"]"
 ```
 

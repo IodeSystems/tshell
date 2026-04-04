@@ -1,7 +1,7 @@
 # escape_heavy_strings
 
 **Status:** PASS
-**Duration:** 7596ms
+**Duration:** 7287ms
 **Tool calls:** 1
 
 ## Prompt
@@ -23,12 +23,7 @@ report_2024.csv | App.kt | prod_dump_2024-01-15.sql
 ### Attempt 1 (OK)
 
 ```javascript
-let paths = ["C:\\Users\\admin\\Documents\\report_2024.csv", "D:\\Projects\\src\\main\\kotlin\\App.kt", "E:\\backup\\db\\prod_dump_2024-01-15.sql"];
-let result = paths
-  |> map(p => p.match(r"\\([^\\]+)$"))
-  |> map(m => m[1])
-  |> join(" | ");
-result
+let paths = [
 ```
 
 **Result:**

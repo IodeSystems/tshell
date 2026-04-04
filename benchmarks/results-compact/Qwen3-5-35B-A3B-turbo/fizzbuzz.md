@@ -1,7 +1,7 @@
 # fizzbuzz
 
 **Status:** PASS
-**Duration:** 6440ms
+**Duration:** 6517ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,11 +19,11 @@
 ### Attempt 1 (OK)
 
 ```javascript
-range(1, 16) |> map(n => (n % 15 == 0) ? "FizzBuzz" : (n % 3 == 0) ? "Fizz" : (n % 5 == 0) ? "Buzz" : str(n))
+range(1, 16) |> map(n => n % 15 == 0 ? 
 ```
 
 **Result:**
 ```
-"[\"1\", \"2\", \"Fizz\", \"4\", \"Buzz\", \"Fizz\", \"7\", \"8\", \"Fizz\", \"Buzz\", \"11\", \"Fizz\", \"13\", \"14\", \"FizzBuzz\"]"
+"["1", "2", "Fizz", "4", "Buzz", "Fizz", "7", "8", "Fizz", "Buzz", "11", "Fizz", "13", "14", "FizzBuzz"]"
 ```
 

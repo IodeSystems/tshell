@@ -1,7 +1,7 @@
 # anagram_check
 
 **Status:** PASS
-**Duration:** 3971ms
+**Duration:** 4531ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,8 +19,8 @@ true
 ### Attempt 1 (OK)
 
 ```javascript
-let isAnagram = (a, b) => a.lower().split('').sort().join('') == b.lower().split('').sort().join('');
-isAnagram('listen', 'silent')
+let isAnagram = (a, b) => {
+    let sortChars = (s) => s.lower().split(
 ```
 
 **Result:**

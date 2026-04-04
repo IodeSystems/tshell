@@ -1,7 +1,7 @@
 # event_emitter
 
 **Status:** PASS
-**Duration:** 6436ms
+**Duration:** 6337ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,26 +19,16 @@
 ### Attempt 1 (OK)
 
 ```javascript
-let handlers = {};
-
-function on(event, handler) {
-  if (!handlers[event]) {
-    handlers[event] = [];
-  }
-  handlers[event].push(handler);
-}
-
-function emit(event, data) {
-  if (!handlers[event]) {
-    return [];
-  }
-  return handlers[event].map(h => h(data));
-}
-
-on("data", d => d);
-on("data", d => d * 2);
-
-emit("data", 42);
+let events = {};
+let on = (event, handler) => {
+  if (!events[event]) events[event] = [];
+  events[event].push(handler);
+};
+let emit = (event, data) => {
+  if (!events[event]) return [];
+  return events[event].map(h => h(data));
+};
+on(
 ```
 
 **Result:**

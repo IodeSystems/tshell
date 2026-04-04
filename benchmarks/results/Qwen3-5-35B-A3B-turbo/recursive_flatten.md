@@ -1,7 +1,7 @@
 # recursive_flatten
 
 **Status:** PASS
-**Duration:** 5773ms
+**Duration:** 5842ms
 **Tool calls:** 1
 
 ## Prompt
@@ -20,19 +20,19 @@
 
 ```javascript
 let flatten = (arr) => {
+  if (!isArray(arr)) {
+    return [arr];
+  }
   let result = [];
   for (let item of arr) {
-    if (isArray(item)) {
-      result = result.concat(flatten(item));
-    } else {
-      result.push(item);
-    }
+    result = concat(result, flatten(item));
   }
   return result;
 };
 
 let nested = [[1,[2]],[[3,4],[5]]];
-flatten(nested)
+let flat = flatten(nested);
+flat
 ```
 
 **Result:**

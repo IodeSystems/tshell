@@ -1,7 +1,7 @@
 # factorial
 
 **Status:** PASS
-**Duration:** 26386ms
+**Duration:** 27380ms
 **Tool calls:** 2
 
 ## Prompt
@@ -24,7 +24,11 @@ range(1, 8) | reduce((a, x) => a * x, 1)
 
 **Result:**
 ```
-"ERROR: '|' is not supported. Did you mean:\n  |>   pipe        (value |> function)\n  |*   scatter     (array |* function)\n  ||   logical OR  (a || b)\n  |:   bitwise OR  (5 |: 3 → 7)"
+"ERROR: '|' is not supported. Did you mean:
+  |>   pipe        (value |> function)
+  |*   scatter     (array |* function)
+  ||   logical OR  (a || b)
+  |:   bitwise OR  (5 |: 3 → 7)"
 ```
 
 ### Attempt 2 (OK)

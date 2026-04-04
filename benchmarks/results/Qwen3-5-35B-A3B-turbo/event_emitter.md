@@ -1,7 +1,7 @@
 # event_emitter
 
 **Status:** PASS
-**Duration:** 7637ms
+**Duration:** 6340ms
 **Tool calls:** 1
 
 ## Prompt
@@ -27,19 +27,11 @@ let on = (event, handler) => {
 };
 
 let emit = (event, data) => {
-  let results = [];
-  if (handlers[event]) {
-    for (let handler of handlers[event]) {
-      results.push(handler(data));
-    }
-  }
-  return results;
+  if (!handlers[event]) return [];
+  return handlers[event].map(h => h(data));
 };
 
-on("data", d => d);
-on("data", d => d * 2);
-let result = emit("data", 42);
-result
+on(
 ```
 
 **Result:**

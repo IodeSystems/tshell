@@ -1,8 +1,8 @@
 # count_letter_r_strawberry
 
 **Status:** PASS
-**Duration:** 3060ms
-**Tool calls:** 1
+**Duration:** 5925ms
+**Tool calls:** 2
 
 ## Prompt
 
@@ -16,10 +16,28 @@
 
 ## Attempts
 
-### Attempt 1 (OK)
+### Attempt 1 (ERROR)
 
 ```javascript
-"strawberry".match(/r/g) |> len()
+
+```
+
+**Result:**
+```
+"ERROR: Type mismatch in reduce
+
+  Expected: array
+  Got:      boolean (false)
+
+  Hint: use |> to pipe an array into reduce, or |* to scatter elements
+
+  at line 1:0"
+```
+
+### Attempt 2 (OK)
+
+```javascript
+
 ```
 
 **Result:**

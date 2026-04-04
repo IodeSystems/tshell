@@ -1,7 +1,7 @@
 # nth_prime
 
 **Status:** PASS
-**Duration:** 6594ms
+**Duration:** 5943ms
 **Tool calls:** 1
 
 ## Prompt
@@ -21,21 +21,19 @@
 ```javascript
 let isPrime = n => {
   if (n < 2) return false;
-  if (n === 2) return true;
-  if (n % 2 === 0) return false;
-  for (let i = 3; i * i <= n; i += 2) {
+  for (let i = 2; i * i <= n; i++) {
     if (n % i === 0) return false;
   }
   return true;
 };
 
 let primes = [];
-let num = 2;
-while (primes.length < 50) {
-  if (isPrime(num)) primes.push(num);
-  num++;
+let candidate = 2;
+while (primes.len() < 50) {
+  if (isPrime(candidate)) primes.push(candidate);
+  candidate++;
 }
-primes[49];
+primes.last()
 ```
 
 **Result:**

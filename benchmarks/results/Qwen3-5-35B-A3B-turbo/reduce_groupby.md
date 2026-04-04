@@ -1,8 +1,8 @@
 # reduce_groupby
 
 **Status:** PASS
-**Duration:** 7760ms
-**Tool calls:** 1
+**Duration:** 12420ms
+**Tool calls:** 2
 
 ## Prompt
 
@@ -16,20 +16,32 @@
 
 ## Attempts
 
-### Attempt 1 (OK)
+### Attempt 1 (ERROR)
 
 ```javascript
-[{type:"fruit",name:"apple"},{type:"veg",name:"carrot"},{type:"fruit",name:"banana"},{type:"veg",name:"pea"}]
-|> reduce((acc, item) => {
-  let key = item.type;
-  if (!acc[key]) acc[key] = [];
-  acc[key].push(item);
-  return acc;
-}, {})
+let data = [{type:
 ```
 
 **Result:**
 ```
-"{fruit: [{type: \"fruit\", name: \"apple\"}, {type: \"fruit\", name: \"banana\"}], veg: [{type: \"veg\", name: \"carrot\"}, {type: \"veg\", name: \"pea\"}]}"
+"ERROR: Type mismatch in reduce
+
+  Expected: array
+  Got:      function (function <anonymous>(acc, item))
+
+  Hint: Did you mean: array |> reduce(fn)? The first argument must be an array.
+
+  at line 2:6"
+```
+
+### Attempt 2 (OK)
+
+```javascript
+let data = [{type:
+```
+
+**Result:**
+```
+"{fruit: [{type: "fruit", name: "apple"}, {type: "fruit", name: "banana"}], veg: [{type: "veg", name: "carrot"}, {type: "veg", name: "pea"}]}"
 ```
 

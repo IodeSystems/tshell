@@ -212,9 +212,9 @@ val BENCHMARK_SUITE = listOf(
   ),
   BenchmarkTeaser(
     name = "roman_numerals",
-    prompt = "In tshell, write a function that converts an integer to a Roman numeral string. Convert 1994.",
-    formatHint = "Use the tshell tool. Return just the Roman numeral string.",
-    validator = { it.contains("MCMXCIV") }
+    prompt = "In tshell, write a function that converts an integer to a Roman numeral string. Convert 3749 and 2867, return them joined with a comma.",
+    formatHint = "Use the tshell tool. Return the two Roman numeral strings joined with a comma.",
+    validator = { it.contains("MMMDCCXLIX") && it.contains("MMDCCCLXVII") }
   ),
   BenchmarkTeaser(
     name = "merge_sort",

@@ -1,7 +1,7 @@
 # collatz_steps
 
 **Status:** PASS
-**Duration:** 5516ms
+**Duration:** 5592ms
 **Tool calls:** 1
 
 ## Prompt
@@ -29,7 +29,7 @@ while (n !== 1) {
   }
   steps++;
 }
-steps
+steps;
 ```
 
 **Result:**

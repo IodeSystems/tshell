@@ -1,7 +1,7 @@
 # fibonacci_memo
 
 **Status:** PASS
-**Duration:** 4880ms
+**Duration:** 6658ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,14 +19,15 @@
 ### Attempt 1 (OK)
 
 ```javascript
-let cache = {};
-let fib = n => {
-  if (n < 2) return n;
-  if (cache[n] !== undefined) return cache[n];
-  cache[n] = fib(n - 1) + fib(n - 2);
-  return cache[n];
+let fib = function(n: number, cache: object = {}) {
+  if (n in cache) return cache[n];
+  if (n <= 1) return n;
+  let result = fib(n - 1, cache) + fib(n - 2, cache);
+  cache[n] = result;
+  return result;
 };
-fib(20)
+
+fib(20, {})
 ```
 
 **Result:**

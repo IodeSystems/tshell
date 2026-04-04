@@ -1,8 +1,8 @@
 # reduce_groupby
 
 **Status:** PASS
-**Duration:** 7316ms
-**Tool calls:** 1
+**Duration:** 12019ms
+**Tool calls:** 2
 
 ## Prompt
 
@@ -16,19 +16,29 @@
 
 ## Attempts
 
-### Attempt 1 (OK)
+### Attempt 1 (ERROR)
 
 ```javascript
-[{type:"fruit",name:"apple"},{type:"veg",name:"carrot"},{type:"fruit",name:"banana"},{type:"veg",name:"pea"}]
-|> reduce((acc, item) => {
-  if (!acc[item.type]) acc[item.type] = [];
-  acc[item.type].push(item);
-  return acc;
-}, {})
+let data = [{type:
 ```
 
 **Result:**
 ```
-"{fruit: [{type: \"fruit\", name: \"apple\"}, {type: \"fruit\", name: \"banana\"}], veg: [{type: \"veg\", name: \"carrot\"}, {type: \"veg\", name: \"pea\"}]}"
+"ERROR: '|' is not supported. Did you mean:
+  |>   pipe        (value |> function)
+  |*   scatter     (array |* function)
+  ||   logical OR  (a || b)
+  |:   bitwise OR  (5 |: 3 → 7)"
+```
+
+### Attempt 2 (OK)
+
+```javascript
+let data = [{type:
+```
+
+**Result:**
+```
+"{fruit: [{type: "fruit", name: "apple"}, {type: "fruit", name: "banana"}], veg: [{type: "veg", name: "carrot"}, {type: "veg", name: "pea"}]}"
 ```
 

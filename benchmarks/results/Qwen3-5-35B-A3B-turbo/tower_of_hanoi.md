@@ -1,7 +1,7 @@
 # tower_of_hanoi
 
 **Status:** PASS
-**Duration:** 3175ms
+**Duration:** 3130ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,7 +19,7 @@
 ### Attempt 1 (OK)
 
 ```javascript
-pow(2, 10) - 1
+2 ** 10 - 1
 ```
 
 **Result:**

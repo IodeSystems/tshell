@@ -1,7 +1,7 @@
 # curry
 
 **Status:** PASS
-**Duration:** 3643ms
+**Duration:** 3689ms
 **Tool calls:** 1
 
 ## Prompt
@@ -19,11 +19,9 @@
 ### Attempt 1 (OK)
 
 ```javascript
-function curriedAdd(a) {
-  return (b) => a + b;
-}
+let curriedAdd = (a) => (b) => a + b;
 let add5 = curriedAdd(5);
-return add5(3);
+add5(3)
 ```
 
 **Result:**

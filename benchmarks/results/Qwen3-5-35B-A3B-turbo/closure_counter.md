@@ -1,8 +1,8 @@
 # closure_counter
 
 **Status:** PASS
-**Duration:** 4773ms
-**Tool calls:** 1
+**Duration:** 1859ms
+**Tool calls:** 0
 
 ## Prompt
 
@@ -12,31 +12,5 @@
 
 ```
 5
-```
-
-## Attempts
-
-### Attempt 1 (OK)
-
-```javascript
-let createCounter = () => {
-    let count = 0;
-    return {
-        increment: () => count++,
-        get: () => count
-    };
-};
-let counter = createCounter();
-counter.increment();
-counter.increment();
-counter.increment();
-counter.increment();
-counter.increment();
-counter.get();
-```
-
-**Result:**
-```
-"5"
 ```
 
