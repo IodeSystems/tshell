@@ -237,6 +237,46 @@ typeof(help())
 // → string
 ```
 
+### Method Syntax
+
+Commands also work as methods. `receiver.command(args)` is sugar for `command(receiver, args)`.
+JS method names are aliased automatically — `toUpperCase()` maps to `upper()`,
+`toLowerCase()` to `lower()`, `includes()` to `contains()`, etc. Mutating array methods
+(`push`, `pop`, `shift`, `unshift`, `splice`) modify the array in-place. `pop()` and
+`shift()` return the removed element (JS semantics).
+
+JS-style method chaining:
+
+```javascript
+"hello world".split(" ").map(w => w.toUpperCase()).join(" ")
+// → HELLO WORLD
+```
+
+Mutating methods modify the array:
+
+```javascript
+let arr = [3, 1, 2];
+arr.push(4);
+arr.sort()
+// → [1, 2, 3, 4]
+```
+
+pop returns the removed element:
+
+```javascript
+let arr = [10, 20, 30];
+let removed = arr.pop();
+{removed: removed, arr: arr}
+// → {removed: 30, arr: [10, 20]}
+```
+
+Method chaining for anagram check:
+
+```javascript
+"listen".split("").sort().join("") == "silent".split("").sort().join("")
+// → true
+```
+
 ### Export and State
 
 State is discarded after each `eval` call unless explicitly exported. Use `export` to
@@ -384,7 +424,7 @@ val shell = TShell(
 | **CLI** | `tshell-cli` | Standalone MCP server binary with toolkits, external server composition, JDBC drivers. See [`tshell-cli/README.md`](tshell-cli/README.md) |
 | **Browser** | `tshell-playwright` | Lean Playwright automation (12 commands, ~800 chars context vs ~8KB for `@playwright/mcp`). See [`tshell-playwright/README.md`](tshell-playwright/README.md) |
 | **SQL** | `tshell-sql` | JDBC toolkit: `db.query`, `db.tables`, `db.schema`. Read-only by default |
-| **Sample** | `tshell-sample-koog` | CLI chat agent + benchmarks (100% on 32 challenges). See [`tshell-sample-koog/README.md`](tshell-sample-koog/README.md) |
+| **Sample** | `tshell-sample-koog` | CLI chat agent + benchmarks (33 challenges). See [`tshell-sample-koog/README.md`](tshell-sample-koog/README.md) |
 
 ## Context Budget
 
