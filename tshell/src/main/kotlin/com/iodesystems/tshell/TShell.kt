@@ -203,7 +203,8 @@ class TShell(
      * that every example line is valid tshell.
      */
     const val PROMPT_SYNTAX = """## Syntax: JS subset
-let/const/var, function, =>, if/else, while, for/for..of/for..in, switch/case,
+let/const/var, function, =>, if/else (parens optional with braces), while (parens optional with braces),
+for/for..of/for..in, switch/case,
 try/catch/finally, throw, break, continue, destructuring, spread, ?., ??, ternary,
 template strings, regex (/pattern/g for global), typeof, ===, **, bitwise. All work as expected.
 Loops support braceless bodies: for (let i = 0; i < n; i++) sum += i;

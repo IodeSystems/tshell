@@ -344,15 +344,7 @@ class Interpreter(
 
         // No viable alternative
         msg.contains("no viable alternative") -> {
-          // Detect `if expr {` without parens (Go/Python style)
-          val trimmedBefore = before.trimStart()
-          if (trimmedBefore.startsWith("if ") && !trimmedBefore.startsWith("if (")) {
-            "if requires parentheses around the condition\n\n  Example: if (condition) { ... }\n  Got:     $trimmedBefore"
-          } else if (trimmedBefore.startsWith("while ") && !trimmedBefore.startsWith("while (")) {
-            "while requires parentheses around the condition\n\n  Example: while (condition) { ... }"
-          } else {
-            "Unexpected syntax at '$got'\n\n  This doesn't look like a valid statement or expression"
-          }
+          "Unexpected syntax at '$got'\n\n  This doesn't look like a valid statement or expression"
         }
 
         // Default: pass through ANTLR's message but add a hint
@@ -811,14 +803,18 @@ class Interpreter(
 
     suspend fun visitIfStatement(ctx: IfStatementContext): TShellValue {
       val condition = eval(ctx.expression())
+      val parenless = ctx.LPAREN() == null
       return if (condition.isTruthy()) {
-        visitBlockOrStatement(ctx.blockOrStatement(0))
+        if (parenless) visitBlock(ctx.block(0)) else visitBlockOrStatement(ctx.blockOrStatement(0))
       } else if (ctx.ifStatement() != null) {
         visitIfStatement(ctx.ifStatement())
-      } else if (ctx.blockOrStatement().size > 1) {
-        visitBlockOrStatement(ctx.blockOrStatement(1))
       } else {
-        TShellValue.TNull
+        val hasElse = if (parenless) ctx.block().size > 1 else ctx.blockOrStatement().size > 1
+        if (hasElse) {
+          if (parenless) visitBlock(ctx.block(1)) else visitBlockOrStatement(ctx.blockOrStatement(1))
+        } else {
+          TShellValue.TNull
+        }
       }
     }
 
@@ -867,10 +863,11 @@ class Interpreter(
 
     suspend fun visitWhileStatement(ctx: WhileStatementContext): TShellValue {
       var result: TShellValue = TShellValue.TNull
+      val parenless = ctx.LPAREN() == null
       while (eval(ctx.expression()).isTruthy()) {
         step(ctx)
         try {
-          result = visitBlockOrStatement(ctx.blockOrStatement())
+          result = if (parenless) visitBlock(ctx.block()) else visitBlockOrStatement(ctx.blockOrStatement())
         } catch (_: BreakSignal) {
           break
         } catch (_: ContinueSignal) {

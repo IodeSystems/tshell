@@ -1679,4 +1679,52 @@ class TShellNewFeaturesTest {
     val sh = shell()
     assertEquals(TNumber(8.0), sh.eval(""" "foo bar foo" |> lastIndexOf("foo") """))
   }
+
+  // --- Parenless if/while ---
+
+  @Test fun `parenless if`() {
+    val sh = shell()
+    assertEquals(TString("big"), sh.eval("""let x = 10; if x > 5 { "big" } else { "small" }"""))
+  }
+
+  @Test fun `parenless if else-if chain`() {
+    val sh = shell()
+    assertEquals(TString("medium"), sh.eval("""
+      let x = 5
+      if x > 10 { "big" } else if x > 3 { "medium" } else { "small" }
+    """))
+  }
+
+  @Test fun `parenless if without else`() {
+    val sh = shell()
+    assertEquals(TString("yes"), sh.eval("""if true { "yes" }"""))
+  }
+
+  @Test fun `parenless if false without else returns null`() {
+    val sh = shell()
+    assertEquals(TNull, sh.eval("""if false { "yes" }"""))
+  }
+
+  @Test fun `parenless while`() {
+    val sh = shell()
+    assertEquals(TNumber(10.0), sh.eval("""
+      let x = 0
+      let i = 0
+      while i < 5 {
+        x = x + i
+        i = i + 1
+      }
+      x
+    """))
+  }
+
+  @Test fun `paren if still works`() {
+    val sh = shell()
+    assertEquals(TString("big"), sh.eval("""let x = 10; if (x > 5) { "big" } else { "small" }"""))
+  }
+
+  @Test fun `paren if braceless body still works`() {
+    val sh = shell()
+    assertEquals(TString("yes"), sh.eval("""if (true) "yes" """))
+  }
 }

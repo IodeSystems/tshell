@@ -46,11 +46,15 @@ assignTarget      : (IDENTIFIER | FUNCTION) (DOT fieldName | LBRACKET expression
 assignOp          : ASSIGN | PLUS_ASSIGN | MINUS_ASSIGN | STAR_STAR_ASSIGN | STAR_ASSIGN | SLASH_ASSIGN | PERCENT_ASSIGN
                    | AMP_ASSIGN | PIPE_ASSIGN | CARET_ASSIGN | LSHIFT_ASSIGN | RSHIFT_ASSIGN | URSHIFT_ASSIGN;
 
-ifStatement       : IF LPAREN expression RPAREN blockOrStatement (ELSE ifStatement | ELSE blockOrStatement)?;
+ifStatement       : IF LPAREN expression RPAREN blockOrStatement (ELSE ifStatement | ELSE blockOrStatement)?
+                  | IF expression block (ELSE ifStatement | ELSE block)?
+                  ;
 switchStatement   : SWITCH LPAREN expression RPAREN LBRACE switchCase* switchDefault? RBRACE;
 switchCase        : CASE expression COLON statement*;
 switchDefault     : DEFAULT COLON statement*;
-whileStatement    : WHILE LPAREN expression RPAREN blockOrStatement;
+whileStatement    : WHILE LPAREN expression RPAREN blockOrStatement
+                  | WHILE expression block
+                  ;
 doWhileStatement  : DO blockOrStatement WHILE LPAREN expression RPAREN SEMI?;
 forOfStatement    : FOR LPAREN LET destructure OF expression RPAREN blockOrStatement;
 forInStatement    : FOR LPAREN LET (IDENTIFIER | FUNCTION) IN expression RPAREN blockOrStatement;

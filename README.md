@@ -8,7 +8,7 @@ One `eval` tool instead of twenty. Sandboxed JS syntax your LLM already knows.
 - **KV cache friendly** — system prompt doesn't change when tools change; `help()` discovers capabilities at runtime
 - **No double-encoding corruption** — raw template strings (`r\`...\``) let LLMs write backslashes, quotes, and code exactly as-is. No more `\\\\` spirals when editing files with Windows paths or regex patterns
 
-**Total stdlib context cost: 6.2KB / 1758 tokens** (full) · **2.7KB / 757 tokens** (compact) — cl100k_base
+**Total stdlib context cost: 6.3KB / 1770 tokens** (full) · **2.8KB / 769 tokens** (compact) — cl100k_base
 
 ## Quick Start
 
@@ -394,9 +394,9 @@ computed at build time from actual prompt content.
 | Component | Full | Compact | What it contains |
 | --- | ---: | ---: | --- |
 | Tool description | 112 | 112 | One-line summary in the tool schema |
-| Syntax reference | 435 | 435 | JS subset, pipes, raw templates, composition |
+| Syntax reference | 447 | 447 | JS subset, pipes, raw templates, composition |
 | Command signatures | 1183 | 182 | All stdlib commands (compact: names only, use `help()`) |
-| **Total** | **1758** | **757** | |
+| **Total** | **1770** | **769** | |
 
 Compact mode lists command names only — the LLM calls `help("name")` for signatures and `help("namespace")` for namespace overviews.
 For comparison: a typical MCP tool server exposes 10-20 tools at ~200 tokens each (2000-4000 tokens).
