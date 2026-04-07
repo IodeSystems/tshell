@@ -1465,14 +1465,22 @@ class Interpreter(
         name = method,
         params = emptyList(),
         body = TShellValue.FunctionBody.Native { args ->
-          // Mutate the array in-place (JS reference semantics)
+          // For pop/shift, we need to return the removed element (JS semantics)
+          // but still write back the array for the binding.
+          var removedElement: TShellValue? = null
           env.mutate(lvaluePath) { current ->
             val currentArr = current as? TShellValue.TArray ?: arr
             val elems = currentArr.elements as MutableList
             when (method) {
               "push" -> { elems.addAll(args); currentArr }
-              "pop" -> { if (elems.isNotEmpty()) elems.removeAt(elems.size - 1); currentArr }
-              "shift" -> { if (elems.isNotEmpty()) elems.removeAt(0); currentArr }
+              "pop" -> {
+                removedElement = if (elems.isNotEmpty()) elems.removeAt(elems.size - 1) else TShellValue.TNull
+                currentArr
+              }
+              "shift" -> {
+                removedElement = if (elems.isNotEmpty()) elems.removeAt(0) else TShellValue.TNull
+                currentArr
+              }
               "unshift" -> { elems.addAll(0, args); currentArr }
               "splice" -> {
                 val start = ((args.getOrNull(0) as? TShellValue.TNumber)?.value?.toInt() ?: 0)
@@ -1487,6 +1495,7 @@ class Interpreter(
               else -> currentArr
             }
           }
+          removedElement ?: arr
         }
       )
     }

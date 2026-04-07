@@ -19,7 +19,7 @@ class TShellTools(
     val raw = try {
       shell.evalExported(code).toDisplayString()
     } catch (e: Exception) {
-      "ERROR: ${e.message}"
+      "ERROR: ${e.message ?: "${e::class.simpleName}: ${e.cause?.message ?: "unexpected internal error"}"}"
     }
     if (raw.length > maxOutputBytes) {
       return raw.substring(0, maxOutputBytes) +

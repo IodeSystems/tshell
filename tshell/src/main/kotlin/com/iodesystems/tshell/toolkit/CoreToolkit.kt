@@ -871,7 +871,7 @@ IMPORTANT — ALGORITHM COMPLEXITY:
       when (val input = args[0]) {
         is TArray -> {
           val end = (args.getOrNull(2) as? TNumber)?.value?.toInt() ?: input.elements.size
-          TArray(input.elements.subList(start.coerceAtLeast(0), end.coerceAtMost(input.elements.size)))
+          TArray(input.elements.subList(start.coerceAtLeast(0), end.coerceAtMost(input.elements.size)).toMutableList())
         }
         is TString -> {
           val end = (args.getOrNull(2) as? TNumber)?.value?.toInt() ?: input.value.length
