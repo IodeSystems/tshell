@@ -1,58 +1,58 @@
 # Benchmark Results
 
-**Model:** Qwen3-5-35B-A3B-turbo
-**Date:** 2026-04-04T05:25:57.623687669
-**Score:** 33/33
+**Model:** Qwen3-5-35B-A3B-APEX
+**Date:** 2026-04-07T01:14:12.265611114
+**Score:** 31/33
 
 | Teaser | Status | Tool Calls | Errors | Duration | Details |
 |--------|--------|-----------|--------|----------|---------|
-| factorial | PASS | 0 | 0 | 4953ms | [detail](Qwen3-5-35B-A3B-turbo/factorial.md) |
-| fizzbuzz | PASS | 1 | 0 | 6517ms | [detail](Qwen3-5-35B-A3B-turbo/fizzbuzz.md) |
-| closure_counter | PASS | 0 | 0 | 1736ms | [detail](Qwen3-5-35B-A3B-turbo/closure_counter.md) |
-| pipe_chain | PASS | 1 | 0 | 4938ms | [detail](Qwen3-5-35B-A3B-turbo/pipe_chain.md) |
-| recursive_flatten | PASS | 1 | 0 | 5781ms | [detail](Qwen3-5-35B-A3B-turbo/recursive_flatten.md) |
-| object_transform | PASS | 2 | 1 | 8431ms | [detail](Qwen3-5-35B-A3B-turbo/object_transform.md) |
-| string_manipulation | PASS | 1 | 0 | 3751ms | [detail](Qwen3-5-35B-A3B-turbo/string_manipulation.md) |
-| reduce_groupby | PASS | 2 | 1 | 12019ms | [detail](Qwen3-5-35B-A3B-turbo/reduce_groupby.md) |
-| bitwise_flags | PASS | 1 | 0 | 5767ms | [detail](Qwen3-5-35B-A3B-turbo/bitwise_flags.md) |
-| scatter_parallel | PASS | 1 | 0 | 3803ms | [detail](Qwen3-5-35B-A3B-turbo/scatter_parallel.md) |
-| fibonacci_memo | PASS | 1 | 0 | 5101ms | [detail](Qwen3-5-35B-A3B-turbo/fibonacci_memo.md) |
-| regex_extract | PASS | 2 | 1 | 6654ms | [detail](Qwen3-5-35B-A3B-turbo/regex_extract.md) |
-| matrix_multiply | PASS | 1 | 0 | 7662ms | [detail](Qwen3-5-35B-A3B-turbo/matrix_multiply.md) |
-| deep_clone | PASS | 1 | 0 | 9154ms | [detail](Qwen3-5-35B-A3B-turbo/deep_clone.md) |
-| binary_search | PASS | 2 | 0 | 11938ms | [detail](Qwen3-5-35B-A3B-turbo/binary_search.md) |
-| curry | PASS | 1 | 0 | 3689ms | [detail](Qwen3-5-35B-A3B-turbo/curry.md) |
-| linked_list | PASS | 1 | 0 | 6014ms | [detail](Qwen3-5-35B-A3B-turbo/linked_list.md) |
-| pipe_wordfreq | PASS | 1 | 0 | 4857ms | [detail](Qwen3-5-35B-A3B-turbo/pipe_wordfreq.md) |
-| roman_numerals | PASS | 1 | 0 | 8711ms | [detail](Qwen3-5-35B-A3B-turbo/roman_numerals.md) |
-| merge_sort | PASS | 1 | 0 | 11687ms | [detail](Qwen3-5-35B-A3B-turbo/merge_sort.md) |
-| event_emitter | PASS | 1 | 0 | 6337ms | [detail](Qwen3-5-35B-A3B-turbo/event_emitter.md) |
-| pipe_csv_parse | PASS | 1 | 0 | 7980ms | [detail](Qwen3-5-35B-A3B-turbo/pipe_csv_parse.md) |
-| count_letter_r_strawberry | PASS | 1 | 0 | 3074ms | [detail](Qwen3-5-35B-A3B-turbo/count_letter_r_strawberry.md) |
-| count_letter_l_lullaby | PASS | 3 | 2 | 7507ms | [detail](Qwen3-5-35B-A3B-turbo/count_letter_l_lullaby.md) |
-| count_words_with_letter | PASS | 1 | 0 | 3673ms | [detail](Qwen3-5-35B-A3B-turbo/count_words_with_letter.md) |
-| anagram_check | PASS | 1 | 0 | 4126ms | [detail](Qwen3-5-35B-A3B-turbo/anagram_check.md) |
-| nth_prime | PASS | 1 | 0 | 5943ms | [detail](Qwen3-5-35B-A3B-turbo/nth_prime.md) |
-| collatz_steps | PASS | 1 | 0 | 5922ms | [detail](Qwen3-5-35B-A3B-turbo/collatz_steps.md) |
-| digit_sum_power | PASS | 1 | 0 | 3928ms | [detail](Qwen3-5-35B-A3B-turbo/digit_sum_power.md) |
-| longest_common_subsequence | PASS | 1 | 0 | 8935ms | [detail](Qwen3-5-35B-A3B-turbo/longest_common_subsequence.md) |
-| balanced_parens | PASS | 1 | 0 | 7158ms | [detail](Qwen3-5-35B-A3B-turbo/balanced_parens.md) |
-| tower_of_hanoi | PASS | 1 | 0 | 2983ms | [detail](Qwen3-5-35B-A3B-turbo/tower_of_hanoi.md) |
-| escape_heavy_strings | PASS | 1 | 0 | 7287ms | [detail](Qwen3-5-35B-A3B-turbo/escape_heavy_strings.md) |
+| factorial | PASS | 1 | 0 | 6816ms | [detail](Qwen3-5-35B-A3B-APEX/factorial.md) |
+| fizzbuzz | PASS | 1 | 0 | 6328ms | [detail](Qwen3-5-35B-A3B-APEX/fizzbuzz.md) |
+| closure_counter | PASS | 0 | 0 | 1806ms | [detail](Qwen3-5-35B-A3B-APEX/closure_counter.md) |
+| pipe_chain | PASS | 1 | 0 | 4818ms | [detail](Qwen3-5-35B-A3B-APEX/pipe_chain.md) |
+| recursive_flatten | PASS | 1 | 0 | 6710ms | [detail](Qwen3-5-35B-A3B-APEX/recursive_flatten.md) |
+| object_transform | PASS | 1 | 0 | 5011ms | [detail](Qwen3-5-35B-A3B-APEX/object_transform.md) |
+| string_manipulation | PASS | 1 | 0 | 3874ms | [detail](Qwen3-5-35B-A3B-APEX/string_manipulation.md) |
+| reduce_groupby | PASS | 1 | 0 | 7197ms | [detail](Qwen3-5-35B-A3B-APEX/reduce_groupby.md) |
+| bitwise_flags | PASS | 1 | 0 | 5571ms | [detail](Qwen3-5-35B-A3B-APEX/bitwise_flags.md) |
+| scatter_parallel | PASS | 0 | 0 | 1945ms | [detail](Qwen3-5-35B-A3B-APEX/scatter_parallel.md) |
+| fibonacci_memo | PASS | 1 | 0 | 6762ms | [detail](Qwen3-5-35B-A3B-APEX/fibonacci_memo.md) |
+| regex_extract | PASS | 2 | 0 | 5938ms | [detail](Qwen3-5-35B-A3B-APEX/regex_extract.md) |
+| matrix_multiply | PASS | 1 | 0 | 5896ms | [detail](Qwen3-5-35B-A3B-APEX/matrix_multiply.md) |
+| deep_clone | PASS | 1 | 0 | 9022ms | [detail](Qwen3-5-35B-A3B-APEX/deep_clone.md) |
+| binary_search | PASS | 1 | 0 | 6504ms | [detail](Qwen3-5-35B-A3B-APEX/binary_search.md) |
+| curry | PASS | 1 | 0 | 5047ms | [detail](Qwen3-5-35B-A3B-APEX/curry.md) |
+| linked_list | PASS | 1 | 0 | 6448ms | [detail](Qwen3-5-35B-A3B-APEX/linked_list.md) |
+| pipe_wordfreq | FAIL | 1 | 0 | 5097ms | [detail](Qwen3-5-35B-A3B-APEX/pipe_wordfreq.md) |
+| roman_numerals | PASS | 1 | 0 | 9514ms | [detail](Qwen3-5-35B-A3B-APEX/roman_numerals.md) |
+| merge_sort | PASS | 1 | 0 | 12245ms | [detail](Qwen3-5-35B-A3B-APEX/merge_sort.md) |
+| event_emitter | PASS | 1 | 0 | 7290ms | [detail](Qwen3-5-35B-A3B-APEX/event_emitter.md) |
+| pipe_csv_parse | PASS | 1 | 0 | 9159ms | [detail](Qwen3-5-35B-A3B-APEX/pipe_csv_parse.md) |
+| count_letter_r_strawberry | PASS | 1 | 0 | 3599ms | [detail](Qwen3-5-35B-A3B-APEX/count_letter_r_strawberry.md) |
+| count_letter_l_lullaby | PASS | 1 | 0 | 3561ms | [detail](Qwen3-5-35B-A3B-APEX/count_letter_l_lullaby.md) |
+| count_words_with_letter | PASS | 1 | 0 | 4005ms | [detail](Qwen3-5-35B-A3B-APEX/count_words_with_letter.md) |
+| anagram_check | FAIL | 5 | 5 | 30005ms | [detail](Qwen3-5-35B-A3B-APEX/anagram_check.md) (TIMEOUT (30s)) |
+| nth_prime | PASS | 1 | 0 | 9921ms | [detail](Qwen3-5-35B-A3B-APEX/nth_prime.md) |
+| collatz_steps | PASS | 1 | 0 | 5455ms | [detail](Qwen3-5-35B-A3B-APEX/collatz_steps.md) |
+| digit_sum_power | PASS | 1 | 0 | 4233ms | [detail](Qwen3-5-35B-A3B-APEX/digit_sum_power.md) |
+| longest_common_subsequence | PASS | 2 | 1 | 17637ms | [detail](Qwen3-5-35B-A3B-APEX/longest_common_subsequence.md) |
+| balanced_parens | PASS | 1 | 0 | 6830ms | [detail](Qwen3-5-35B-A3B-APEX/balanced_parens.md) |
+| tower_of_hanoi | PASS | 1 | 0 | 3439ms | [detail](Qwen3-5-35B-A3B-APEX/tower_of_hanoi.md) |
+| escape_heavy_strings | PASS | 1 | 0 | 7157ms | [detail](Qwen3-5-35B-A3B-APEX/escape_heavy_strings.md) |
 
 ## Summary
 
-All benchmarks passed.
+Failed: pipe_wordfreq, anagram_check
 
 ## Aggregate Stats
 
 | Metric | Value |
 |--------|-------|
-| Pass rate | 100% (33/33) |
-| First-try success | 26/33 |
+| Pass rate | 93% (31/33) |
+| First-try success | 27/33 |
 | Total tool calls | 37 |
-| Tool errors | 5 |
+| Tool errors | 6 |
 | Avg tool calls/teaser | 1.1 |
-| Total time | 208s |
-| Avg time/teaser | 6s |
-| Error recovery rate | 4/5 recovered |
+| Total time | 234s |
+| Avg time/teaser | 7s |
+| Error recovery rate | 1/6 recovered |
