@@ -22,7 +22,7 @@ dependencies {
   // compileOnly("org.postgresql:postgresql:42.7.4")
 
   testImplementation(libs.testng)
-  testImplementation("com.h2database:h2:2.3.232")
+  testImplementation("com.h2database:h2:2.4.240")
 }
 
 tasks.test {
