@@ -1,7 +1,7 @@
 [versions]
 antlr4 = "4.13.2"
 clikt = "5.1.0"
-jsoup = "1.22.1"
+jsoup = "1.22.2"
 jtokkit = "1.1.0"
 koog = "0.7.3"
 kotlin = "2.3.20"
