@@ -1,5 +1,9 @@
 # tshell
 
+> **Archived — superseded by [IodeSystems/mcpshell](https://github.com/IodeSystems/mcpshell).**
+> mcpshell is the current implementation (a Go rewrite) and is where all
+> development continues. This Kotlin repo is kept for history only.
+
 One `eval` tool instead of twenty. Sandboxed JS syntax your LLM already knows.
 
 - **LLMs compute instead of reasoning** — "how many R's in strawberry?" becomes `.split("").filter(c => c == "r").length`
